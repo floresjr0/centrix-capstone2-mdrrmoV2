@@ -4,10 +4,10 @@
 date_default_timezone_set('Asia/Manila');
 
 // TODO: Change these to your actual database credentials.
-const DB_HOST = 'sql306.infinityfree.com';
-const DB_NAME = 'if0_41493614_db_centrix';
-const DB_USER = 'if0_41493614';
-const DB_PASS = 'VjnIl9huO5vA72I';
+const DB_HOST = 'localhost';
+const DB_NAME = 'mdrrmo_db';
+const DB_USER = 'root';
+const DB_PASS = '';
 
 // Mail settings for PHPMailer (configure according to your SMTP provider)
 const MAIL_FROM_ADDRESS  = 'marteflores07@gmail.com';
