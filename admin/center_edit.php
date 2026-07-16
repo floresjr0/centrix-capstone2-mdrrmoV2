@@ -168,7 +168,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                     <div class="form-header">
                         <h2><?= $id ? 'Edit Evacuation Center' : 'Add New Evacuation Center' ?></h2>
                         <p>
-                            <i class="fas fa-map-marker-alt" style="color:var(--primary-red)"></i>
                             <?= $id ? 'Update center information' : 'Register a new evacuation center' ?>
                         </p>
                     </div>
@@ -186,7 +185,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                     <form method="post" class="form">
 
                         <div class="form-group">
-                            <label class="form-label"><i class="fas fa-building"></i> Center Name <span class="form-required">*</span></label>
+                            <label class="form-label">Center Name <span class="form-required">*</span></label>
                             <input type="text" name="name" required class="form-control"
                                    placeholder="e.g., San Juan Elementary School"
                                    value="<?= htmlspecialchars($_POST['name'] ?? ($center['name'] ?? '')) ?>">
@@ -194,7 +193,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label"><i class="fas fa-map-pin"></i> Barangay <span class="form-required">*</span></label>
+                                <label class="form-label">Barangay <span class="form-required">*</span></label>
                                 <?php $selectedBarangay = $_POST['barangay_id'] ?? ($center['barangay_id'] ?? ''); ?>
                                 <select name="barangay_id" required class="form-control">
                                     <option value="">-- Select Barangay --</option>
@@ -206,7 +205,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label class="form-label"><i class="fas fa-flag"></i> Status <span class="form-required">*</span></label>
+                                <label class="form-label">Status <span class="form-required">*</span></label>
                                 <?php $selectedStatus = $_POST['status'] ?? ($center['status'] ?? 'available'); ?>
                                 <select name="status" class="form-control">
                                     <?php foreach (['available','near_capacity','full','temp_shelter','closed'] as $s): ?>
@@ -219,7 +218,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label"><i class="fas fa-map-marker-alt"></i> Address <span class="form-required">*</span></label>
+                            <label class="form-label">Address <span class="form-required">*</span></label>
                             <input type="text" name="address" required class="form-control"
                                    placeholder="Street address, landmarks"
                                    value="<?= htmlspecialchars($_POST['address'] ?? ($center['address'] ?? '')) ?>">
@@ -227,13 +226,13 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label"><i class="fas fa-crosshairs"></i> Latitude <span class="form-required">*</span></label>
+                                <label class="form-label">Latitude <span class="form-required">*</span></label>
                                 <input type="text" name="lat" id="inputLat" required class="form-control"
                                        placeholder="e.g., 15.0828"
                                        value="<?= htmlspecialchars($_POST['lat'] ?? ($center['lat'] ?? '')) ?>">
                             </div>
                             <div class="form-group">
-                                <label class="form-label"><i class="fas fa-crosshairs"></i> Longitude <span class="form-required">*</span></label>
+                                <label class="form-label">Longitude <span class="form-required">*</span></label>
                                 <input type="text" name="lng" id="inputLng" required class="form-control"
                                        placeholder="e.g., 120.9417"
                                        value="<?= htmlspecialchars($_POST['lng'] ?? ($center['lng'] ?? '')) ?>">
@@ -246,19 +245,19 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label"><i class="fas fa-users"></i> Max People <span class="form-required">*</span></label>
+                                <label class="form-label">Max People <span class="form-required">*</span></label>
                                 <input type="number" name="max_capacity_people" min="1" required class="form-control"
                                        value="<?= htmlspecialchars($_POST['max_capacity_people'] ?? ($center['max_capacity_people'] ?? '0')) ?>">
                             </div>
                             <div class="form-group">
-                                <label class="form-label"><i class="fas fa-home"></i> Max Families</label>
+                                <label class="form-label">Max Families</label>
                                 <input type="number" name="max_capacity_families" min="0" class="form-control"
                                        value="<?= htmlspecialchars($_POST['max_capacity_families'] ?? ($center['max_capacity_families'] ?? '0')) ?>">
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label"><i class="fas fa-user-tie"></i> Coordinator</label>
+                            <label class="form-label">Coordinator</label>
                             <?php $selectedCoord = $_POST['coordinator_user_id'] ?? ($center['coordinator_user_id'] ?? ''); ?>
                             <select name="coordinator_user_id" class="form-control">
                                 <option value="">-- None Assigned --</option>
@@ -268,11 +267,11 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                            <div class="form-hint"><i class="fas fa-info-circle"></i> Assign a barangay coordinator to this center</div>
+                            <div class="form-hint">Assign a barangay coordinator to this center</div>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label"><i class="fas fa-sticky-note"></i> Notes</label>
+                            <label class="form-label">Notes</label>
                             <textarea name="notes" rows="3" class="form-control"
                                       placeholder="Additional information, nearby landmarks, facilities..."><?= htmlspecialchars($_POST['notes'] ?? ($center['notes'] ?? '')) ?></textarea>
                         </div>

@@ -301,7 +301,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
             <!-- Capacity Overview -->
             <div class="card">
                 <div class="card-header">
-                    <h3><i class="fas fa-chart-pie"></i> Overall Capacity Overview</h3>
+                    <h3>Overall Capacity Overview</h3>
                     <span class="badge green"><?php echo $grandCap > 0 ? round(($grandTotal/$grandCap)*100) : 0; ?>% Occupied</span>
                 </div>
                 <div class="overview-grid">
@@ -327,7 +327,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
             <!-- Centers Summary Table -->
             <div class="card">
                 <div class="card-header">
-                    <h3><i class="fas fa-building"></i> Evacuation Centers Summary</h3>
+                    <h3>Evacuation Centers Summary</h3>
                     <span class="badge"><?php echo count($evacSummary); ?> Centers</span>
                 </div>
 
@@ -344,7 +344,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                 </div>
 
                 <?php if (empty($evacSummary)): ?>
-                    <div class="empty-state"><i class="fas fa-inbox"></i><p>No evacuation registrations recorded yet.</p></div>
+                    <div class="empty-state"><p>No evacuation registrations recorded yet.</p></div>
                 <?php else: ?>
                 <div class="table-wrap">
                     <table class="data-table" id="centersTable">
@@ -431,7 +431,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
             <?php if (!empty($barangaySummary)): ?>
             <div class="card">
                 <div class="card-header">
-                    <h3><i class="fas fa-map-marked-alt"></i> By Barangay of Origin</h3>
+                    <h3>By Barangay of Origin</h3>
                     <span class="badge blue"><?php echo count($barangaySummary); ?> Barangays</span>
                 </div>
                 <div class="brgy-grid">
@@ -455,7 +455,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
             <!-- Recent Registrations -->
             <div class="card">
                 <div class="card-header">
-                    <h3><i class="fas fa-clipboard-list"></i> Recent Registrations</h3>
+                    <h3>Recent Registrations</h3>
                     <span class="badge"><?php echo count($recentRegs); ?> Records</span>
                 </div>
                 <?php if (empty($recentRegs)): ?>
@@ -512,7 +512,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
             <!-- Archive History -->
             <div class="card">
                 <div class="card-header">
-                    <h3><i class="fas fa-archive"></i> Archive History</h3>
+                    <h3>Archive History</h3>
                     <div style="display:flex;gap:8px;align-items:center">
                         <span class="badge"><?php echo count($archiveBatches); ?> Batches</span>
                         <?php if (!empty($archiveBatches)): ?>

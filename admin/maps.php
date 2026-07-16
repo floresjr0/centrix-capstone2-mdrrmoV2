@@ -205,7 +205,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                 <!-- Map Card -->
                 <div class="card map-card">
                     <div class="map-header">
-                        <h3><i class="fas fa-map"></i> San Ildefonso, Bulacan</h3>
+                        <h3>San Ildefonso, Bulacan</h3>
                         <div class="map-legend" style="position:static;box-shadow:none;border:1px solid #EDE7E7">
                             <div class="legend-item"><span class="legend-dot" style="background:var(--map-green)"></span>Available</div>
                             <div class="legend-item"><span class="legend-dot" style="background:var(--map-yellow)"></span>Near Cap</div>
@@ -229,7 +229,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                     <!-- Centers list — same card style as index.php Evacuation Centers -->
                     <div class="card" style="overflow:hidden">
                         <div class="card-header">
-                            <h3><i class="fas fa-map-pin"></i> Evacuation Centers</h3>
+                            <h3>Evacuation Centers</h3>
                             <span class="badge" id="centerCountBadge"><?php echo count($centers); ?> Active</span>
                         </div>
 
