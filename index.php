@@ -51,81 +51,111 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         } elseif ($user['role'] === 'admin') {
 
-    $cookieToken = $_COOKIE['mdrrmo_device_token'] ?? '';
+            // ============================================================
+            // ADMIN ONLY: Device Binding Security (Methods 1, 2 & 3)
+            // Trusted devices are verified with two factors:
+            //   - a cryptographically random cookie token (device_token)
+            //   - a client-side browser/device fingerprint (device_fingerprint)
+            // A device is allowed through if EITHER factor matches, so that
+            // a cleared/expired cookie doesn't permanently lock out an
+            // otherwise-recognized device. Only when neither factor matches
+            // is the login treated as a genuinely unrecognized device.
+            // ============================================================
 
-    if ((int)$user['is_device_trusted'] === 1) {
+            $cookieToken = $_COOKIE['mdrrmo_device_token'] ?? '';
 
-        $tokenMatch       = !empty($cookieToken) && hash_equals($user['device_token'], $cookieToken);
-        $fingerprintMatch = !empty($fingerprint) && hash_equals($user['device_fingerprint'], $fingerprint);
+            if ((int)$user['is_device_trusted'] === 1) {
 
-        if ($tokenMatch && $fingerprintMatch) {
-            // ✅ Case 1: Both match — full trust, refresh cookie
-            $_SESSION['user_id'] = $user['id'];
+                // --- Device already registered: verify token + fingerprint ---
+                $tokenMatch       = !empty($cookieToken) && hash_equals($user['device_token'], $cookieToken);
+                $fingerprintMatch = !empty($fingerprint) && hash_equals($user['device_fingerprint'], $fingerprint);
 
-            setcookie('mdrrmo_device_token', $user['device_token'], [
-                'expires'  => time() + (30 * 24 * 60 * 60),
-                'path'     => '/',
-                'secure'   => false,
-                'httponly' => true,
-                'samesite' => 'Strict'
-            ]);
+                if ($tokenMatch && $fingerprintMatch) {
 
-            redirect_by_role();
+                    // ✅ Case 1: Both match — full trust, refresh cookie
+                    $_SESSION['user_id'] = $user['id'];
 
-        } elseif ($fingerprintMatch && !$tokenMatch) {
-            // ✅ Case 2: Cookie expired/cleared but fingerprint matches
-            // Same device, just cookie was lost — restore the cookie silently
-            $_SESSION['user_id'] = $user['id'];
+                    setcookie('mdrrmo_device_token', $user['device_token'], [
+                        'expires'  => time() + (30 * 24 * 60 * 60), // 30 days
+                        'path'     => '/',
+                        'secure'   => false, // Set to TRUE when deployed with HTTPS
+                        'httponly' => true,
+                        'samesite' => 'Strict'
+                    ]);
 
-            setcookie('mdrrmo_device_token', $user['device_token'], [
-                'expires'  => time() + (30 * 24 * 60 * 60),
-                'path'     => '/',
-                'secure'   => false,
-                'httponly' => true,
-                'samesite' => 'Strict'
-            ]);
+                    redirect_by_role();
 
-            redirect_by_role();
+                } elseif ($fingerprintMatch && !$tokenMatch) {
 
-        } else {
-            // 🚫 Case 3: Neither matches — truly unauthorized device
-            error_log(
-                "[MDRRMO SECURITY] Unauthorized device login attempt" .
-                " | Admin: {$user['email']}" .
-                " | IP: {$_SERVER['REMOTE_ADDR']}" .
-                " | Time: " . date('Y-m-d H:i:s') .
-                " | Token match: " . ($tokenMatch ? 'YES' : 'NO') .
-                " | Fingerprint match: " . ($fingerprintMatch ? 'YES' : 'NO')
-            );
+                    // ✅ Case 2: Cookie expired/cleared but fingerprint matches.
+                    // Same device, just lost its cookie — restore it silently
+                    // instead of rejecting a device we can still recognize.
+                    $_SESSION['user_id'] = $user['id'];
 
-            $errors[] = '⚠️ Unauthorized device detected. Access is restricted to the registered device only.';
-        }
+                    setcookie('mdrrmo_device_token', $user['device_token'], [
+                        'expires'  => time() + (30 * 24 * 60 * 60),
+                        'path'     => '/',
+                        'secure'   => false,
+                        'httponly' => true,
+                        'samesite' => 'Strict'
+                    ]);
 
-    } else {
-        // First time — register this device
-        $newToken = bin2hex(random_bytes(32));
+                    redirect_by_role();
 
-        $upd = $pdo->prepare("UPDATE users SET
-            device_token         = ?,
-            device_fingerprint   = ?,
-            device_registered_at = NOW(),
-            is_device_trusted    = 1
-            WHERE id = ?");
-        $upd->execute([$newToken, $fingerprint, $user['id']]);
+                } else {
 
-        setcookie('mdrrmo_device_token', $newToken, [
-          'expires' => time() + (90 * 24 * 60 * 60), 
-            'path'     => '/',
-            'secure'   => false,
-            'httponly' => true,
-            'samesite' => 'Strict'
-        ]);
+                    // 🚫 Case 3: Neither matches — truly unauthorized device.
+                    error_log(
+                        "[MDRRMO SECURITY] Unauthorized device login attempt" .
+                        " | Admin: {$user['email']}" .
+                        " | IP: {$_SERVER['REMOTE_ADDR']}" .
+                        " | Time: " . date('Y-m-d H:i:s') .
+                        " | Token match: " . ($tokenMatch ? 'YES' : 'NO') .
+                        " | Fingerprint match: " . ($fingerprintMatch ? 'YES' : 'NO')
+                    );
 
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['device_just_registered'] = true;
+                    // Optional: email alert to admin
+                    // mail(
+                    //     $user['email'],
+                    //     '[MDRRMO ALERT] Unauthorized Admin Login Attempt',
+                    //     "Someone tried to access the admin panel from an unrecognized device.\n\n" .
+                    //     "Time: " . date('Y-m-d H:i:s') . "\n" .
+                    //     "IP Address: {$_SERVER['REMOTE_ADDR']}\n\n" .
+                    //     "If this was you, please use your registered device or request a device reset."
+                    // );
 
-        redirect_by_role();
-    }
+                    $errors[] = '⚠️ Unauthorized device detected. Access is restricted to the registered device only.';
+                }
+
+            } else {
+
+                // --- First time admin login: register this device ---
+                $newToken = bin2hex(random_bytes(32)); // 64-char cryptographically secure token
+
+                $upd = $pdo->prepare("UPDATE users SET
+                    device_token         = ?,
+                    device_fingerprint   = ?,
+                    device_registered_at = NOW(),
+                    is_device_trusted    = 1
+                    WHERE id = ?");
+                $upd->execute([$newToken, $fingerprint, $user['id']]);
+
+                setcookie('mdrrmo_device_token', $newToken, [
+                    'expires'  => time() + (90 * 24 * 60 * 60), // 90 days on first registration
+                    'path'     => '/',
+                    'secure'   => false, // Set to TRUE when deployed with HTTPS
+                    'httponly' => true,
+                    'samesite' => 'Strict'
+                ]);
+
+                $_SESSION['user_id'] = $user['id'];
+
+                // Store a flag so the admin sees a "Device Registered" notice on dashboard
+                $_SESSION['device_just_registered'] = true;
+
+                redirect_by_role();
+            }
+
         } else {
 
             // Citizens and coordinators: normal login, no device check
@@ -145,8 +175,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@300;400;500;600;700;800&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./asset/css/userlogin.css">
+
+<style>
+
+</style>
 </head>
 <body>
+
+<!-- Top loading bar — shown while the login form is authenticating -->
+<div id="page-loading-bar"></div>
 
 <!-- ================================================
      MOBILE: Splash Screen
@@ -157,16 +194,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="bg-pulse"></div>
   <div class="bg-drift"></div>
   <div class="honeycomb"></div>
+  <div class="bg-grain"></div>
+  <div class="bg-vignette"></div>
 
-  <div class="particle" style="width:6px;height:6px;left:12%;animation-duration:10s;animation-delay:0s;"></div>
-  <div class="particle" style="width:4px;height:4px;left:28%;animation-duration:13s;animation-delay:2.5s;"></div>
-  <div class="particle" style="width:7px;height:7px;left:52%;animation-duration:8s;animation-delay:1s;"></div>
-  <div class="particle" style="width:5px;height:5px;left:70%;animation-duration:11s;animation-delay:3.5s;"></div>
-  <div class="particle" style="width:3px;height:3px;left:85%;animation-duration:14s;animation-delay:0.5s;"></div>
-  <div class="particle" style="width:5px;height:5px;left:40%;animation-duration:9s;animation-delay:5s;"></div>
+  <div class="particle" style="width:5px;height:5px;left:8%;background:rgba(200,80,20,0.25);animation-duration:11s;animation-delay:0s;"></div>
+  <div class="particle" style="width:3px;height:3px;left:22%;background:rgba(212,150,10,0.35);animation-duration:14s;animation-delay:2s;"></div>
+  <div class="particle" style="width:6px;height:6px;left:38%;background:rgba(200,80,20,0.20);animation-duration:9s;animation-delay:0.8s;"></div>
+  <div class="particle" style="width:4px;height:4px;left:54%;background:rgba(255,200,80,0.28);animation-duration:12s;animation-delay:3.5s;"></div>
+  <div class="particle" style="width:7px;height:7px;left:68%;background:rgba(180,50,10,0.22);animation-duration:8s;animation-delay:1.2s;"></div>
+  <div class="particle" style="width:3px;height:3px;left:80%;background:rgba(212,150,10,0.40);animation-duration:13s;animation-delay:0.4s;"></div>
+  <div class="particle" style="width:5px;height:5px;left:90%;background:rgba(200,80,20,0.18);animation-duration:10s;animation-delay:5s;"></div>
+  <div class="particle" style="width:4px;height:4px;left:45%;background:rgba(255,150,50,0.30);animation-duration:16s;animation-delay:6s;"></div>
 
   <div class="splash-content">
     <div class="seal-shine-wrap">
+      <div class="seal-halo"></div>
+      <div class="seal-halo-extra"></div>
+      <div class="seal-ring"></div>
+      <div class="seal-ring-2"></div>
       <canvas id="orbitCanvas" width="280" height="280"></canvas>
       <div class="seal-wrap">
         <img class="seal-img"
@@ -207,7 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </svg>
         </div>
         <div class="logo-text">
-          <strong>Office of the Municipal Disaster Risk Reduction<br>and Management Office</strong>
+          <strong>Office of the Municipal Disaster Risk Reduction and Management Office</strong>
           <span>San Ildefonso, Bulacan</span>
         </div>
       </div>
@@ -229,7 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       <?php endif; ?>
 
-      <form method="post" class="auth-form">
+      <form method="post" class="auth-form" id="mob-form">
 
         <div class="field">
           <label class="field-label" for="email">Email / Username</label>
@@ -263,11 +308,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="hidden" name="lat" id="lat">
         <input type="hidden" name="lng" id="lng">
 
-        <button type="submit" class="btn-signin">Login</button>
+        <button type="submit" class="btn-signin" id="mob-btn">
+          <div class="btn-spinner"></div>
+          <span class="btn-text">Login</span>
+        </button>
 
       </form>
 
       <p class="signup-row">Don't have an account? <a href="pages/signup.php">Sign up</a></p>
+
+      <!-- MOBILE: Partner Logos -->
+      <div class="login-partner-logos">
+        <div class="login-partner-logo">
+          <img src="./img/mdrrmo.png" alt="MDRRMO"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <svg viewBox="0 0 24 24"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/></svg>
+        </div>
+        <div class="login-partner-logo">
+          <img src="./img/basc_logo.jpg" alt="BASC"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>
+        </div>
+        <div class="login-partner-logo">
+          <img src="./img/ics_logo.jpg" alt="ICS"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+        </div>
+      </div>
+      <p class="login-copyright">&copy; 2026 MDRRMOxBASC_ICS. All rights reserved.</p>
 
     </div>
 
@@ -281,6 +349,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
      ================================================ -->
 <div id="desktop-page">
 
+  <!-- Background layers -->
+  <div class="dt-bg"></div>
+  <div class="dt-spotlight"></div>
+  <div class="dt-grain"></div>
+  <div class="dt-orb dt-orb-1"></div>
+  <div class="dt-orb dt-orb-2"></div>
+  <div class="dt-orb dt-orb-3"></div>
+
   <!-- CENTERED CARD -->
   <div class="dt-card">
 
@@ -288,6 +364,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="dt-card-left">
 
       <div class="dt-seal-wrap">
+        <div class="dt-seal-halo"></div>
+        <div class="dt-seal-halo-extra"></div>
+        <div class="dt-seal-ring"></div>
         <img src="./img/mdrrmo.png" alt="MDRRMO Seal"
              onerror="this.style.display='none'">
       </div>
@@ -295,6 +374,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="dt-agency">MDRRMO</div>
       <div class="dt-tagline">BidaAngLagingHanda</div>
       <div class="dt-bottom-badge">Municipal Government of San Ildefonso</div>
+
+      <!-- Decorative indicator dots -->
+      <div class="dt-dots">
+        <div class="dt-dot active"></div>
+        <div class="dt-dot"></div>
+        <div class="dt-dot"></div>
+      </div>
 
     </div><!-- /.dt-card-left -->
 
@@ -317,7 +403,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       <?php endif; ?>
 
-      <form method="post">
+      <form method="post" id="dt-form">
 
         <div class="dt-field">
           <label for="dt-email">Email Address</label>
@@ -351,13 +437,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="hidden" name="lat">
         <input type="hidden" name="lng">
 
-        <button type="submit" class="dt-btn-signin">Login</button>
+        <button type="submit" class="dt-btn-signin" id="dt-btn">
+          <div class="btn-spinner"></div>
+          <span class="btn-text">Login</span>
+        </button>
 
       </form>
 
       <div class="dt-divider"><span>New here?</span></div>
 
       <p class="dt-signup-row">Don't have an account? <a href="pages/signup.php">Sign up</a></p>
+
+      <!-- DESKTOP: Partner Logos -->
+      <div class="login-partner-logos">
+        <div class="login-partner-logo">
+          <img src="./img/mdrrmo.png" alt="MDRRMO"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <svg viewBox="0 0 24 24"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/></svg>
+        </div>
+        <div class="login-partner-logo">
+          <img src="./img/basc_logo.jpg" alt="BASC"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>
+        </div>
+        <div class="login-partner-logo">
+          <img src="./img/ics_logo.jpg" alt="ICS"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+        </div>
+      </div>
+      <p class="login-copyright">&copy; 2026 MDRRMOxBASC_ICS. All rights reserved.</p>
 
     </div><!-- /.dt-card-right -->
 
@@ -466,7 +575,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
   /* ================================================
-     MOBILE: Original orbit canvas animation
+     SPLASH SOUND — Web Audio API (no file needed)
+     A single, formal low bass tone — a dignified
+     "official seal" cue, not a game-style jingle.
+     Plays once, timed with the seal's entrance.
+     Only plays on first visit (not on revisit).
+     Requires a user gesture on iOS — handled by the
+     onclick on #splash (see goToLogin below).
+     ================================================ */
+
+  var splashAudioCtx = null;
+
+  function playFormalBassTone() {
+    try {
+      splashAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var ctx = splashAudioCtx;
+
+      var osc    = ctx.createOscillator();
+      var gain   = ctx.createGain();
+      var filter = ctx.createBiquadFilter();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(58, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(46, ctx.currentTime + 1.6);
+
+      filter.type = 'lowpass';
+      filter.frequency.value = 220;
+      filter.Q.value = 0.7;
+
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.26, ctx.currentTime + 0.25);
+      gain.gain.linearRampToValueAtTime(0.16, ctx.currentTime + 1.0);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.9);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 2.0);
+
+    } catch (e) {
+      console.log('Audio not supported:', e);
+    }
+  }
+
+  if (!splashAlreadySeen) {
+    setTimeout(function() {
+      playFormalBassTone();
+    }, 200);
+  }
+
+
+  /* ================================================
+     MOBILE: Orbit canvas animation
      ================================================ */
 
   var canvas = document.getElementById('orbitCanvas');
@@ -526,9 +688,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     var hy = CY + R * Math.sin(headAngle);
 
     var g = ctx.createRadialGradient(hx, hy, 0, hx, hy, 28);
-    g.addColorStop(0,    'rgba(255,250,200,' + (0.85 * alpha) + ')');
-    g.addColorStop(0.25, 'rgba(255,210,100,' + (0.55 * alpha) + ')');
-    g.addColorStop(0.6,  'rgba(255,140, 30,' + (0.18 * alpha) + ')');
+    g.addColorStop(0,    'rgba(255,250,200,' + (0.90 * alpha) + ')');
+    g.addColorStop(0.25, 'rgba(255,210,100,' + (0.60 * alpha) + ')');
+    g.addColorStop(0.6,  'rgba(255,140, 30,' + (0.20 * alpha) + ')');
     g.addColorStop(1,    'rgba(255, 80,  0,0)');
     ctx.beginPath();
     ctx.arc(hx, hy, 28, 0, Math.PI * 2);
@@ -537,7 +699,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     var core = ctx.createRadialGradient(hx, hy, 0, hx, hy, 6);
     core.addColorStop(0,   'rgba(255,255,255,' + alpha + ')');
-    core.addColorStop(0.6, 'rgba(255,240,160,' + (0.7 * alpha) + ')');
+    core.addColorStop(0.6, 'rgba(255,240,160,' + (0.75 * alpha) + ')');
     core.addColorStop(1,   'rgba(255,200,80,0)');
     ctx.beginPath();
     ctx.arc(hx, hy, 6, 0, Math.PI * 2);
@@ -557,6 +719,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   function goToLogin() {
     if (rafId) cancelAnimationFrame(rafId);
+
+    if (splashAudioCtx && splashAudioCtx.state === 'suspended') {
+      splashAudioCtx.resume();
+    } else if (!splashAudioCtx && !splashAlreadySeen) {
+      playFormalBassTone();
+    }
 
     sessionStorage.setItem(SPLASH_KEY, '1');
 
@@ -580,7 +748,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }, 180);
       });
 
-    }, 420);
+    }, 460);
   }
 
   if (!splashAlreadySeen) {
@@ -602,12 +770,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
   /* ================================================
-     MOBILE: Login button ripple
+     MOBILE: Login button ripple + loading state
      ================================================ */
-  var btn = document.querySelector('.btn-signin');
-  if (btn) {
-    btn.addEventListener('click', function(e) {
-      var r   = btn.getBoundingClientRect();
+  var mobForm = document.getElementById('mob-form');
+  var mobBtn  = document.getElementById('mob-btn');
+
+  var pageLoadingBar = document.getElementById('page-loading-bar');
+
+  if (mobForm && mobBtn) {
+    mobForm.addEventListener('submit', function() {
+      mobBtn.classList.add('loading');
+      mobBtn.disabled = true;
+
+      var mobBtnText = mobBtn.querySelector('.btn-text');
+      if (mobBtnText) mobBtnText.textContent = 'Signing in…';
+
+      var mobEmail = document.getElementById('email');
+      var mobPass  = document.getElementById('mob-password');
+      if (mobEmail) mobEmail.readOnly = true;
+      if (mobPass)  mobPass.readOnly  = true;
+
+      if (pageLoadingBar) pageLoadingBar.classList.add('active');
+    });
+
+    mobBtn.addEventListener('click', function(e) {
+      var r   = mobBtn.getBoundingClientRect();
       var sz  = Math.max(r.width, r.height);
       var rpl = document.createElement('span');
       rpl.style.cssText =
@@ -615,10 +802,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'width:'  + sz + 'px;height:' + sz + 'px;' +
         'left:'   + (e.clientX - r.left - sz / 2) + 'px;' +
         'top:'    + (e.clientY - r.top  - sz / 2) + 'px;' +
-        'background:rgba(255,255,255,0.20);' +
+        'background:rgba(255,255,255,0.22);' +
         'transform:scale(0);opacity:1;' +
         'transition:transform 0.55s ease,opacity 0.55s ease;';
-      btn.appendChild(rpl);
+      mobBtn.appendChild(rpl);
       requestAnimationFrame(function() {
         rpl.style.transform = 'scale(2.6)';
         rpl.style.opacity   = '0';
@@ -629,10 +816,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
   /* ================================================
-     DESKTOP: Sign-in button ripple
+     DESKTOP: Sign-in button ripple + loading state
      ================================================ */
-  var dtBtn = document.querySelector('.dt-btn-signin');
-  if (dtBtn) {
+  var dtForm = document.getElementById('dt-form');
+  var dtBtn  = document.getElementById('dt-btn');
+
+  if (dtForm && dtBtn) {
+    dtForm.addEventListener('submit', function() {
+      dtBtn.classList.add('loading');
+      dtBtn.disabled = true;
+
+      var dtBtnText = dtBtn.querySelector('.btn-text');
+      if (dtBtnText) dtBtnText.textContent = 'Signing in…';
+
+      var dtEmail = document.getElementById('dt-email');
+      var dtPass  = document.getElementById('dt-password');
+      if (dtEmail) dtEmail.readOnly = true;
+      if (dtPass)  dtPass.readOnly  = true;
+
+      if (pageLoadingBar) pageLoadingBar.classList.add('active');
+    });
+
     dtBtn.addEventListener('click', function(e) {
       var r   = dtBtn.getBoundingClientRect();
       var sz  = Math.max(r.width, r.height);
@@ -687,6 +891,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     });
   });
+
+
+  /* ================================================
+     DESKTOP: Subtle parallax on card (mouse tracking)
+     ================================================ */
+  var dtCard = document.querySelector('.dt-card');
+  if (dtCard && window.innerWidth >= 900) {
+    document.addEventListener('mousemove', function(e) {
+      var cx  = window.innerWidth  / 2;
+      var cy  = window.innerHeight / 2;
+      var dx  = (e.clientX - cx) / cx;
+      var dy  = (e.clientY - cy) / cy;
+      var rx  = dy * 2.5;
+      var ry  = -dx * 3.0;
+      dtCard.style.transform =
+        'perspective(1400px) rotateX(' + rx + 'deg) rotateY(' + ry + 'deg)';
+    });
+    document.addEventListener('mouseleave', function() {
+      dtCard.style.transform = 'perspective(1400px) rotateX(0deg) rotateY(0deg)';
+    });
+  }
+
+
+  /* ================================================
+     GEOLOCATION (kept inactive — uncomment to enable)
+     ================================================
+
+  const allowedMunicipality = "san ildefonso";
+  const allowedProvince     = "bulacan";
+
+  function detectLocation() {
+
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(async function(position){
+
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+
+      document.getElementById("lat").value = lat;
+      document.getElementById("lng").value = lon;
+
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
+
+      try{
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        const addr = data.address;
+
+        let municipality = addr.town || addr.city || addr.municipality || "";
+        let province = addr.state || "";
+
+        municipality = municipality.toLowerCase();
+        province = province.toLowerCase();
+
+        if(
+          !municipality.includes(allowedMunicipality) ||
+          !province.includes(allowedProvince)
+        ){
+
+          alert("Login is only allowed inside San Ildefonso, Bulacan.");
+
+          document.querySelector("button[type=submit]").disabled = true;
+
+        }
+
+      }catch(e){
+        console.log("Location verification failed.");
+      }
+
+    }, function(){
+
+      alert("Location permission is required to login.");
+
+    });
+
+  }
+
+  detectLocation();
+
+  */
 
 </script>
 
