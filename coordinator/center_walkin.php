@@ -72,9 +72,20 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../asset/css/center_walkin.css">    
+    <link rel="stylesheet" href="../asset/css/center_walkin.css">
 </head>
+<style>
+
+</style>
 <body>
+
+<div class="bg-blobs" aria-hidden="true">
+    <div class="bg-blob b1"></div>
+    <div class="bg-blob b2"></div>
+    <div class="bg-blob b3"></div>
+    <div class="bg-blob b4"></div>
+</div>
+
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeMenu()"></div>
 <div class="layout">
     <aside class="sidebar" id="sidebar">
@@ -100,8 +111,8 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
             <div><h1 class="page-heading">Walk-in <span>Family</span></h1><div class="page-subnav"><a href="center_app_arrivals.php?id=<?php echo $centerId; ?>">App Arrivals</a><a href="center_walkin.php?id=<?php echo $centerId; ?>" class="active">Walk-in Family</a><a href="center_registrations.php?id=<?php echo $centerId; ?>">Registered Families</a></div></div>
             <section class="card"><div class="card-header"><div class="card-header-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><h2>Center Status</h2></div><div class="card-body"><div class="info-row"><strong>Barangay</strong> <?php echo htmlspecialchars($center['barangay_name']); ?></div><div class="info-row"><strong>Status</strong> <span class="status-pill status-<?php echo strtolower(preg_replace('/\s+/', '-', $center['status'])); ?>"><?php echo htmlspecialchars($center['status']); ?></span></div><div class="occ-bar-wrap"><div class="occ-bar-label"><span>Occupancy</span><span><?php echo $occ['current']; ?> / <?php echo $occ['max']; ?> people (<?php echo $pct; ?>%)</span></div><div class="occ-bar-track"><div class="occ-bar-fill" style="width:<?php echo min(100,$pct); ?>%; background:<?php echo $barColor; ?>;"></div></div></div><p class="occ-note">When capacity reaches 100%, status is set to <strong>full</strong>.</p></div></section>
             <section class="card"><div class="card-header"><div class="card-header-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></div><h2>Register Walk-in Family</h2></div>
-                <?php if ($successAdded): ?><div class="success-toast"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Family registered successfully!</div><?php endif; ?>
-                <?php if ($errors): ?><ul class="error-box"><?php foreach ($errors as $err): ?><li><?php echo htmlspecialchars($err); ?></li><?php endforeach; ?></ul><?php endif; ?>
+                <?php if ($successAdded): ?><div class="success-toast" style="margin:1rem 1.4rem 0;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Family registered successfully!</div><?php endif; ?>
+                <?php if ($errors): ?><ul class="error-box" style="margin-top:1rem;"><?php foreach ($errors as $err): ?><li><?php echo htmlspecialchars($err); ?></li><?php endforeach; ?></ul><?php endif; ?>
                 <form method="post" class="form-body"><input type="hidden" name="action" value="add_family">
                     <label class="form-label">Family Head Name <input type="text" name="family_head_name" required value="<?php echo htmlspecialchars($_POST['family_head_name'] ?? ''); ?>"></label>
                     <div class="grid-2"><label class="form-label">Contact Number <input type="tel" name="contact_number" required value="<?php echo htmlspecialchars($_POST['contact_number'] ?? ''); ?>"></label><label class="form-label">Birthday (Head) <input type="date" name="birthday" required value="<?php echo htmlspecialchars($_POST['birthday'] ?? ''); ?>"></label></div>

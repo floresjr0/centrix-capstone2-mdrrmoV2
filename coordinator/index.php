@@ -71,7 +71,18 @@ $activeCenters  = count(array_filter($centers, fn($c) => $c['status'] !== 'close
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
+<style>
+
+</style>
 <body>
+
+<!-- Ambient color blobs behind the glass panels -->
+<div class="bg-blobs" aria-hidden="true">
+    <div class="bg-blob b1"></div>
+    <div class="bg-blob b2"></div>
+    <div class="bg-blob b3"></div>
+    <div class="bg-blob b4"></div>
+</div>
 
 <!-- Overlay for drawer -->
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeMenu()"></div>
@@ -309,7 +320,7 @@ function closeMenu() {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
 
 // Auto-refresh expected counts via AJAX
-const AUTO_REFRESH_INTERVAL = 30000;
+const AUTO_REFRESH_INTERVAL = 3000;
 let refreshTimer = null;
 
 function refreshCounts() {

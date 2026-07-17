@@ -101,12 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- All styles are inline below — no external CSS needed -->
+</head>
 <style>
-  
-
 
 </style>
-</head>
 <body>
 
 <!-- ================================================
@@ -125,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </svg>
       </div>
       <div class="logo-text">
-        <strong>Office of the Municipal Disaster Risk Reduction<br>and Management Office</strong>
+        <strong>Office of the Municipal Disaster Risk Reductio and Management Office</strong>
         <span>San Ildefonso, Bulacan</span>
       </div>
     </div>
@@ -208,13 +206,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="password" id="password" name="password" required minlength="8"
                    placeholder="At least 8 characters">
             <button type="button" class="pw-toggle" data-target="password" aria-label="Toggle password visibility">
-              <!-- Eye icon (shown when password is hidden) -->
               <svg class="icon-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
-              <!-- Eye-off icon (shown when password is visible) -->
               <svg class="icon-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                    style="display:none;">
@@ -232,13 +228,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="password" id="confirm_password" name="confirm_password" required minlength="8"
                    placeholder="Repeat password">
             <button type="button" class="pw-toggle" data-target="confirm_password" aria-label="Toggle confirm password visibility">
-              <!-- Eye icon (shown when password is hidden) -->
               <svg class="icon-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
-              <!-- Eye-off icon (shown when password is visible) -->
               <svg class="icon-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                    style="display:none;">
@@ -249,12 +243,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
         </div>
 
-        <!-- Terms checkbox -->
+        <!-- Terms — opens modal, checkbox only checks after acceptance -->
         <div class="checkbox-field">
           <input type="checkbox" name="terms" id="terms" value="1"
-                 <?php echo isset($_POST['terms']) ? 'checked' : ''; ?>>
+                 <?php echo isset($_POST['terms']) ? 'checked' : ''; ?>
+                 readonly>
           <label for="terms">
-            I confirm that I am a resident of San Ildefonso, Bulacan and agree to MDRRMO's data policy.
+            I confirm that I am a resident of San Ildefonso, Bulacan and agree to MDRRMO's
+            <button type="button" class="terms-trigger-link" id="termsOpenBtn">
+              Data Policy &amp; Terms of Use
+            </button>.
           </label>
         </div>
 
@@ -279,22 +277,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <!-- CENTERED CARD -->
   <div class="dt-card">
 
-    <!-- LEFT: Branding (pills removed; logo, name & hashtag enlarged and centered) -->
+    <!-- LEFT: Branding -->
     <div class="dt-card-left">
 
-      <!-- Seal — enlarged -->
       <div class="dt-seal-wrap">
         <img src="../img/mdrrmo.png" alt="MDRRMO Seal"
              onerror="this.style.display='none'">
       </div>
 
-      <!-- Agency name — larger -->
       <div class="dt-agency">MDRRMO</div>
-
-      <!-- Tagline / hashtag — slightly larger -->
       <div class="dt-tagline">#BidaAngLagingHanda</div>
-
-      <!-- Bottom credit badge -->
       <div class="dt-bottom-badge">Municipal Government of San Ildefonso</div>
 
     </div><!-- /.dt-card-left -->
@@ -384,13 +376,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="password" id="dt-password" name="password" required minlength="8"
                        placeholder="At least 8 characters">
                 <button type="button" class="dt-pw-toggle" data-target="dt-password" aria-label="Toggle password visibility">
-                  <!-- Eye icon (shown when password is hidden) -->
                   <svg class="icon-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                     <circle cx="12" cy="12" r="3"/>
                   </svg>
-                  <!-- Eye-off icon (shown when password is visible) -->
                   <svg class="icon-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                        style="display:none;">
@@ -408,13 +398,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="password" id="dt-confirm_password" name="confirm_password" required minlength="8"
                        placeholder="Repeat password">
                 <button type="button" class="dt-pw-toggle" data-target="dt-confirm_password" aria-label="Toggle confirm password visibility">
-                  <!-- Eye icon (shown when password is hidden) -->
                   <svg class="icon-eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                     <circle cx="12" cy="12" r="3"/>
                   </svg>
-                  <!-- Eye-off icon (shown when password is visible) -->
                   <svg class="icon-eye-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                        style="display:none;">
@@ -427,12 +415,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           </div><!-- /.dt-fields-grid -->
 
-          <!-- Terms checkbox -->
+          <!-- Terms — opens modal, checkbox only checks after acceptance -->
           <div class="dt-checkbox-field">
             <input type="checkbox" name="terms" id="dt-terms" value="1"
-                   <?php echo isset($_POST['terms']) ? 'checked' : ''; ?>>
+                   <?php echo isset($_POST['terms']) ? 'checked' : ''; ?>
+                   readonly>
             <label for="dt-terms">
-              I confirm that I am a resident of San Ildefonso, Bulacan and agree to MDRRMO's data policy.
+              I confirm that I am a resident of San Ildefonso, Bulacan and agree to MDRRMO's
+              <button type="button" class="terms-trigger-link" id="dtTermsOpenBtn">
+                Data Policy &amp; Terms of Use
+              </button>.
             </label>
           </div>
 
@@ -457,6 +449,300 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
 </div><!-- /#desktop-page -->
+
+
+<!-- ================================================================
+     TERMS & CONDITIONS MODAL (shared — mobile + desktop)
+     ================================================================ -->
+<div class="terms-backdrop" id="termsBackdrop" role="dialog" aria-modal="true" aria-label="Terms and Conditions">
+
+  <div class="terms-modal" id="termsModal">
+
+    <!-- Mobile drag handle -->
+    <div class="terms-drag-handle"></div>
+
+    <!-- ── HEADER ── -->
+    <div class="terms-header">
+      <div class="terms-header-inner">
+        <!-- MDRRMO logo -->
+        <div class="terms-icon-wrap" aria-hidden="true">
+          <img src="../img/mdrrmo.png" alt="MDRRMO Logo">
+        </div>
+
+        <div class="terms-header-text">
+          <div class="terms-eyebrow">MDRRMO San Ildefonso</div>
+          <div class="terms-title">Data Policy &amp; Terms</div>
+          <div class="terms-subtitle">Please read all sections before accepting.</div>
+        </div>
+
+        <!-- Close -->
+        <button class="terms-close-btn" id="termsCloseBtn" aria-label="Close terms modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="terms-header-divider"></div>
+    </div>
+
+    <!-- ── READING PROGRESS ── -->
+    <div class="terms-progress-wrap">
+      <div class="terms-progress-label">
+        <span>Reading Progress</span>
+        <span class="terms-pct" id="termsPct">0%</span>
+      </div>
+      <div class="terms-progress-track">
+        <div class="terms-progress-fill" id="termsProgressFill"></div>
+      </div>
+    </div>
+
+    <!-- ── SCROLLABLE TERMS BODY ── -->
+    <div class="terms-body" id="termsBody">
+
+      <!-- Section 1 -->
+      <div class="terms-section" id="tsec-1">
+        <div class="terms-section-header">
+          <div class="terms-section-num">1</div>
+          <div class="terms-section-title">Purpose &amp; Scope</div>
+        </div>
+        <div class="terms-section-body">
+          <p>This registration system is operated by the <strong>Municipal Disaster Risk Reduction and Management Office (MDRRMO)</strong> of San Ildefonso, Bulacan. The system is designed to facilitate early warning notifications, disaster response coordination, relief assistance profiling, and community preparedness programs.</p>
+          <p>By creating an account, you voluntarily participate in MDRRMO's disaster risk reduction initiatives and agree to be bound by these terms.</p>
+        </div>
+      </div>
+
+      <!-- Section 2 -->
+      <div class="terms-section" id="tsec-2">
+        <div class="terms-section-header">
+          <div class="terms-section-num">2</div>
+          <div class="terms-section-title">Personal Data We Collect</div>
+        </div>
+        <div class="terms-section-body">
+          <div class="terms-info-chip">
+            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 14H11v-6h2v6zm0-8H11V6h2v2z"/></svg>
+            Collected at Registration
+          </div>
+          <p>We collect the following personal information from you:</p>
+          <ul>
+            <li><strong>Full Name</strong></li>
+            <li><strong>Home Address</strong> — barangay, house number, and optional GPS coordinates</li>
+            <li><strong>Email Address</strong> — for account verification and emergency alerts</li>
+            <li><strong>Password</strong> — stored securely using industry-standard hashing (never stored in plaintext)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Section 3 -->
+      <div class="terms-section" id="tsec-3">
+        <div class="terms-section-header">
+          <div class="terms-section-num">3</div>
+          <div class="terms-section-title">How We Use Your Data</div>
+        </div>
+        <div class="terms-section-body">
+          <p>Your personal data is used exclusively for the following purposes:</p>
+          <ul>
+            <li>Sending <strong>disaster early warnings</strong> and emergency alerts relevant to your barangay</li>
+            <li>Identifying households in need of <strong>evacuation assistance</strong> during calamities</li>
+            <li>Profiling residents for <strong>relief goods distribution</strong> and post-disaster assessment</li>
+            <li>Generating aggregated, non-identifiable community risk maps and statistics</li>
+            <li>Communicating <strong>preparedness advisories</strong> and community drills</li>
+          </ul>
+          <div class="terms-highlight">
+            Your information will <strong>NOT</strong> be used for commercial purposes, sold to third parties, or used for any activity unrelated to disaster risk reduction and public safety.
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4 -->
+      <div class="terms-section" id="tsec-4">
+        <div class="terms-section-header">
+          <div class="terms-section-num">4</div>
+          <div class="terms-section-title">Data Sharing &amp; Disclosure</div>
+        </div>
+        <div class="terms-section-body">
+          <p>MDRRMO may share your information <strong>only</strong> with:</p>
+          <ul>
+            <li>The <strong>Municipal Government of San Ildefonso</strong> for official disaster response operations</li>
+            <li>The <strong>National Disaster Risk Reduction and Management Council (NDRRMC)</strong> and Provincial DRRMO for coordinated response</li>
+            <li>Authorized <strong>barangay officials</strong> within your registered barangay for local coordination</li>
+            <li>Law enforcement or emergency services when required to <strong>protect life or safety</strong></li>
+          </ul>
+          <p>We will never disclose your personal data to commercial entities or unauthorized parties.</p>
+        </div>
+      </div>
+
+      <!-- Section 5 -->
+      <div class="terms-section" id="tsec-5">
+        <div class="terms-section-header">
+          <div class="terms-section-num">5</div>
+          <div class="terms-section-title">Residency Requirement</div>
+        </div>
+        <div class="terms-section-body">
+          <div class="terms-highlight">
+            Registration is <strong>strictly limited to actual residents of San Ildefonso, Bulacan</strong>. By checking the agreement box, you declare under good faith that you reside within the municipality. Providing false residency information may result in account suspension and disqualification from relief services.
+          </div>
+          <p>MDRRMO reserves the right to verify residency through barangay certifications or cross-referencing with existing resident records.</p>
+        </div>
+      </div>
+
+      <!-- Section 6 -->
+      <div class="terms-section" id="tsec-6">
+        <div class="terms-section-header">
+          <div class="terms-section-num">6</div>
+          <div class="terms-section-title">User Responsibilities</div>
+        </div>
+        <div class="terms-section-body">
+          <p>As a registered resident, you agree to:</p>
+          <ul>
+            <li>Provide <strong>accurate and truthful information</strong> during registration and any subsequent updates</li>
+            <li><strong>Update your profile</strong> if your address or contact details change</li>
+            <li>Keep your login credentials <strong>confidential</strong> and not share your account</li>
+            <li>Use the system only for its <strong>intended lawful purposes</strong></li>
+            <li>Promptly report any <strong>suspicious activity</strong> on your account to MDRRMO</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Section 7 -->
+      <div class="terms-section" id="tsec-7">
+        <div class="terms-section-header">
+          <div class="terms-section-num">7</div>
+          <div class="terms-section-title">Emergency Notifications Consent</div>
+        </div>
+        <div class="terms-section-body">
+          <p>By registering, you explicitly consent to receiving <strong>emergency-related communications</strong> from MDRRMO through your registered email address. These may include:</p>
+          <ul>
+            <li>Typhoon, flooding, and earthquake warnings</li>
+            <li>Mandatory evacuation orders</li>
+            <li>Relief distribution schedules and venues</li>
+            <li>Community preparedness drills and announcements</li>
+          </ul>
+          <p>You may update your notification preferences within your account settings at any time. However, opting out of critical safety alerts is <strong>not recommended</strong> as these may be life-saving.</p>
+        </div>
+      </div>
+
+      <!-- Section 8 -->
+      <div class="terms-section" id="tsec-8">
+        <div class="terms-section-header">
+          <div class="terms-section-num">8</div>
+          <div class="terms-section-title">Data Security</div>
+        </div>
+        <div class="terms-section-body">
+          <p>MDRRMO employs the following security measures to protect your personal data:</p>
+          <ul>
+            <li>Passwords are encrypted using <strong>bcrypt hashing</strong> — we cannot retrieve your password</li>
+            <li>All data transmissions are protected through <strong>secure HTTPS connections</strong></li>
+            <li>Database access is restricted to authorized MDRRMO personnel only</li>
+            <li>Email verification via <strong>One-Time Password (OTP)</strong> is required upon registration</li>
+            <li>System activity logs are maintained for <strong>security auditing</strong></li>
+          </ul>
+          <p>While we implement robust security measures, no online system is completely immune to risks. You are encouraged to use a strong, unique password.</p>
+        </div>
+      </div>
+
+      <!-- Section 9 -->
+      <div class="terms-section" id="tsec-9">
+        <div class="terms-section-header">
+          <div class="terms-section-num">9</div>
+          <div class="terms-section-title">Your Rights Under the Data Privacy Act</div>
+        </div>
+        <div class="terms-section-body">
+          <p>In accordance with the <strong>Republic Act 10173 (Data Privacy Act of 2012)</strong>, you have the following rights:</p>
+          <ul>
+            <li><strong>Right to Access</strong> — request a copy of your personal data held by MDRRMO</li>
+            <li><strong>Right to Rectification</strong> — correct inaccurate or incomplete personal information</li>
+            <li><strong>Right to Erasure</strong> — request deletion of your account and associated data</li>
+            <li><strong>Right to Object</strong> — object to processing of your data for certain purposes</li>
+            <li><strong>Right to Data Portability</strong> — receive your data in a structured, readable format</li>
+          </ul>
+          <p>To exercise any of these rights, contact the MDRRMO Data Privacy Officer at the address below.</p>
+        </div>
+      </div>
+
+      <!-- Section 10 -->
+      <div class="terms-section" id="tsec-10">
+        <div class="terms-section-header">
+          <div class="terms-section-num">10</div>
+          <div class="terms-section-title">Limitation of Liability</div>
+        </div>
+        <div class="terms-section-body">
+          <p>MDRRMO strives to maintain accurate and timely disaster information; however, the office is <strong>not liable</strong> for:</p>
+          <ul>
+            <li>Delays in emergency notifications caused by technical failures or network outages</li>
+            <li>Decisions made based on information provided through this system</li>
+            <li>Unauthorized access resulting from the user's failure to secure their credentials</li>
+          </ul>
+          <p>This system is a supplementary tool and does not replace direct communication with emergency services, barangay officials, or local government units.</p>
+        </div>
+      </div>
+
+      <!-- Section 11 -->
+      <div class="terms-section" id="tsec-11">
+        <div class="terms-section-header">
+          <div class="terms-section-num">11</div>
+          <div class="terms-section-title">Contact &amp; Concerns</div>
+        </div>
+        <div class="terms-section-body">
+          <p>For questions, concerns, or to exercise your data privacy rights, please contact:</p>
+          <div class="terms-highlight">
+            <strong>MDRRMO San Ildefonso, Bulacan</strong><br>
+            Municipal Hall, San Ildefonso, Bulacan<br>
+            Email: mdrrmo@sanildefonso.gov.ph<br>
+            Office Hours: Monday–Friday, 8:00 AM – 5:00 PM
+          </div>
+          <p style="font-size:11px; color:#999; margin-top:8px;">
+            These terms were last updated on <strong>June 2026</strong> and are subject to revision. Continued use of the system after any amendments constitutes acceptance of the updated terms.
+          </p>
+        </div>
+      </div>
+
+      <!-- End of terms marker -->
+      <div class="terms-end-marker">
+        <span>End of Terms &amp; Conditions</span>
+      </div>
+
+    </div><!-- /.terms-body -->
+
+    <!-- Scroll prompt — hides once user reaches bottom -->
+    <div class="terms-scroll-prompt" id="termsScrollPrompt">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+      Scroll to read all terms
+    </div>
+
+    <!-- ── MODAL FOOTER: Decline + Accept ── -->
+    <div class="terms-footer">
+      <button type="button" class="terms-btn-decline" id="termsBtnDecline">
+        Decline
+      </button>
+      <button type="button" class="terms-btn-accept locked" id="termsBtnAccept">
+        <!-- Lock icon shown while locked -->
+        <svg class="lock-icon" id="termsLockIcon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zM7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <!-- Check icon shown when unlocked -->
+        <svg id="termsCheckIcon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:none;">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <span id="termsAcceptLabel">Read All Terms First</span>
+      </button>
+    </div>
+
+  </div><!-- /.terms-modal -->
+</div><!-- /.terms-backdrop -->
+
+
+<!-- ── SUCCESS TOAST ── -->
+<div class="terms-toast" id="termsToast" aria-live="polite">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+  Terms accepted — you're all set!
+</div>
 
 
 <script>
@@ -536,39 +822,215 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   /* ================================================
      PASSWORD TOGGLE — shared handler for mobile & desktop
-     Works for both .pw-toggle and .dt-pw-toggle buttons.
-     Toggles the input type between "password" and "text",
-     and swaps the eye / eye-off SVG icons accordingly.
-     The button stays permanently in the DOM — it never
-     disappears regardless of whether the field has a value.
      ================================================ */
   document.querySelectorAll('.pw-toggle, .dt-pw-toggle').forEach(function (toggleBtn) {
     toggleBtn.addEventListener('click', function () {
-      var targetId  = this.getAttribute('data-target');
-      var inputEl   = document.getElementById(targetId);
+      var targetId   = this.getAttribute('data-target');
+      var inputEl    = document.getElementById(targetId);
       var iconEye    = this.querySelector('.icon-eye');
       var iconEyeOff = this.querySelector('.icon-eye-off');
 
       if (!inputEl) return;
 
       if (inputEl.type === 'password') {
-        /* Show password */
-        inputEl.type    = 'text';
+        inputEl.type             = 'text';
         iconEye.style.display    = 'none';
         iconEyeOff.style.display = 'block';
         this.setAttribute('aria-label', 'Hide password');
       } else {
-        /* Hide password */
-        inputEl.type    = 'password';
+        inputEl.type             = 'password';
         iconEye.style.display    = 'block';
         iconEyeOff.style.display = 'none';
         this.setAttribute('aria-label', 'Show password');
       }
 
-      /* Keep focus on the input after toggling */
       inputEl.focus();
     });
   });
+
+  /* ================================================
+     TERMS & CONDITIONS MODAL LOGIC
+     (brought over from the improved-UI file, unchanged)
+     ================================================ */
+  (function () {
+
+    var backdrop      = document.getElementById('termsBackdrop');
+    var modal         = document.getElementById('termsModal');
+    var body          = document.getElementById('termsBody');
+    var closeBtn      = document.getElementById('termsCloseBtn');
+    var acceptBtn     = document.getElementById('termsBtnAccept');
+    var declineBtn    = document.getElementById('termsBtnDecline');
+    var progressFill  = document.getElementById('termsProgressFill');
+    var pctLabel      = document.getElementById('termsPct');
+    var scrollPrompt  = document.getElementById('termsScrollPrompt');
+    var toast         = document.getElementById('termsToast');
+    var lockIcon      = document.getElementById('termsLockIcon');
+    var checkIcon     = document.getElementById('termsCheckIcon');
+    var acceptLabel   = document.getElementById('termsAcceptLabel');
+
+    var termsCheckbox   = document.getElementById('terms');
+    var termsOpenBtn    = document.getElementById('termsOpenBtn');
+
+    var dtTermsCheckbox = document.getElementById('dt-terms');
+    var dtTermsOpenBtn  = document.getElementById('dtTermsOpenBtn');
+
+    var hasReadAll    = false;
+    var hasAccepted   = false;
+    var toastTimer    = null;
+
+    /* Prevent checkbox direct toggle — must go through modal */
+    [termsCheckbox, dtTermsCheckbox].forEach(function (cb) {
+      if (!cb) return;
+      cb.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (!hasAccepted) {
+          openModal();
+        } else {
+          hasAccepted = false;
+          hasReadAll  = false;
+          cb.checked  = false;
+          if (termsCheckbox)   termsCheckbox.checked   = false;
+          if (dtTermsCheckbox) dtTermsCheckbox.checked = false;
+          resetModal();
+        }
+      });
+    });
+
+    /* Open modal via "Data Policy & Terms" link buttons */
+    [termsOpenBtn, dtTermsOpenBtn].forEach(function (triggerBtn) {
+      if (!triggerBtn) return;
+      triggerBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openModal();
+      });
+    });
+
+    function openModal() {
+      if (!hasAccepted) {
+        body.scrollTop = 0;
+        updateProgress(0);
+        unlockState(false);
+      }
+      backdrop.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      setTimeout(revealSections, 120);
+    }
+
+    function closeModal() {
+      backdrop.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    backdrop.addEventListener('click', function (e) {
+      if (e.target === backdrop) closeModal();
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+
+    declineBtn.addEventListener('click', function () {
+      hasAccepted = false;
+      if (termsCheckbox)   termsCheckbox.checked   = false;
+      if (dtTermsCheckbox) dtTermsCheckbox.checked = false;
+      closeModal();
+    });
+
+    acceptBtn.addEventListener('click', function () {
+      if (!hasReadAll) return;
+
+      hasAccepted = true;
+      if (termsCheckbox)   termsCheckbox.checked   = true;
+      if (dtTermsCheckbox) dtTermsCheckbox.checked = true;
+
+      closeModal();
+      showToast();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && backdrop.classList.contains('open')) {
+        closeModal();
+      }
+    });
+
+    body.addEventListener('scroll', function () {
+      var scrollTop    = body.scrollTop;
+      var scrollHeight = body.scrollHeight - body.clientHeight;
+      var pct          = scrollHeight > 0 ? Math.min(100, Math.round((scrollTop / scrollHeight) * 100)) : 100;
+
+      updateProgress(pct);
+
+      if (pct >= 95 && !hasReadAll) {
+        hasReadAll = true;
+        unlockState(true);
+      }
+
+      revealSections();
+    });
+
+    function updateProgress(pct) {
+      progressFill.style.width = pct + '%';
+      pctLabel.textContent     = pct + '%';
+
+      if (pct >= 95) {
+        pctLabel.style.color = '#166534';
+      } else {
+        pctLabel.style.color = '#c0391e';
+      }
+    }
+
+    function unlockState(unlocked) {
+      if (unlocked) {
+        acceptBtn.classList.remove('locked');
+        lockIcon.style.display  = 'none';
+        checkIcon.style.display = 'block';
+        acceptLabel.textContent  = 'I Accept the Terms';
+        scrollPrompt.classList.add('hidden');
+      } else {
+        acceptBtn.classList.add('locked');
+        lockIcon.style.display  = 'block';
+        checkIcon.style.display = 'none';
+        acceptLabel.textContent  = 'Read All Terms First';
+        scrollPrompt.classList.remove('hidden');
+      }
+    }
+
+    function resetModal() {
+      hasReadAll = false;
+      body.scrollTop = 0;
+      updateProgress(0);
+      unlockState(false);
+      document.querySelectorAll('.terms-section').forEach(function (s) {
+        s.classList.remove('revealed');
+      });
+    }
+
+    function revealSections() {
+      var bodyRect = body.getBoundingClientRect();
+      document.querySelectorAll('.terms-section').forEach(function (section, idx) {
+        var rect = section.getBoundingClientRect();
+        if (rect.top < bodyRect.bottom + 60) {
+          setTimeout(function () {
+            section.classList.add('revealed');
+          }, idx * 45);
+        }
+      });
+    }
+
+    function showToast() {
+      if (toastTimer) clearTimeout(toastTimer);
+      toast.classList.add('show');
+      toastTimer = setTimeout(function () {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    /* If PHP already set terms (page re-render after error), mark accepted */
+    if ((termsCheckbox && termsCheckbox.checked) || (dtTermsCheckbox && dtTermsCheckbox.checked)) {
+      hasAccepted = true;
+      hasReadAll  = true;
+    }
+
+  })();
 
   // /* ================================================
   //    GEOLOCATION — shared for both mobile and desktop
@@ -588,13 +1050,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   //     const lat = position.coords.latitude;
   //     const lon = position.coords.longitude;
 
-  //     // Populate hidden lat/lng for both mobile and desktop forms
   //     document.getElementById("lat").value = lat;
   //     document.getElementById("lng").value = lon;
   //     document.getElementById("dt-lat").value = lat;
   //     document.getElementById("dt-lng").value = lon;
 
-  //     // Reverse geocode using OpenStreetMap
   //     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
 
   //     const res = await fetch(url);
@@ -607,7 +1067,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   //     const fullAddress = data.display_name;
 
-  //     // Populate detected address for both forms
   //     document.getElementById("address").value = fullAddress;
   //     document.getElementById("dt-address").value = fullAddress;
 

@@ -111,7 +111,17 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../asset/css/center_app_arrivals.css">
 </head>
+<style>
+
+</style>
 <body>
+
+<div class="bg-blobs" aria-hidden="true">
+    <div class="bg-blob b1"></div>
+    <div class="bg-blob b2"></div>
+    <div class="bg-blob b3"></div>
+    <div class="bg-blob b4"></div>
+</div>
 
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeMenu()"></div>
 
@@ -135,7 +145,7 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
         <div class="sidebar-footer"><a href="../pages/logout.php" class="logout-btn"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log Out</a></div>
     </aside>
 
-    <!-- BOTTOM NAVIGATION (UPDATED) -->
+    <!-- BOTTOM NAVIGATION -->
     <nav class="bottom-nav">
         <div class="bottom-nav-inner">
             <a href="index.php" class="bottom-nav-item">
@@ -195,14 +205,14 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
 
             <!-- App Arrivals Section -->
             <section class="card">
-                <div class="card-header"><div class="card-header-icon" style="background:linear-gradient(135deg,#f97316,#ea580c);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></div><h2>Citizens en Route</h2><?php if ($appArrivals): ?><span class="en-route-badge" style="margin-left:auto;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg><?php echo count($appArrivals); ?> en route</span><?php endif; ?></div>
+                <div class="card-header"><svg class="card-header-icon-plain" viewBox="0 0 24 24" fill="none" stroke="var(--orange-dark)" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg><h2>Citizens en Route</h2><?php if ($appArrivals): ?><span class="en-route-badge" style="margin-left:auto;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg><?php echo count($appArrivals); ?> en route</span><?php endif; ?></div>
                 <div class="card-body">
                     <?php if ($justCheckedIn): ?><div class="checkin-toast"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Evacuee recorded successfully!</div><?php endif; ?>
                     <?php if (!$appArrivals): ?><div class="arrival-queue-empty"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>No citizens are currently navigating to this center via the app.</div><?php else: ?>
                     <div class="app-arrivals-grid">
                         <?php foreach ($appArrivals as $a): $initial = mb_strtoupper(mb_substr($a['full_name'], 0, 1)); $profileTotal = (int)$a['total_members']; ?>
                         <div class="app-arrival-card" id="arrival-card-<?php echo (int)$a['tracking_id']; ?>">
-                            <div class="app-arrival-card-header"><div class="app-arrival-person"><div class="app-arrival-avatar"><?php echo htmlspecialchars($initial); ?></div><div><div class="app-arrival-name"><?php echo htmlspecialchars($a['full_name']); ?></div><div class="app-arrival-meta"><svg viewBox="0 0 14 14" width="10" height="10" fill="#d45f10"><path d="M7 1C4.79 1 3 2.79 3 5c0 3.25 4 8 4 8s4-4.75 4-8c0-2.21-1.79-4-4-4Z"/></svg><?php echo htmlspecialchars($a['barangay_name']); ?> <span class="dot">·</span> House #<?php echo htmlspecialchars($a['house_number']); ?> <span class="dot">·</span> Profile: <?php echo $profileTotal; ?> person<?php echo $profileTotal != 1 ? 's' : ''; ?></div></div></div><span class="app-badge-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>En Route</span></div>
+                            <div class="app-arrival-card-header"><div class="app-arrival-person"><div class="app-arrival-avatar"><?php echo htmlspecialchars($initial); ?></div><div><div class="app-arrival-name"><?php echo htmlspecialchars($a['full_name']); ?></div><div class="app-arrival-meta"><svg viewBox="0 0 14 14" width="10" height="10" fill="#c2410c"><path d="M7 1C4.79 1 3 2.79 3 5c0 3.25 4 8 4 8s4-4.75 4-8c0-2.21-1.79-4-4-4Z"/></svg><?php echo htmlspecialchars($a['barangay_name']); ?> <span class="dot">·</span> House #<?php echo htmlspecialchars($a['house_number']); ?> <span class="dot">·</span> Profile: <?php echo $profileTotal; ?> person<?php echo $profileTotal != 1 ? 's' : ''; ?></div></div></div><span class="app-badge-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>En Route</span></div>
                             <form method="post" id="form-arrival-<?php echo (int)$a['tracking_id']; ?>" onsubmit="return confirmArrival(this)">
                                 <input type="hidden" name="action" value="record_app_arrival"><input type="hidden" name="tracking_id" value="<?php echo (int)$a['tracking_id']; ?>"><input type="hidden" name="nav_user_id" value="<?php echo (int)$a['user_id']; ?>">
                                 <div class="app-arrival-members">

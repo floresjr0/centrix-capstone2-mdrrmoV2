@@ -14,110 +14,10 @@ $user = current_user();
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ── Capacity bar inside center cards ─────────────────────────── */
-.cap-bar-wrap {
-  margin-top: 6px;
-}
-.cap-bar-track {
-  width: 100%;
-  height: 5px;
-  background: rgba(0,0,0,0.10);
-  border-radius: 99px;
-  overflow: hidden;
-}
-.cap-bar-fill {
-  height: 100%;
-  border-radius: 99px;
-  transition: width .4s ease;
-}
-.cap-bar-fill.fill-ok     { background: #18a850; }
-.cap-bar-fill.fill-near   { background: #b07800; }
-.cap-bar-fill.fill-full   { background: #d01030; }
 
-.cap-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 3px;
-  font-size: 10.5px;
-  color: var(--text-muted, #7a7068);
-  line-height: 1.2;
-}
-.cap-label .slots {
-  font-weight: 600;
-  font-size: 11px;
-}
-.cap-label .slots.ok   { color: #18a850; }
-.cap-label .slots.near { color: #b07800; }
-.cap-label .slots.full { color: #d01030; }
 
-/* Status badge row */
-.center-badges {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-}
-.cbadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 7px;
-  border-radius: 99px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: .2px;
-  white-space: nowrap;
-}
-.cbadge-available   { background: #d4edda; color: #1a5e2a; }
-.cbadge-near        { background: #fff3cd; color: #7a5000; }
-.cbadge-full        { background: #fde8e8; color: #a00; }
-.cbadge-temp        { background: #d6eaf8; color: #154360; }
-
-/* Full-center dimming */
-.center-item.is-full {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.center-item.is-full .center-name {
-  text-decoration: line-through;
-  text-decoration-color: #d01030;
-}
-
-/* ── Reroute toast ─────────────────────────────────────────────── */
-#rerouteToast {
-  position: fixed;
-  top: 70px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-12px);
-  background: #1A1A2E;
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 24px;
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .3s, transform .3s;
-  z-index: 9999;
-  max-width: 88vw;
-  text-align: center;
-  box-shadow: 0 4px 20px rgba(0,0,0,.35);
-}
-#rerouteToast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-#rerouteToast .toast-icon {
-  font-size: 16px;
-  flex-shrink: 0;
-}
 </style>
 </head>
 
@@ -170,12 +70,40 @@ $user = current_user();
     </svg>
   </a>
 
-  <!-- COMPASS -->
-  <div id="compassWrap">
-    <div id="compassRing" onclick="recenter()">
-      <span id="compassNeedle">🧭</span>
+  <!-- TOP-RIGHT CONTROLS: Compass + Dark Mode Toggle -->
+  <div id="topRightControls">
+
+    <!-- Dark Mode Toggle -->
+    <div class="top-pill">
+      <button id="mapModeBtn" onclick="toggleMapMode()" title="Toggle dark map">
+        <!-- Sun icon (light mode) -->
+        <svg class="mode-icon-light" width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="4" stroke="#d45f10" stroke-width="1.8"/>
+          <line x1="10" y1="1"  x2="10" y2="3.5" stroke="#d45f10" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="10" y1="16.5" x2="10" y2="19" stroke="#d45f10" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="1"  y1="10" x2="3.5" y2="10" stroke="#d45f10" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="16.5" y1="10" x2="19" y2="10" stroke="#d45f10" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="3.5" y1="3.5"  x2="5.3" y2="5.3"  stroke="#d45f10" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="14.7" y1="14.7" x2="16.5" y2="16.5" stroke="#d45f10" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="14.7" y1="5.3"  x2="16.5" y2="3.5"  stroke="#d45f10" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="3.5"  y1="16.5" x2="5.3"  y2="14.7" stroke="#d45f10" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <!-- Moon icon (dark mode) -->
+        <svg class="mode-icon-dark" width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M15.5 10.5A6.5 6.5 0 0 1 9 4a6.5 6.5 0 1 0 6.5 6.5z" stroke="rgba(255,220,120,.90)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="rgba(255,220,120,.12)"/>
+        </svg>
+      </button>
+      <div id="mapModeLabel">MAP</div>
     </div>
-    <div id="compassLabel">N</div>
+
+    <!-- Compass -->
+    <div class="top-pill" id="compassWrap">
+      <div id="compassRing" onclick="recenter()">
+        <span id="compassNeedle">🧭</span>
+      </div>
+      <div id="compassLabel">N</div>
+    </div>
+
   </div>
 
   <!-- SPEED BUBBLE -->
@@ -297,24 +225,51 @@ $user = current_user();
     </div>
 
     <div class="traffic-legend">
-      <div class="tleg"><div class="tleg-dot" style="background:#18a850"></div>Free</div>
-      <div class="tleg"><div class="tleg-dot" style="background:#b07800"></div>Slow</div>
-      <div class="tleg"><div class="tleg-dot" style="background:#d01030"></div>Jammed</div>
+      <div class="tleg"><div class="tleg-dot" style="background:#16a34a"></div>Free</div>
+      <div class="tleg"><div class="tleg-dot" style="background:#b45309"></div>Slow</div>
+      <div class="tleg"><div class="tleg-dot" style="background:#dc2626"></div>Jammed</div>
     </div>
 
     <button id="startBtn" class="nav-btn" onclick="startNavigation()">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <div class="btn-glow-ring"></div>
+      <div class="btn-shimmer"></div>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:relative;z-index:1;">
         <path d="M8 2C10 2 13 3.5 13 8C13 11 11 13.5 8 14C5 13.5 3 11 3 8C3 3.5 6 2 8 2Z" stroke="#fff" stroke-width="1.4" fill="none"/>
         <path d="M8 2L9.5 5.5H12.5L10 7.5L11 11L8 9L5 11L6 7.5L3.5 5.5H6.5L8 2Z" fill="#fff" opacity="0.9"/>
       </svg>
-      START NAVIGATION
+      <span style="position:relative;z-index:1;">START NAVIGATION</span>
     </button>
-    <button id="stopBtn" class="nav-btn" onclick="stopNavigation()">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="2" y="2" width="10" height="10" rx="2" fill="#d01030"/>
-      </svg>
-      END NAVIGATION
-    </button>
+    <!-- SLIDE-TO-END (replaces plain stopBtn) -->
+    <div id="stopSlider" style="display:none;">
+      <div class="slide-track">
+        <div class="slide-fill" id="slideFill"></div>
+
+        <!-- Thumb with chevron arrows -->
+        <div class="slide-thumb" id="slideThumb">
+          <div class="slide-chevrons">
+            <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
+              <path d="M2 2l6 5-6 5" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg width="10" height="14" viewBox="0 0 10 14" fill="none" style="opacity:.45">
+              <path d="M2 2l6 5-6 5" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Label with stop icon + pulsing dots -->
+        <div class="slide-label" id="slideLabel">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <rect x="1.5" y="1.5" width="9" height="9" rx="2" fill="rgba(185,28,28,.65)"/>
+          </svg>
+          END NAVIGATION
+          <div class="slide-dots">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- hidden real stop button kept for programmatic calls (arrival / auto-reroute) -->
+    <button id="stopBtn" style="display:none;" onclick="_confirmStop()"></button>
   </div>
 
   <!-- ARRIVAL -->
@@ -326,10 +281,10 @@ $user = current_user();
     <div class="arrival-title">Arrived!</div>
     <div class="arrival-sub">You've reached your destination</div>
     <button class="arrival-close" onclick="closeArrival()">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:relative;z-index:1;">
         <path d="M2 7h10M7 2l5 5-5 5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      Done
+      <span style="position:relative;z-index:1;">Done</span>
     </button>
   </div>
 
@@ -540,7 +495,6 @@ function togglePanel() { snapPanel(!panelCollapsed); }
 function initPanelDrag() {
   const panel  = document.getElementById('bottomPanel');
   const handle = document.getElementById('panelHandle');
-  const hint   = document.getElementById('handleHint');
 
   handle.addEventListener('click', (e) => {
     if (isDragging) return;
@@ -644,13 +598,68 @@ function initApp() {
 }
 
 function initMap() {
+  const mapEl = document.getElementById('map');
+  mapEl.style.cssText = 'position:absolute!important;top:0!important;left:0!important;'
+    + 'width:' + window.innerWidth + 'px!important;height:' + window.innerHeight + 'px!important;z-index:0!important;';
+
   map = L.map('map', { zoomControl: false, maxZoom: 20 }).setView([destLat, destLon], 15);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '© CARTO © OSM', subdomains: 'abcd', maxZoom: 20
+
+  // Tile sets — both light and dark now render from the SAME underlying
+  // no-labels tile source (CARTO Dark Matter, no place-name/POI text), so the
+  // map style/geometry is guaranteed identical between modes. "Light mode" is
+  // produced by applying a CSS color-invert filter on top of the same tiles,
+  // instead of switching to a different vendor style — this avoids the two
+  // modes ever looking stylistically different from one another.
+  const NOLABEL_TILE_URL  = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
+  const NOLABEL_TILE_ATTR = '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://osm.org/">OpenStreetMap</a> contributors';
+
+  // Filter applied to the tile pane to turn the dark no-labels basemap into a
+  // light-toned version of the exact same map (same lines, same shapes).
+  const LIGHT_MODE_FILTER = 'invert(1) hue-rotate(180deg) brightness(1.05) contrast(0.92)';
+
+  let currentTileMode = 'light';
+  let tileLayer = L.tileLayer(NOLABEL_TILE_URL, {
+    attribution: NOLABEL_TILE_ATTR,
+    subdomains: 'abcd',
+    maxZoom: 20,
+    className: 'base-tiles',
   }).addTo(map);
+
+  function applyTileFilter(mode) {
+    const pane = map.getPane('tilePane');
+    if (!pane) return;
+    pane.style.filter = (mode === 'light') ? LIGHT_MODE_FILTER : 'none';
+  }
+  applyTileFilter(currentTileMode);
+
+  window.toggleMapMode = function() {
+    currentTileMode = currentTileMode === 'light' ? 'dark' : 'light';
+    applyTileFilter(currentTileMode);
+
+    const btn = document.getElementById('mapModeBtn');
+    const lbl = document.getElementById('mapModeLabel');
+    if (currentTileMode === 'dark') {
+      btn.classList.add('is-dark');
+      lbl.textContent = 'DARK';
+    } else {
+      btn.classList.remove('is-dark');
+      lbl.textContent = 'MAP';
+    }
+  };
+
+  // Force tile refresh after DOM settles (fixes blank map on mobile)
+  setTimeout(() => { map.invalidateSize(true); }, 200);
+  setTimeout(() => { map.invalidateSize(true); }, 800);
+
   updateDestinationMarker();
   map.on('dragstart', () => { isMapLocked = false; });
-  window.addEventListener('resize', syncToggleBtn);
+
+  window.addEventListener('resize', () => {
+    mapEl.style.width  = window.innerWidth  + 'px';
+    mapEl.style.height = window.innerHeight + 'px';
+    map.invalidateSize(true);
+    syncToggleBtn();
+  });
 }
 
 // ─── CAPACITY HELPERS ─────────────────────────────────────────────────────
@@ -664,8 +673,7 @@ function getSlotsLabel(center) {
   const max   = center.max_capacity_people || 0;
   const occ   = center.current_occupancy   || 0;
   const slots = Math.max(0, max - occ);
-  const cls   = getCapacityClass(center);
-  if (center.status === 'full') return { text: 'FULL — no slots', cls: 'full' };
+  if (center.status === 'full')          return { text: 'FULL — no slots', cls: 'full' };
   if (center.status === 'near_capacity') return { text: slots + ' slots left', cls: 'near' };
   return { text: slots + ' slots available', cls: 'ok' };
 }
@@ -696,15 +704,10 @@ function rebuildCenterList() {
 
     // Status badge
     let badgeHtml = '';
-    if (c.status === 'available') {
-      badgeHtml = `<span class="cbadge cbadge-available">Available</span>`;
-    } else if (c.status === 'near_capacity') {
-      badgeHtml = `<span class="cbadge cbadge-near">Near Full</span>`;
-    } else if (c.status === 'full') {
-      badgeHtml = `<span class="cbadge cbadge-full">Full</span>`;
-    } else if (c.status === 'temp_shelter') {
-      badgeHtml = `<span class="cbadge cbadge-temp">Temp Shelter</span>`;
-    }
+    if      (c.status === 'available')     badgeHtml = `<span class="cbadge cbadge-available">Available</span>`;
+    else if (c.status === 'near_capacity') badgeHtml = `<span class="cbadge cbadge-near">Near Full</span>`;
+    else if (c.status === 'full')          badgeHtml = `<span class="cbadge cbadge-full">Full</span>`;
+    else if (c.status === 'temp_shelter')  badgeHtml = `<span class="cbadge cbadge-temp">Temp Shelter</span>`;
 
     const div = document.createElement('div');
     div.className = 'center-item' + (isFull ? ' is-full' : '') + (isSelected ? ' selected' : '');
@@ -715,31 +718,30 @@ function rebuildCenterList() {
       div.onclick = () => chooseCenter(c.id);
     }
 
+    const coordInfo =
+      `<svg width="11" height="11" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;">
+        <circle cx="6" cy="4" r="2.2" stroke="#d45f10" stroke-width="1.3"/>
+        <path d="M1.5 10.5C1.5 8.57 3.57 7 6 7s4.5 1.57 4.5 3.5" stroke="#d45f10" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+      </svg>
+      <span style="color:var(--accent);font-weight:600;">${c.coordinator_name ?? 'Unassigned'}</span>`
+      + (c.coordinator_contact
+          ? `<svg width="11" height="11" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;margin-left:3px;">
+              <path d="M2 2.5C2 2.5 3 4.5 4.5 6S9.5 10 9.5 10l1-1.5-1.5-1.5-1 1C7.5 8 5 5.5 4.5 4.5l1-1L4 2 2 2.5Z" stroke="#d45f10" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+            <span style="color:var(--accent);">${c.coordinator_contact}</span>`
+          : '');
+
     div.innerHTML = `
-      <div class="center-main">
+      <div class="center-body">
         <div class="center-name">${c.name}</div>
-        <div class="center-badges">
-          ${badgeHtml}
-        </div>
-        <div class="center-sub" style="margin-top:3px">
-          <svg width="10" height="10" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;display:inline-block;vertical-align:middle">
+        <div class="center-badges">${badgeHtml}</div>
+        <div class="center-sub" style="margin-top:2px;">
+          <svg width="10" height="10" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;">
             <path d="M7 1C4.79 1 3 2.79 3 5c0 3.25 4 8 4 8s4-4.75 4-8c0-2.21-1.79-4-4-4Z" fill="#d45f10"/>
           </svg>
-          ${c.barangay}
+          <span>${c.barangay}</span>
         </div>
-        <div class="center-sub" style="margin-top:2px;color:var(--accent);display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;">
-            <circle cx="6" cy="4" r="2.2" stroke="#d45f10" stroke-width="1.3"/>
-            <path d="M1.5 10.5C1.5 8.57 3.57 7 6 7s4.5 1.57 4.5 3.5" stroke="#d45f10" stroke-width="1.3" stroke-linecap="round" fill="none"/>
-          </svg>
-          ${c.coordinator_name ?? 'Unassigned'}
-          ${c.coordinator_contact
-            ? `&nbsp;·&nbsp;<svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="display:inline-block;vertical-align:middle;"><path d="M2 2.5C2 2.5 3 4.5 4.5 6S9.5 10 9.5 10l1-1.5-1.5-1.5-1 1C7.5 8 5 5.5 4.5 4.5l1-1L4 2 2 2.5Z" stroke="#d45f10" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> ${c.coordinator_contact}`
-            : ''
-          }
-        </div>
-
-        <!-- ── Capacity bar ── -->
+        <div class="center-sub" style="margin-top:1px;">${coordInfo}</div>
         <div class="cap-bar-wrap">
           <div class="cap-bar-track">
             <div class="cap-bar-fill fill-${capCls}" style="width:${pct}%"></div>
@@ -752,7 +754,9 @@ function rebuildCenterList() {
       </div>
       <div class="center-meta">
         <div class="center-distance">${km} km</div>
-        <div class="center-status center-status-${c.status}">${c.status}</div>
+        <div class="center-status-text center-status-${c.status}">
+          ${c.status.replace(/_/g,' ').toUpperCase()}
+        </div>
       </div>
     `;
     frag.appendChild(div);
@@ -901,7 +905,7 @@ function handleOrientation(e) {
   if (h == null) return;
   compassHeading = h;
   document.getElementById('compassNeedle').style.transform = `rotate(${-h}deg)`;
-  document.getElementById('compassLabel').style.color = (h < 20 || h > 340) ? '#d01030' : '#7a7068';
+  document.getElementById('compassLabel').style.color = (h < 20 || h > 340) ? '#dc2626' : '#9c9288';
 }
 
 // ─── START NAVIGATION ─────────────────────────────────────────────────────
@@ -912,7 +916,7 @@ function startNavigation() {
     b.style.opacity = '0.45'; b.style.pointerEvents = 'none';
   });
   document.getElementById('startBtn').style.display = 'none';
-  document.getElementById('stopBtn').style.display  = 'flex';
+  window._showStopSlider && window._showStopSlider();
   document.getElementById('dirCard').classList.add('show');
   document.getElementById('turnInstruction').textContent = 'Getting location…';
 
@@ -925,7 +929,98 @@ function startNavigation() {
 }
 
 // ─── STOP NAVIGATION ──────────────────────────────────────────────────────
-function stopNavigation() {
+// ─── SLIDE-TO-END NAVIGATION CONTROL ─────────────────────────────────────
+(function() {
+  let dragging = false, startX = 0, thumbLeft = 0, trackW = 0, thumbW = 0;
+
+  function getEls() {
+    return {
+      track:  document.getElementById('stopSlider')?.querySelector('.slide-track'),
+      thumb:  document.getElementById('slideThumb'),
+      fill:   document.getElementById('slideFill'),
+      label:  document.getElementById('slideLabel'),
+    };
+  }
+
+  function resetSlider() {
+    const { thumb, fill, label } = getEls();
+    if (!thumb) return;
+    dragging = false;
+    thumb.style.left = '4px';
+    thumb.classList.remove('confirmed');
+    fill.style.width = '0%';
+    label.style.opacity = '1';
+  }
+
+  function onMove(clientX) {
+    if (!dragging) return;
+    const { thumb, fill, label } = getEls();
+    const maxLeft = trackW - thumbW - 4;
+    const newLeft = Math.max(4, Math.min(maxLeft, clientX - startX + thumbLeft));
+    thumb.style.left = newLeft + 'px';
+    const pct = ((newLeft - 4) / (maxLeft - 4)) * 100;
+    fill.style.width = pct + '%';
+    fill.classList.toggle('active', pct > 5);
+    label.style.opacity = pct > 20 ? Math.max(0, 1 - (pct - 20) / 35) : '1';
+    label.style.transform = pct > 20 ? `translateX(${Math.min(pct * 0.18, 12)}px)` : 'translateX(0)';
+
+    if (newLeft >= maxLeft - 2) {
+      dragging = false;
+      thumb.classList.add('confirmed');
+      label.style.opacity = '0';
+      setTimeout(() => _confirmStop(), 300);
+    }
+  }
+
+  function initSlider() {
+    const { track, thumb } = getEls();
+    if (!track || !thumb) return;
+
+    // Touch
+    thumb.addEventListener('touchstart', e => {
+      e.preventDefault();
+      dragging = true;
+      thumbLeft = thumb.offsetLeft;
+      trackW    = track.offsetWidth;
+      thumbW    = thumb.offsetWidth;
+      startX    = e.touches[0].clientX;
+    }, { passive: false });
+
+    document.addEventListener('touchmove', e => {
+      if (dragging) { e.preventDefault(); onMove(e.touches[0].clientX); }
+    }, { passive: false });
+
+    document.addEventListener('touchend', () => {
+      if (dragging) { dragging = false; resetSlider(); }
+    });
+
+    // Mouse
+    thumb.addEventListener('mousedown', e => {
+      dragging = true;
+      thumbLeft = thumb.offsetLeft;
+      trackW    = track.offsetWidth;
+      thumbW    = thumb.offsetWidth;
+      startX    = e.clientX;
+    });
+    document.addEventListener('mousemove', e => { if (dragging) onMove(e.clientX); });
+    document.addEventListener('mouseup',   () => { if (dragging) { dragging = false; resetSlider(); } });
+
+  }
+
+  // Called by startNavigation to show the slider
+  window._showStopSlider = function() {
+    const slider = document.getElementById('stopSlider');
+    if (slider) { slider.style.display = 'block'; resetSlider(); initSlider(); }
+  };
+  window._hideStopSlider = function() {
+    const slider = document.getElementById('stopSlider');
+    if (slider) { slider.style.display = 'none'; resetSlider(); }
+  };
+})();
+
+// Actual stop logic — called by slider confirmation or programmatically (arrival)
+function _confirmStop() {
+  window._hideStopSlider && window._hideStopSlider();
   isNavigating = false;
   stopStatusPolling();
 
@@ -937,7 +1032,6 @@ function stopNavigation() {
     b.style.opacity = '1'; b.style.pointerEvents = 'auto';
   });
   document.getElementById('startBtn').style.display = 'flex';
-  document.getElementById('stopBtn').style.display  = 'none';
   document.getElementById('dirCard').classList.remove('show');
   document.getElementById('offrouteBanner').classList.remove('show');
   document.getElementById('turnInstruction').textContent = 'Head toward destination';
@@ -948,6 +1042,9 @@ function stopNavigation() {
   trackCancel();
 }
 
+// Public alias kept so any existing call to stopNavigation() still works
+function stopNavigation() { _confirmStop(); }
+
 // ─── POSITION UPDATE ──────────────────────────────────────────────────────
 function onPosition(pos) {
   const lat   = pos.coords.latitude;
@@ -957,7 +1054,7 @@ function onPosition(pos) {
   const sv = document.getElementById('speedVal');
   sv.textContent = Math.round(speed);
   const modeSpd = MODES[selectedMode].speed;
-  sv.style.color = speed < 3 ? 'var(--text)' : speed < modeSpd ? 'var(--green)' : speed < modeSpd * 1.4 ? 'var(--yellow)' : 'var(--red)';
+  sv.style.color = speed < 3 ? 'var(--text)' : speed < modeSpd ? '#16a34a' : speed < modeSpd * 1.4 ? '#b45309' : '#dc2626';
 
   if (userMarker) {
     userMarker.setLatLng([lat, lon]);
@@ -969,7 +1066,7 @@ function onPosition(pos) {
                <div class="user-dot"></div>
                <div class="user-pip"></div>
              </div>`,
-      iconSize: [36, 36], iconAnchor: [18, 18]
+      iconSize: [40, 40], iconAnchor: [20, 20]
     });
     userMarker = L.marker([lat, lon], { icon, zIndexOffset: 1000 }).addTo(map);
   }
@@ -1041,14 +1138,14 @@ function drawTrafficRoute(coords) {
   arrowLayers.filter(l => l._isRoute).forEach(l => map.removeLayer(l));
 
   const border = L.polyline(coords.map(c => [c.lat, c.lng]), {
-    color: 'rgba(0,0,0,0.15)', weight: 12, opacity: 0.5, lineCap: 'round', lineJoin: 'round'
+    color: 'rgba(0,0,0,0.12)', weight: 12, opacity: 0.5, lineCap: 'round', lineJoin: 'round'
   });
   border._isRoute = true; border.addTo(map); border.bringToBack(); arrowLayers.push(border);
 
   for (let i = 1; i < coords.length; i++) {
     const p    = coords[i-1], c = coords[i];
     const seed = (i * 7 + Math.round(p.lat * 1000)) % 10;
-    const color = seed < 5 ? '#18a850' : seed < 8 ? '#b07800' : '#d01030';
+    const color = seed < 5 ? '#16a34a' : seed < 8 ? '#b45309' : '#dc2626';
     const seg = L.polyline([[p.lat,p.lng],[c.lat,c.lng]], {
       color, weight: 7, opacity: 0.88, lineCap: 'round', lineJoin: 'round'
     });
@@ -1068,8 +1165,8 @@ function drawRouteArrows(coords) {
       const mid  = [(p.lat+c.lat)/2, (p.lng+c.lng)/2];
       const icon = L.divIcon({
         className: '',
-        html: `<svg width="16" height="16" viewBox="0 0 16 16" style="transform:rotate(${bearing}deg);filter:drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
-          <polygon points="8,1 14,13 8,10 2,13" fill="white" opacity="0.90"/>
+        html: `<svg width="16" height="16" viewBox="0 0 16 16" style="transform:rotate(${bearing}deg);filter:drop-shadow(0 1px 3px rgba(0,0,0,0.25))">
+          <polygon points="8,1 14,13 8,10 2,13" fill="white" opacity="0.88"/>
         </svg>`,
         iconSize: [16,16], iconAnchor: [8,8]
       });
@@ -1115,8 +1212,8 @@ function updateStepDisplay() {
   document.getElementById('turnArrowSvg').innerHTML = TURN_SVG[type] || TURN_SVG.Straight;
   const isArrival = type === 'Dest';
   document.getElementById('turnArrowBox').style.background = isArrival
-    ? 'linear-gradient(135deg,#18a850,#0e7a36)'
-    : `linear-gradient(135deg,${MODES[selectedMode].accentColor},#0088cc)`;
+    ? 'linear-gradient(145deg,#16a34a,#15803d)'
+    : `linear-gradient(145deg,${MODES[selectedMode].accentColor},#c0391e)`;
 }
 
 function updateCurrentStep(lat, lon) {

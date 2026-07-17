@@ -58,6 +58,14 @@ $regsStmt = $pdo->prepare("SELECT r.*, b.name AS barangay_name
 $regsStmt->execute([$centerId]);
 $registrations = $regsStmt->fetchAll();
 
+// Unique barangays present in this list, for the filter dropdown
+$usedBarangays = [];
+foreach ($registrations as $r) {
+    $usedBarangays[$r['barangay_name']] = true;
+}
+$usedBarangays = array_keys($usedBarangays);
+sort($usedBarangays);
+
 $occ      = get_center_occupancy($centerId);
 $pct      = round($occ['percent']);
 $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
@@ -73,7 +81,17 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../asset/css/center_registrations.css">
 </head>
+<style>
+
+</style>
 <body>
+
+<div class="bg-blobs" aria-hidden="true">
+    <div class="bg-blob b1"></div>
+    <div class="bg-blob b2"></div>
+    <div class="bg-blob b3"></div>
+    <div class="bg-blob b4"></div>
+</div>
 
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeMenu()"></div>
 
@@ -157,18 +175,34 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
             <!-- Registered Families Table + Mobile Cards -->
             <section class="card">
                 <div class="card-header"><div class="card-header-icon"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div><h2>Occupant List</h2></div>
+
                 <?php if (!$registrations): ?>
                     <div class="no-data"><div class="no-data-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>No families have been registered yet.</div>
                 <?php else: ?>
+                    <!-- Search + filter toolbar -->
+                    <div class="reg-toolbar">
+                        <div class="reg-search-wrap">
+                            <svg class="reg-search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="regSearchInput" class="reg-search-input" placeholder="Search by name or contact number…" autocomplete="off">
+                        </div>
+                        <select id="regBarangayFilter" class="reg-filter-select">
+                            <option value="">All Barangays</option>
+                            <?php foreach ($usedBarangays as $bname): ?>
+                            <option value="<?php echo htmlspecialchars(mb_strtolower($bname)); ?>"><?php echo htmlspecialchars($bname); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="reg-count-badge" id="regCountBadge"><?php echo count($registrations); ?> families</span>
+                    </div>
+
                     <!-- Desktop table -->
                     <div class="table-wrap">
-                        <table class="table">
+                        <table class="table" id="regTable">
                             <thead>
                                 <tr><th>Head</th><th>Contact</th><th>Birthday</th><th>Barangay</th><th>Adults</th><th>Children</th><th>Seniors</th><th>PWDs</th><th>Total</th></tr>
                             </thead>
                             <tbody>
                             <?php foreach ($registrations as $r): ?>
-                                <tr>
+                                <tr class="reg-row" data-name="<?php echo htmlspecialchars(mb_strtolower($r['family_head_name'] . ' ' . ($r['contact_number'] ?? ''))); ?>" data-barangay="<?php echo htmlspecialchars(mb_strtolower($r['barangay_name'])); ?>">
                                     <td class="cell-head"><?php echo htmlspecialchars($r['family_head_name']); ?></td>
                                     <td><?php echo htmlspecialchars($r['contact_number'] ?? ''); ?></td>
                                     <td><?php echo !empty($r['birthday']) ? date('M d, Y', strtotime($r['birthday'])) : ''; ?></td>
@@ -199,12 +233,13 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                             <?php endforeach; ?>
                             </tbody>
                         </table>
+                        <div class="reg-no-results" id="regNoResultsTable">No families match your search.</div>
                     </div>
 
                     <!-- Mobile cards -->
-                    <div class="reg-cards">
+                    <div class="reg-cards" id="regCards">
                         <?php foreach ($registrations as $r): ?>
-                        <div class="reg-card">
+                        <div class="reg-card reg-row" data-name="<?php echo htmlspecialchars(mb_strtolower($r['family_head_name'] . ' ' . ($r['contact_number'] ?? ''))); ?>" data-barangay="<?php echo htmlspecialchars(mb_strtolower($r['barangay_name'])); ?>">
                             <div class="reg-card-head">
                                 <div>
                                     <div class="reg-card-name"><?php echo htmlspecialchars($r['family_head_name']); ?></div>
@@ -243,6 +278,7 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                             </div>
                         </div>
                         <?php endforeach; ?>
+                        <div class="reg-no-results" id="regNoResultsCards">No families match your search.</div>
                     </div>
                 <?php endif; ?>
             </section>
@@ -262,6 +298,40 @@ function closeMenu() {
     document.body.style.overflow = '';
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+// Search + barangay filter for the occupant list (table + mobile cards)
+(function () {
+    const searchInput   = document.getElementById('regSearchInput');
+    const barangaySelect = document.getElementById('regBarangayFilter');
+    const countBadge    = document.getElementById('regCountBadge');
+    const noResultsTable = document.getElementById('regNoResultsTable');
+    const noResultsCards = document.getElementById('regNoResultsCards');
+    if (!searchInput || !barangaySelect) return;
+
+    const rows = Array.from(document.querySelectorAll('.reg-row'));
+
+    function applyFilters() {
+        const q = searchInput.value.trim().toLowerCase();
+        const brgy = barangaySelect.value;
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const nameMatch = !q || row.dataset.name.includes(q);
+            const brgyMatch = !brgy || row.dataset.barangay === brgy;
+            const show = nameMatch && brgyMatch;
+            row.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
+        });
+
+        if (countBadge) countBadge.textContent = visibleCount + (visibleCount === 1 ? ' family' : ' families');
+        const noneVisible = visibleCount === 0;
+        if (noResultsTable) noResultsTable.style.display = noneVisible ? 'block' : 'none';
+        if (noResultsCards) noResultsCards.style.display = noneVisible ? 'block' : 'none';
+    }
+
+    searchInput.addEventListener('input', applyFilters);
+    barangaySelect.addEventListener('change', applyFilters);
+})();
 </script>
 </body>
 </html>
