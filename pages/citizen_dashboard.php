@@ -467,7 +467,22 @@ $announcementsJson = json_encode(array_map(function($a) {
 
     <div class="profile-section">
       <div class="profile-section-label">Personal Information</div>
-      <div class="profile-field"><label>Full Name</label><input type="text" id="pfFullName" placeholder="Enter full name" maxlength="150"></div>
+
+      <div class="profile-field"><label>First Name</label><input type="text" id="pfFirstName" placeholder="Juan" maxlength="100"></div>
+<div class="profile-field"><label>Middle Name <span style="font-weight:400;color:#999;">(optional)</span></label><input type="text" id="pfMiddleName" placeholder="Santos" maxlength="100"></div>
+<div class="profile-field"><label>Last Name</label><input type="text" id="pfLastName" placeholder="Dela Cruz" maxlength="100"></div>
+<div class="profile-field"><label>Suffix <span style="font-weight:400;color:#999;">(optional)</span></label>
+  <select id="pfSuffix">
+    <option value="">— None —</option>
+    <option value="Jr.">Jr.</option>
+    <option value="Sr.">Sr.</option>
+    <option value="II">II</option>
+    <option value="III">III</option>
+    <option value="IV">IV</option>
+    <option value="V">V</option>
+  </select>
+</div>
+
       <div class="profile-field"><label>Contact Number</label><input type="tel" id="pfContact" placeholder="09XXXXXXXXX"></div>
       <div style="display:flex; gap:12px;">
         <div class="profile-field" style="flex:1"><label>Birthday</label><input type="date" id="pfBirthday" max="<?php echo date('Y-m-d'); ?>"></div>
@@ -858,7 +873,12 @@ function hhChange(field, delta) {
 
 function renderProfileFromCache() {
   if (!profileCache) return;
-  document.getElementById('pfFullName').value = profileCache.full_name || '';
+
+    document.getElementById('pfFirstName').value  = profileCache.first_name  || '';
+document.getElementById('pfMiddleName').value = profileCache.middle_name || '';
+document.getElementById('pfLastName').value   = profileCache.last_name   || '';
+document.getElementById('pfSuffix').value     = profileCache.suffix      || '';
+
   document.getElementById('pfContact').value = profileCache.contact_number || '';
   document.getElementById('pfBarangay').value = profileCache.barangay_name || '';
   document.getElementById('pfHouseNo').value = profileCache.house_number || '';
@@ -875,18 +895,25 @@ function renderProfileFromCache() {
   document.getElementById('hhSeniors').textContent = hhState.seniors;
   document.getElementById('hhPwds').textContent = hhState.pwds;
   updateHHTotal();
-  const initial = (profileCache.full_name && profileCache.full_name.length > 0) ? profileCache.full_name.charAt(0).toUpperCase() : '?';
-  ['profileHeadAvatar', 'topbarAvatar', 'drawerAvatar'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = initial;
-  });
-  document.getElementById('profileHeadName').innerText = profileCache.full_name || 'My Profile';
+  
+const displayName = [profileCache.first_name, profileCache.last_name].filter(Boolean).join(' ');
+const initial = (profileCache.first_name && profileCache.first_name.length > 0) ? profileCache.first_name.charAt(0).toUpperCase() : '?';
+['profileHeadAvatar', 'topbarAvatar', 'drawerAvatar'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.textContent = initial;
+});
+document.getElementById('profileHeadName').innerText = displayName || 'My Profile';
+
+
   document.getElementById('drawerName').innerText = profileCache.full_name || 'My Profile';
   document.getElementById('profileHeadBrgy').innerText = profileCache.barangay_name ? 'Brgy. ' + profileCache.barangay_name : '';
 }
 
 function loadProfileData() {
-  return fetch('citizen_profile_action.php?action=get', { credentials: 'same-origin' })
+  return fetch('citizen_profile_action.php?action=get&_=' + Date.now(), {
+    credentials: 'same-origin',
+    cache: 'no-store'
+  })
     .then(r => r.json())
     .then(data => {
       if (data.ok) {
@@ -926,12 +953,15 @@ function saveProfile() {
   const btn = document.getElementById('profileSaveBtn');
   btn.classList.add('saving');
   const payload = {
-    full_name: document.getElementById('pfFullName').value.trim(),
-    contact_number: document.getElementById('pfContact').value.trim(),
-    birthday: document.getElementById('pfBirthday').value,
-    sex: document.getElementById('pfSex').value,
-    ...hhState
-  };
+  first_name: document.getElementById('pfFirstName').value.trim(),
+  middle_name: document.getElementById('pfMiddleName').value.trim(),
+  last_name: document.getElementById('pfLastName').value.trim(),
+  suffix: document.getElementById('pfSuffix').value.trim(),
+  contact_number: document.getElementById('pfContact').value.trim(),
+  birthday: document.getElementById('pfBirthday').value,
+  sex: document.getElementById('pfSex').value,
+  ...hhState
+};
   fetch('citizen_profile_action.php?action=save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

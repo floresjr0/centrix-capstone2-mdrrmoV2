@@ -1187,7 +1187,7 @@ function old(string $key, string $default = ''): string {
       const warningText = isOutside
         ? "Note: Your detected location appears to be outside San Ildefonso, Bulacan."
         : "";
-      <p style={{ color: "red" }}>{warningText}</p>
+      // <p style={{ color: "red" }}>{warningText}</p> tHIS IS BUG MARCOKOKI
 
       document.getElementById("locationWarning").textContent = warningText;
       document.getElementById("dt-locationWarning").textContent = warningText;

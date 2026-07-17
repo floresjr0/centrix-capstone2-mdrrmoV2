@@ -8,6 +8,8 @@ require_once __DIR__ . '/db.php';
 require_login();
 
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 
 $user   = current_user();
 $pdo    = db();
@@ -42,6 +44,10 @@ if ($action === 'get') {
     echo json_encode([
         'ok'             => true,
         'full_name'      => $freshUser['full_name']      ?? '',
+        'first_name'     => $freshUser['first_name']     ?? '',
+        'last_name'      => $freshUser['last_name']      ?? '',
+        'middle_name'    => $freshUser['middle_name']    ?? '',
+        'suffix'         => $freshUser['suffix']         ?? '',
         'email'          => $freshUser['email']          ?? '',
         'contact_number' => $freshUser['contact_number'] ?? '',
         'house_number'   => $freshUser['house_number']   ?? '',
@@ -75,17 +81,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save') {
         exit;
     }
 
-    // ── Personal fields ──────────────────────────────────────────
-    $fullName      = trim($input['full_name']      ?? '');
-    $contactNumber = trim($input['contact_number'] ?? '');
-    $birthdayRaw   = trim($input['birthday']       ?? '');
-    $sex           = trim($input['sex']            ?? '');
+   // ── Personal fields ──────────────────────────────────────────
+// The profile modal collects first/middle/last/suffix separately,
+// so read those directly instead of a single full_name field.
+$firstName     = trim($input['first_name']     ?? '');
+$middleName    = trim($input['middle_name']    ?? '');
+$lastName      = trim($input['last_name']      ?? '');
+$suffix        = trim($input['suffix']         ?? '');
+$contactNumber = trim($input['contact_number'] ?? '');
+$birthdayRaw   = trim($input['birthday']       ?? '');
+$sex           = trim($input['sex']            ?? '');
 
-    // Validate name
-    if (mb_strlen($fullName) < 2) {
-        echo json_encode(['ok' => false, 'error' => 'Mangyaring ilagay ang iyong buong pangalan.']);
-        exit;
-    }
+// Validate name
+if (mb_strlen($firstName) < 1 || mb_strlen($lastName) < 1) {
+    echo json_encode(['ok' => false, 'error' => 'Mangyaring ilagay ang iyong buong pangalan.']);
+    exit;
+}
+
+// Build full_name from the individual parts, so it stays in
+// sync with first/middle/last/suffix instead of drifting.
+$fullName = trim(implode(' ', array_filter([$firstName, $middleName, $lastName, $suffix])));
 
     // Validate contact number — allow empty or Philippine formats
     if ($contactNumber !== '' && !preg_match('/^(\+63|0)[0-9]{9,10}$/', $contactNumber)) {
@@ -136,10 +151,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save') {
     try {
         $pdo->beginTransaction();
 
-        // Update users table — including birthday and sex
+        // Update users table — including first_name/last_name so
+        // they stay in sync with full_name, plus birthday and sex
         $stmt = $pdo->prepare("
             UPDATE users
                SET full_name      = :name,
+                   first_name     = :first_name,
+                   last_name      = :last_name,
                    contact_number = :contact,
                    birthday       = :birthday,
                    sex            = :sex,
@@ -147,11 +165,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save') {
              WHERE id = :uid
         ");
         $stmt->execute([
-            ':name'     => $fullName,
-            ':contact'  => $contactNumber ?: null,
-            ':birthday' => $birthdaySQL,
-            ':sex'      => $sex ?: null,
-            ':uid'      => $user['id'],
+            ':name'        => $fullName,
+            ':first_name'  => $firstName,
+            ':last_name'   => $lastName,
+            ':contact'     => $contactNumber ?: null,
+            ':birthday'    => $birthdaySQL,
+            ':sex'         => $sex ?: null,
+            ':uid'         => $user['id'],
         ]);
 
         // Upsert family_profiles (household)

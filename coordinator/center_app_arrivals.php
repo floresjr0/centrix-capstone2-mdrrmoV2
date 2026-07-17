@@ -87,7 +87,7 @@ $appArrivalsStmt = $pdo->prepare("
     FROM evac_navigation_tracking nt
     JOIN users u        ON u.id  = nt.user_id
     JOIN barangays b    ON b.id  = u.barangay_id
-    LEFT JOIN citizen_household ch ON ch.user_id = nt.user_id
+    LEFT JOIN family_profiles ch ON ch.user_id = nt.user_id
     WHERE nt.center_id = ?
       AND nt.status    = 'navigating'
     ORDER BY nt.updated_at ASC

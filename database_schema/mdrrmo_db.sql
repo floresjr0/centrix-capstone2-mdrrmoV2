@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 23, 2026 at 03:46 PM
+-- Generation Time: Jul 17, 2026 at 05:10 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -128,7 +128,8 @@ CREATE TABLE `citizen_household` (
 --
 
 INSERT INTO `citizen_household` (`id`, `user_id`, `adults`, `children`, `seniors`, `pwds`, `total_members`, `updated_at`) VALUES
-(1, 3, 1, 4, 0, 0, 5, '2026-04-22 22:17:51');
+(1, 3, 1, 4, 0, 0, 5, '2026-04-22 22:17:51'),
+(6, 12, 1, 4, 0, 0, 5, '2026-05-05 15:01:44');
 
 -- --------------------------------------------------------
 
@@ -154,7 +155,8 @@ CREATE TABLE `disasters` (
 --
 
 INSERT INTO `disasters` (`id`, `type`, `level`, `title`, `status`, `description`, `started_at`, `ended_at`, `created_at`, `updated_at`) VALUES
-(2, 'typhoon', 1, 'new update evacuee', 'ongoing', 'new update evacuee', '2026-04-23 15:39:00', NULL, '2026-04-23 15:39:47', '2026-04-23 15:39:47');
+(5, 'flood', 1, 'version 2', 'ongoing', NULL, '2026-07-17 22:35:00', NULL, '2026-07-17 22:35:59', '2026-07-17 22:35:59'),
+(6, 'flood', 1, 'version 2', 'ongoing', NULL, '2026-07-17 22:35:00', NULL, '2026-07-17 22:36:01', '2026-07-17 22:36:01');
 
 -- --------------------------------------------------------
 
@@ -183,9 +185,10 @@ CREATE TABLE `evacuation_centers` (
 --
 
 INSERT INTO `evacuation_centers` (`id`, `name`, `barangay_id`, `address`, `lat`, `lng`, `max_capacity_people`, `max_capacity_families`, `status`, `coordinator_user_id`, `notes`, `created_at`, `updated_at`) VALUES
-(1, 'sample', 6, 'San Ildefonso', 15.1112000, 120.9459000, 10, 0, 'available', 4, 'dasda', '2026-03-07 22:44:23', '2026-04-01 22:01:24'),
-(2, 'ETivac Sample', 7, 'dyan lang', 15.1169570, 120.9475340, 20, 20, 'available', 5, 'dito na sila babe', '2026-03-08 00:54:43', '2026-03-27 23:14:33'),
-(3, 'Sample center', 2, 'Malapit sa COurt', 15.0834100, 120.9462390, 10, 10, 'available', 5, '', '2026-03-11 22:37:47', '2026-03-27 23:14:33');
+(1, 'sample', 6, 'San Ildefonso', 15.1112000, 120.9459000, 10, 0, 'available', 4, 'dasda', '2026-03-07 22:44:23', '2026-07-17 22:40:12'),
+(2, 'ETivac Sample', 7, 'dyan lang', 15.1169570, 120.9475340, 20, 20, 'available', 5, 'dito na sila babe', '2026-03-08 00:54:43', '2026-03-11 22:26:52'),
+(3, 'Sample center', 2, 'Malapit sa COurt', 15.0834100, 120.9462390, 10, 10, 'available', 5, '', '2026-03-11 22:37:47', '2026-03-11 22:37:47'),
+(4, 'Poblacion Evacuation Center', 34, 'poblacion', 15.0789400, 120.9444420, 100, 100, 'available', 5, '', '2026-03-31 23:50:14', '2026-03-31 23:50:14');
 
 -- --------------------------------------------------------
 
@@ -198,10 +201,6 @@ CREATE TABLE `evacuation_intentions` (
   `user_id` int(10) UNSIGNED NOT NULL,
   `evacuation_center_id` int(10) UNSIGNED NOT NULL,
   `household_size` tinyint(3) UNSIGNED NOT NULL DEFAULT 1,
-  `adults` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
-  `children` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
-  `seniors` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
-  `pwds` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
   `status` enum('going','arrived','cancelled') NOT NULL DEFAULT 'going',
   `note` varchar(255) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
@@ -229,7 +228,9 @@ CREATE TABLE `evac_navigation_tracking` (
 --
 
 INSERT INTO `evac_navigation_tracking` (`id`, `user_id`, `center_id`, `disaster_id`, `status`, `created_at`, `updated_at`) VALUES
-(1, 3, 1, 2, 'navigating', '2026-03-12 23:12:25', '2026-04-23 21:40:12');
+(1, 3, 2, NULL, 'navigating', '2026-03-12 23:12:25', '2026-07-17 22:17:24'),
+(81, 4, 1, NULL, 'cancelled', '2026-07-17 22:17:40', '2026-07-17 22:34:48'),
+(86, 6, 1, 5, 'cancelled', '2026-07-17 22:48:28', '2026-07-17 22:52:19');
 
 -- --------------------------------------------------------
 
@@ -291,7 +292,17 @@ INSERT INTO `evac_registrations_archive` (`id`, `original_id`, `center_id`, `fam
 (3, 3, 1, 'Juan Dele Cruz', NULL, NULL, 2, 2, 3, 0, 0, 5, 4, '2026-04-23 15:36:35', 'updated evacuees record', 2, 2, '2026-04-23 15:56:57'),
 (5, 4, 1, 'Juan Dele Cruz', NULL, NULL, 2, 1, 4, 0, 0, 5, 4, '2026-04-23 16:54:43', 'sample version 2 with evacuee details', 2, 2, '2026-04-23 16:55:15'),
 (6, 5, 1, 'james pogi', '09686971314', '2005-06-09', 7, 1, 0, 0, 0, 1, 4, '2026-04-23 18:08:51', 'update sample 3?', 2, 2, '2026-04-23 20:07:16'),
-(7, 6, 1, 'Juan Dele Cruz', '09686971314', '2005-06-09', 2, 1, 3, 0, 0, 4, 4, '2026-04-23 21:27:07', 'sample demo while meeting', 2, 2, '2026-04-23 21:33:24');
+(7, 6, 1, 'Juan Dele Cruz', '09686971314', '2005-06-09', 2, 1, 3, 0, 0, 4, 4, '2026-04-23 21:27:07', 'sample demo while meeting', 2, 2, '2026-04-23 21:33:24'),
+(8, 7, 1, 'nataniel dela curx', '09686971314', '2005-06-09', 24, 1, 1, 0, 0, 2, 4, '2026-04-24 17:18:37', 'Sample data of Evacuees', 2, 2, '2026-04-26 15:17:23'),
+(9, 8, 1, 'Juan Dele Cruz', '09686971314', '2005-06-09', 2, 1, 4, 0, 0, 5, 4, '2026-04-24 17:18:50', 'Sample data of Evacuees', 2, 2, '2026-04-26 15:17:23'),
+(10, 9, 1, 'arlyn pogi', '09686971315', '2005-06-09', 3, 20, 0, 0, 0, 20, 4, '2026-04-24 17:22:34', 'Sample data of Evacuees', 2, 2, '2026-04-26 15:17:23'),
+(11, 10, 1, 'marte flores', '09686971314', '2005-06-09', 33, 2, 0, 0, 0, 2, 4, '2026-05-05 14:29:21', 'sample names', 2, 2, '2026-05-05 14:36:47'),
+(12, 11, 1, 'charlene flores', NULL, NULL, 9, 1, 0, 0, 0, 1, 4, '2026-05-05 14:36:08', 'sample names', 2, 2, '2026-05-05 14:36:47'),
+(14, 12, 1, 'Juan Dele Cruz', '09686971314', '2005-06-09', 2, 1, 4, 0, 0, 5, 4, '2026-05-05 15:01:22', 'sadasd', 2, 2, '2026-05-05 15:03:05'),
+(15, 13, 1, 'Charlene Retoria Flores', '09686971314', '2005-06-09', 9, 1, 4, 0, 0, 5, 4, '2026-05-05 15:02:35', 'sadasd', 2, 2, '2026-05-05 15:03:05'),
+(16, 1, 1, 'Jusin pogi', NULL, NULL, 2, 2, 2, 2, 1, 7, 4, '2026-03-08 00:29:37', 'updated evacuees record', NULL, 2, '2026-07-17 22:40:12'),
+(17, 2, 1, 'Marco Legaspi', NULL, NULL, 23, 0, 0, 0, 1, 1, 4, '2026-03-27 22:29:34', 'updated evacuees record', NULL, 2, '2026-07-17 22:40:12'),
+(18, 3, 1, 'Marte Flores Jr Jr.', '09686971314', '2005-06-09', 4, 1, 0, 0, 0, 1, 4, '2026-07-17 22:34:37', 'updated evacuees record', NULL, 2, '2026-07-17 22:40:12');
 
 -- --------------------------------------------------------
 
@@ -316,7 +327,9 @@ CREATE TABLE `family_profiles` (
 --
 
 INSERT INTO `family_profiles` (`id`, `user_id`, `adults`, `children`, `seniors`, `pwds`, `total_members`, `created_at`, `updated_at`) VALUES
-(1, 3, 1, 2, 0, 0, 3, '2026-04-23 15:34:58', '2026-04-23 21:22:49');
+(0, 4, 2, 0, 0, 0, 2, '2026-07-17 22:18:50', '2026-07-17 23:04:23'),
+(1, 3, 1, 0, 0, 0, 1, '2026-04-23 15:34:58', '2026-07-17 22:17:13'),
+(4, 12, 1, 4, 0, 0, 5, '2026-05-05 14:34:40', '2026-05-05 15:01:44');
 
 -- --------------------------------------------------------
 
@@ -358,17 +371,25 @@ INSERT INTO `ready_bag_templates` (`id`, `disaster_type`, `level_min`, `level_ma
 CREATE TABLE `users` (
   `id` int(10) UNSIGNED NOT NULL,
   `full_name` varchar(150) NOT NULL,
+  `first_name` varchar(100) DEFAULT NULL,
+  `middle_name` varchar(100) DEFAULT NULL,
+  `last_name` varchar(100) DEFAULT NULL,
+  `suffix` varchar(10) DEFAULT NULL,
   `email` varchar(150) NOT NULL,
   `contact_number` varchar(20) DEFAULT NULL,
-  `birthday` date DEFAULT NULL COMMENT 'Date of birth — used to auto-compute age',
-  `sex` enum('male','female','prefer_not_to_say') DEFAULT NULL COMMENT 'Biological sex of account owner',
   `password_hash` varchar(255) NOT NULL,
   `role` enum('citizen','admin','coordinator') NOT NULL DEFAULT 'citizen',
   `barangay_id` int(10) UNSIGNED NOT NULL,
   `house_number` varchar(50) NOT NULL,
+  `birthday` date DEFAULT NULL,
+  `sex` enum('male','female','prefer_not_to_say') DEFAULT NULL,
   `is_email_verified` tinyint(1) NOT NULL DEFAULT 0,
   `otp_code_hash` varchar(255) DEFAULT NULL,
   `otp_expires_at` datetime DEFAULT NULL,
+  `device_token` varchar(255) DEFAULT NULL,
+  `device_fingerprint` varchar(255) DEFAULT NULL,
+  `device_registered_at` datetime DEFAULT NULL,
+  `is_device_trusted` tinyint(1) NOT NULL DEFAULT 0,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -378,13 +399,13 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `full_name`, `email`, `contact_number`, `birthday`, `sex`, `password_hash`, `role`, `barangay_id`, `house_number`, `is_email_verified`, `otp_code_hash`, `otp_expires_at`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 'System Administrator', 'admin@system.com', NULL, NULL, NULL, '$2y$10$8x6M4nDkYq7YJ7Ew3LhF8eQxP3yP0mV5m9v0oQj7c7s8T1k1QwL7C', 'admin', 1, 'Admin Office', 1, NULL, NULL, 1, '2026-03-07 22:07:21', '2026-03-07 22:07:21'),
-(2, 'System Administrator', 'admin@example.com', NULL, NULL, NULL, '$2y$10$XTTaYPYqjRG.i.YeeD/wxuSy28yygjcWz4B/InJApnGBWj/0GPQli', 'admin', 1, 'Admin Office', 1, NULL, NULL, 1, '2026-03-07 22:21:37', '2026-03-07 22:21:37'),
-(3, 'Juan Dele Cruz', 'marteflores07@gmail.com', '09686971314', '2005-06-09', 'male', '$2y$10$4lt1uymzeZlUXamB1IYA4.45aXITSsqiBF5d51ySdSG11dZeUFLi.', 'citizen', 2, '0325', 1, NULL, NULL, 1, '2026-03-07 22:32:15', '2026-04-23 21:22:49'),
-(4, 'coordinator1', 'martefloresjr09@gmail.com', NULL, NULL, NULL, '$2y$10$2UeQpO1nyrNfZQr2qJo0JuFvBD3ON4E2QLHD5mGFUhGU6VCkACPOG', 'coordinator', 4, '0326', 1, NULL, NULL, 1, '2026-03-07 23:40:55', '2026-03-07 23:40:55'),
-(5, 'Marte Flores Jr.', 'truckflores09@gmail.com', '09686971314', NULL, NULL, '$2y$10$AUXnxr9tFqnLjLxWR8kKDe9Qs28FJGlgve66n56ucduVY0zRRE4B.', 'coordinator', 30, '0327', 1, NULL, NULL, 1, '2026-03-11 18:21:48', '2026-03-11 18:21:48'),
-(10, 'sample123', 'bsau.studentjudicialreporting@gmail.com', NULL, NULL, NULL, '$2y$10$45NOdyFXf6kI00bpo1qhRecZZyABM5CEKMBLd/b33eGZ/TCEMGhfK', 'citizen', 24, '0325', 0, '$2y$10$ZSg.21vu19JKFvTA5sdR.OvqJAid7NeXSQtaNmLWvHBeR6Om1ezYC', '2026-03-28 01:25:04', 1, '2026-03-28 01:10:04', '2026-03-28 01:10:04');
+INSERT INTO `users` (`id`, `full_name`, `first_name`, `middle_name`, `last_name`, `suffix`, `email`, `contact_number`, `password_hash`, `role`, `barangay_id`, `house_number`, `birthday`, `sex`, `is_email_verified`, `otp_code_hash`, `otp_expires_at`, `device_token`, `device_fingerprint`, `device_registered_at`, `is_device_trusted`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'System Administrator', NULL, NULL, NULL, NULL, 'admin@system.com', NULL, '$2y$10$8x6M4nDkYq7YJ7Ew3LhF8eQxP3yP0mV5m9v0oQj7c7s8T1k1QwL7C', 'admin', 1, 'Admin Office', NULL, NULL, 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 22:07:21', '2026-03-07 22:07:21'),
+(2, 'System Administrator', NULL, NULL, NULL, NULL, 'admin@example.com', NULL, '$2y$10$XTTaYPYqjRG.i.YeeD/wxuSy28yygjcWz4B/InJApnGBWj/0GPQli', 'admin', 1, 'Admin Office', NULL, NULL, 1, NULL, NULL, 'a8fbd2c1fb7781fe2a91c23588b4ebc99772d49f9fbca3beb5f5a96d84a0c81a', '06c64157163a2cf72557126c2e93cfbf141573f9c79259c331a59088f34a715e', '2026-07-17 22:14:51', 1, 1, '2026-03-07 22:21:37', '2026-07-17 22:14:51'),
+(3, 'mycor mendoza', 'mycor', NULL, 'mendoza', NULL, 'marteflores07@gmail.com', '09686971314', '$2y$10$4lt1uymzeZlUXamB1IYA4.45aXITSsqiBF5d51ySdSG11dZeUFLi.', 'citizen', 2, '0325', '2005-06-09', 'female', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 22:32:15', '2026-07-17 22:17:13'),
+(4, 'Marte Flores Jr Jr.', 'Marte', NULL, 'Flores Jr', NULL, 'martefloresjr09@gmail.com', '09686971314', '$2y$10$2UeQpO1nyrNfZQr2qJo0JuFvBD3ON4E2QLHD5mGFUhGU6VCkACPOG', 'coordinator', 4, '0326', '2005-06-09', 'male', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 23:40:55', '2026-07-17 22:18:50'),
+(5, 'Marte Flores Jr.', NULL, NULL, NULL, NULL, 'truckflores09@gmail.com', '09686971314', '$2y$10$AUXnxr9tFqnLjLxWR8kKDe9Qs28FJGlgve66n56ucduVY0zRRE4B.', 'coordinator', 30, '0327', NULL, NULL, 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-11 18:21:48', '2026-03-11 18:21:48'),
+(6, 'Mycor DC Mendoza Jr.', 'Mycor', 'DC', 'Mendoza', 'Jr.', 'linkultra.free.nf@gmail.com', '09686971314', '$2y$10$e1QVwM/KtH/pUmKQ6H7Diuc1CNiFx0qoK3lkfz5YcdgiRknqfo/k2', 'citizen', 10, '143', '2026-07-17', 'female', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-07-17 22:47:25', '2026-07-17 23:04:23');
 
 -- --------------------------------------------------------
 
@@ -532,19 +553,19 @@ ALTER TABLE `barangays`
 -- AUTO_INCREMENT for table `citizen_household`
 --
 ALTER TABLE `citizen_household`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `disasters`
 --
 ALTER TABLE `disasters`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `evacuation_centers`
 --
 ALTER TABLE `evacuation_centers`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `evacuation_intentions`
@@ -556,25 +577,19 @@ ALTER TABLE `evacuation_intentions`
 -- AUTO_INCREMENT for table `evac_navigation_tracking`
 --
 ALTER TABLE `evac_navigation_tracking`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
 
 --
 -- AUTO_INCREMENT for table `evac_registrations`
 --
 ALTER TABLE `evac_registrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `evac_registrations_archive`
 --
 ALTER TABLE `evac_registrations_archive`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
-
---
--- AUTO_INCREMENT for table `family_profiles`
---
-ALTER TABLE `family_profiles`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `ready_bag_templates`
@@ -586,7 +601,7 @@ ALTER TABLE `ready_bag_templates`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `weather_snapshots`
@@ -604,12 +619,6 @@ ALTER TABLE `weather_snapshots`
 ALTER TABLE `announcements`
   ADD CONSTRAINT `fk_ann_creator` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`),
   ADD CONSTRAINT `fk_ann_disaster` FOREIGN KEY (`disaster_id`) REFERENCES `disasters` (`id`);
-
---
--- Constraints for table `citizen_household`
---
-ALTER TABLE `citizen_household`
-  ADD CONSTRAINT `fk_household_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `evacuation_centers`
@@ -640,12 +649,6 @@ ALTER TABLE `evac_registrations`
   ADD CONSTRAINT `fk_evac_barangay` FOREIGN KEY (`barangay_id`) REFERENCES `barangays` (`id`),
   ADD CONSTRAINT `fk_evac_center` FOREIGN KEY (`center_id`) REFERENCES `evacuation_centers` (`id`),
   ADD CONSTRAINT `fk_evac_creator` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
---
--- Constraints for table `family_profiles`
---
-ALTER TABLE `family_profiles`
-  ADD CONSTRAINT `fk_fp_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `users`
