@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 17, 2026 at 06:34 PM
+-- Generation Time: Jul 17, 2026 at 07:30 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -410,12 +410,13 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `full_name`, `first_name`, `middle_name`, `last_name`, `suffix`, `email`, `contact_number`, `password_hash`, `role`, `barangay_id`, `house_number`, `birthday`, `sex`, `is_email_verified`, `otp_code_hash`, `otp_expires_at`, `device_token`, `device_fingerprint`, `device_registered_at`, `is_device_trusted`, `is_active`, `created_at`, `updated_at`, `otp_code`, `otp_purpose`) VALUES
 (1, 'System Administrator', NULL, NULL, NULL, NULL, 'admin@system.com', NULL, '$2y$10$8x6M4nDkYq7YJ7Ew3LhF8eQxP3yP0mV5m9v0oQj7c7s8T1k1QwL7C', 'admin', 1, 'Admin Office', NULL, NULL, 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 22:07:21', '2026-03-07 22:07:21', NULL, NULL),
-(2, 'System Administrator', NULL, NULL, NULL, NULL, 'admin@example.com', NULL, '$2y$10$XTTaYPYqjRG.i.YeeD/wxuSy28yygjcWz4B/InJApnGBWj/0GPQli', 'admin', 1, 'Admin Office', NULL, NULL, 1, NULL, NULL, 'a8fbd2c1fb7781fe2a91c23588b4ebc99772d49f9fbca3beb5f5a96d84a0c81a', '06c64157163a2cf72557126c2e93cfbf141573f9c79259c331a59088f34a715e', '2026-07-17 22:14:51', 1, 1, '2026-03-07 22:21:37', '2026-07-17 22:14:51', NULL, NULL),
+(2, 'System Administrator', NULL, NULL, NULL, NULL, 'admin@example.com', NULL, '$2y$10$XTTaYPYqjRG.i.YeeD/wxuSy28yygjcWz4B/InJApnGBWj/0GPQli', 'admin', 1, 'Admin Office', NULL, NULL, 1, '$2y$10$KWA1.CivN2EsNTAFQxTCFer46RyYuRFTJv/i8ORoS/l8e1hGcoXHK', '2026-07-18 01:39:54', 'a8fbd2c1fb7781fe2a91c23588b4ebc99772d49f9fbca3beb5f5a96d84a0c81a', '06c64157163a2cf72557126c2e93cfbf141573f9c79259c331a59088f34a715e', '2026-07-17 22:14:51', 1, 1, '2026-03-07 22:21:37', '2026-07-18 01:24:54', NULL, 'device_verify'),
 (3, 'mycor mendoza', 'mycor', NULL, 'mendoza', NULL, 'marteflores07@gmail.com', '09686971314', '$2y$10$4lt1uymzeZlUXamB1IYA4.45aXITSsqiBF5d51ySdSG11dZeUFLi.', 'citizen', 2, '0325', '2005-06-09', 'female', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 22:32:15', '2026-07-17 22:17:13', NULL, NULL),
 (4, 'Marte Flores Jr Jr.', 'Marte', NULL, 'Flores Jr', NULL, 'martefloresjr09@gmail.com', '09686971314', '$2y$10$2UeQpO1nyrNfZQr2qJo0JuFvBD3ON4E2QLHD5mGFUhGU6VCkACPOG', 'coordinator', 4, '0326', '2005-06-09', 'male', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 23:40:55', '2026-07-17 22:18:50', NULL, NULL),
-(5, 'Marte Flores Jr.', NULL, NULL, NULL, NULL, 'truckflores09@gmail.com', '09686971314', '$2y$10$AUXnxr9tFqnLjLxWR8kKDe9Qs28FJGlgve66n56ucduVY0zRRE4B.', 'coordinator', 30, '0327', NULL, NULL, 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-11 18:21:48', '2026-03-11 18:21:48', NULL, NULL),
+(5, 'Marte Flores Jr.', NULL, NULL, NULL, NULL, 'truckflores09@gmail.com', '09686971314', '$2y$10$AUXnxr9tFqnLjLxWR8kKDe9Qs28FJGlgve66n56ucduVY0zRRE4B.', 'coordinator', 30, '0327', NULL, NULL, 1, '$2y$10$J4xI8ttFgr39hP0PDCBirO/FvO/JMo2Wq2o5x.BWPEIOFBUNJAMEq', '2026-07-18 01:38:06', NULL, NULL, NULL, 0, 1, '2026-03-11 18:21:48', '2026-07-18 01:23:06', NULL, 'password_reset'),
 (6, 'Mycor DC Mendoza Jr.', 'Mycor', 'DC', 'Mendoza', 'Jr.', 'linkultra.free.nf@gmail.com', '09686971314', '$2y$10$e1QVwM/KtH/pUmKQ6H7Diuc1CNiFx0qoK3lkfz5YcdgiRknqfo/k2', 'citizen', 10, '143', '2026-07-17', 'female', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-07-17 22:47:25', '2026-07-17 23:32:59', NULL, NULL),
-(7, 'Marte Flores Jr', NULL, NULL, NULL, NULL, 'c9171083@gmail.com', '09686971319', '$2y$10$Az2Eugjd/R3EeL.DMyV.ueQrwtDPwmSn6gqdz1QQVf0d6QVq2iQjK', 'admin', 18, '0325', NULL, NULL, 1, NULL, '2026-07-18 00:22:30', '26aed22abfd23754db8244d70918217fdf52a68e5649cda6ec98da5dd375a8b7', '33999cc834db555d2f12105d0b831c73f553411925a15e664a13d8804e25415b', '2026-07-18 00:00:13', 1, 1, '2026-07-18 00:00:01', '2026-07-18 00:12:30', '$2y$10$9BC', 'device_verify');
+(7, 'Marte Flores Jr', NULL, NULL, NULL, NULL, 'c9171083@gmail.com', '09686971319', '$2y$10$Az2Eugjd/R3EeL.DMyV.ueQrwtDPwmSn6gqdz1QQVf0d6QVq2iQjK', 'admin', 18, '0325', NULL, NULL, 1, NULL, NULL, '38cead65125f7fca9be48d3f4d245ffdfff2642d45fd05833222faa94666abbb', 'c1c89d5c427b6b83b81347525d0e1809af3474ada88ba58598e158b09e8a71ed', '2026-07-18 01:14:11', 1, 1, '2026-07-18 00:00:01', '2026-07-18 01:14:11', '$2y$10$9BC', NULL),
+(8, '', 'Eula', NULL, 'Tolentino', NULL, 'jakepogi060905@gmail.com', NULL, '$2y$10$EA8Lz1WSyHS9o8P/qKyBnO0EmfFoSJj1AlpTvtiLU/3RTPKeFlc8u', 'citizen', 8, '321', NULL, NULL, 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-07-18 01:01:58', '2026-07-18 01:03:11', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -617,7 +618,7 @@ ALTER TABLE `ready_bag_templates`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `weather_snapshots`
