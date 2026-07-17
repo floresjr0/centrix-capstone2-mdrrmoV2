@@ -877,8 +877,8 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                                 <div>
                                     <div class="reg-card-name"><?php echo htmlspecialchars($r['family_head_name']); ?></div>
                                     <div class="reg-card-barangay"><?php echo htmlspecialchars($r['barangay_name']); ?></div>
-                                    <div class="reg-card-contact">📞 <?php echo htmlspecialchars($r['contact_number'] ?? ''); ?></div>
-                                    <div class="reg-card-bday">🎂 <?php echo !empty($r['birthday']) ? date('M d, Y', strtotime($r['birthday'])) : ''; ?></div>
+                                    <div class="reg-card-contact"> <?php echo htmlspecialchars($r['contact_number'] ?? ''); ?></div>
+                                    <div class="reg-card-bday"> <?php echo !empty($r['birthday']) ? date('M d, Y', strtotime($r['birthday'])) : ''; ?></div>
                                 </div>
                                 <div class="reg-card-total">
                                     <div class="reg-card-total-num"><?php echo (int)$r['total_members']; ?></div>
