@@ -13,7 +13,13 @@ require __DIR__ . '/../vendor/autoload.php';
  * Sends an OTP email. Returns true on success, false on failure.
  * Wire this up to PHPMailer once the library is installed.
  */
-function send_otp_email(string $toEmail, string $toName, string $otp): bool
+function send_otp_email(
+    string $toEmail,
+    string $toName,
+    string $otp,
+    string $subject = 'Your MDRRMO verification code',
+    string $intro = 'Your one-time verification code is'
+): bool
 {
     // // Placeholder implementation: for now, write OTP to a log file so you can test flows
     // $logLine = sprintf("[%s] OTP for %s (%s): %s\n", date('Y-m-d H:i:s'), $toName, $toEmail, $otp);
@@ -36,13 +42,15 @@ function send_otp_email(string $toEmail, string $toName, string $otp): bool
         $mail->addAddress($toEmail, $toName);
 
         $mail->isHTML(true);
-        $mail->Subject = 'Your MDRRMO verification code';
-        $mail->Body    = 'Your one-time verification code is: <strong>' . htmlspecialchars($otp) . '</strong>';
+        $mail->Subject = $subject;
+        $mail->Body    = $intro . ': <strong>' . htmlspecialchars($otp) . '</strong>';
 
         $mail->send();
         return true;
     } catch (Exception $e) {
         error_log('PHPMailer error: ' . $mail->ErrorInfo);
+        $logLine = sprintf("[%s] OTP for %s (%s): %s\n", date('Y-m-d H:i:s'), $toName, $toEmail, $otp);
+        file_put_contents(__DIR__ . '/otp_test.log', $logLine, FILE_APPEND);
         return false;
     }
     

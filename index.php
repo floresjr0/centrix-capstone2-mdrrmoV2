@@ -1,4 +1,5 @@
 <?php
+ob_start();
 require_once __DIR__ . '/pages/db.php';
 require_once __DIR__ . '/pages/session.php';
 
@@ -9,6 +10,11 @@ if (current_user()) {
 }
 
 $errors = [];
+$success = '';
+
+if (!empty($_GET['reset'])) {
+    $success = 'Your password has been reset. You can now log in with your new password.';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -67,8 +73,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ((int)$user['is_device_trusted'] === 1) {
 
                 // --- Device already registered: verify token + fingerprint ---
-                $tokenMatch       = !empty($cookieToken) && hash_equals($user['device_token'], $cookieToken);
-                $fingerprintMatch = !empty($fingerprint) && hash_equals($user['device_fingerprint'], $fingerprint);
+                $storedToken       = (string)($user['device_token'] ?? '');
+                $storedFingerprint = (string)($user['device_fingerprint'] ?? '');
+                $tokenMatch       = $cookieToken !== '' && $storedToken !== '' && hash_equals($storedToken, $cookieToken);
+                $fingerprintMatch = $fingerprint !== '' && $storedFingerprint !== '' && hash_equals($storedFingerprint, $fingerprint);
 
                 if ($tokenMatch && $fingerprintMatch) {
 
@@ -104,9 +112,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 } else {
 
-                    // 🚫 Case 3: Neither matches — truly unauthorized device.
+                    // Case 3: Unrecognized device — redirect immediately; OTP is sent on verify_device.php.
                     error_log(
-                        "[MDRRMO SECURITY] Unauthorized device login attempt" .
+                        "[MDRRMO SECURITY] Unrecognized device — OTP re-verification initiated" .
                         " | Admin: {$user['email']}" .
                         " | IP: {$_SERVER['REMOTE_ADDR']}" .
                         " | Time: " . date('Y-m-d H:i:s') .
@@ -114,46 +122,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         " | Fingerprint match: " . ($fingerprintMatch ? 'YES' : 'NO')
                     );
 
-                    // Optional: email alert to admin
-                    // mail(
-                    //     $user['email'],
-                    //     '[MDRRMO ALERT] Unauthorized Admin Login Attempt',
-                    //     "Someone tried to access the admin panel from an unrecognized device.\n\n" .
-                    //     "Time: " . date('Y-m-d H:i:s') . "\n" .
-                    //     "IP Address: {$_SERVER['REMOTE_ADDR']}\n\n" .
-                    //     "If this was you, please use your registered device or request a device reset."
-                    // );
+                    $_SESSION['device_verify_user_id']     = $user['id'];
+                    $_SESSION['device_verify_fingerprint'] = $fingerprint;
+                    $_SESSION['device_verify_pending']     = true;
 
-                    $errors[] = '⚠️ Unauthorized device detected. Access is restricted to the registered device only.';
+                    header('Location: ' . app_url('pages/verify_device.php?email=' . urlencode($user['email'])));
+                    exit;
                 }
 
             } else {
 
                 // --- First time admin login: register this device ---
-                $newToken = bin2hex(random_bytes(32)); // 64-char cryptographically secure token
+                if ($fingerprint === '') {
+                    $errors[] = 'Device verification is still loading. Please wait a moment and try again.';
+                } else {
+                    $newToken = bin2hex(random_bytes(32)); // 64-char cryptographically secure token
 
-                $upd = $pdo->prepare("UPDATE users SET
-                    device_token         = ?,
-                    device_fingerprint   = ?,
-                    device_registered_at = NOW(),
-                    is_device_trusted    = 1
-                    WHERE id = ?");
-                $upd->execute([$newToken, $fingerprint, $user['id']]);
+                    $upd = $pdo->prepare("UPDATE users SET
+                        device_token         = ?,
+                        device_fingerprint   = ?,
+                        device_registered_at = NOW(),
+                        is_device_trusted    = 1
+                        WHERE id = ?");
+                    $upd->execute([$newToken, $fingerprint, $user['id']]);
 
-                setcookie('mdrrmo_device_token', $newToken, [
-                    'expires'  => time() + (90 * 24 * 60 * 60), // 90 days on first registration
-                    'path'     => '/',
-                    'secure'   => false, // Set to TRUE when deployed with HTTPS
-                    'httponly' => true,
-                    'samesite' => 'Strict'
-                ]);
+                    setcookie('mdrrmo_device_token', $newToken, [
+                        'expires'  => time() + (90 * 24 * 60 * 60), // 90 days on first registration
+                        'path'     => '/',
+                        'secure'   => false, // Set to TRUE when deployed with HTTPS
+                        'httponly' => true,
+                        'samesite' => 'Strict'
+                    ]);
 
-                $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['user_id'] = $user['id'];
 
-                // Store a flag so the admin sees a "Device Registered" notice on dashboard
-                $_SESSION['device_just_registered'] = true;
+                    // Store a flag so the admin sees a "Device Registered" notice on dashboard
+                    $_SESSION['device_just_registered'] = true;
 
-                redirect_by_role();
+                    redirect_by_role();
+                }
             }
 
         } else {
@@ -264,6 +271,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="card" id="card">
 
+      <?php if ($success): ?>
+      <div class="auth-errors" style="background:rgba(21,128,61,0.08);border-color:rgba(21,128,61,0.35);">
+        <ul>
+          <li style="color:#15803d;"><?php echo htmlspecialchars($success); ?></li>
+        </ul>
+      </div>
+      <?php endif; ?>
+
       <?php if ($errors): ?>
       <div class="auth-errors">
         <ul>
@@ -299,7 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="forgot-row">
-          <a href="#">Forgot Password?</a>
+          <a href="pages/forgot_password.php">Forgot Password?</a>
         </div>
 
         <!-- Device fingerprint hidden input (auto-filled by JS) -->
@@ -393,6 +408,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="dt-form-subtitle">Stay prepared and informed.<br>Access your MDRRMO account.</div>
       </div>
 
+      <?php if ($success): ?>
+      <div class="dt-errors" style="background:rgba(21,128,61,0.08);border-color:rgba(21,128,61,0.35);">
+        <ul>
+          <li style="color:#15803d;"><?php echo htmlspecialchars($success); ?></li>
+        </ul>
+      </div>
+      <?php endif; ?>
+
       <?php if ($errors): ?>
       <div class="dt-errors">
         <ul>
@@ -428,7 +451,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="dt-forgot">
-          <a href="#">Forgot Password?</a>
+          <a href="pages/forgot_password.php">Forgot Password?</a>
         </div>
 
         <!-- Device fingerprint hidden input (auto-filled by JS) -->
@@ -491,6 +514,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
      and fills all hidden device_fingerprint inputs.
      ================================================ */
 
+  var deviceFingerprintReady = false;
+  var deviceFingerprintValue = '';
+
   async function generateFingerprint() {
     try {
       var components = [
@@ -537,9 +563,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   // Fill fingerprint into all forms as soon as DOM is ready
   document.addEventListener('DOMContentLoaded', async function() {
-    var fp = await generateFingerprint();
+    deviceFingerprintValue = await generateFingerprint();
+    deviceFingerprintReady = deviceFingerprintValue !== '';
     var inputs = document.querySelectorAll('input[name="device_fingerprint"]');
-    inputs.forEach(function(el){ el.value = fp; });
+    inputs.forEach(function(el){ el.value = deviceFingerprintValue; });
+  });
+
+  function waitForFingerprint(maxMs) {
+    return new Promise(function(resolve) {
+      if (deviceFingerprintReady && deviceFingerprintValue !== '') {
+        resolve(deviceFingerprintValue);
+        return;
+      }
+      var waited = 0;
+      var step = 50;
+      var timer = setInterval(function() {
+        waited += step;
+        if (deviceFingerprintReady && deviceFingerprintValue !== '') {
+          clearInterval(timer);
+          resolve(deviceFingerprintValue);
+        } else if (waited >= maxMs) {
+          clearInterval(timer);
+          resolve(deviceFingerprintValue || '');
+        }
+      }, step);
+    });
+  }
+
+  function bindFingerprintGuard(form) {
+    if (!form) return;
+    form.addEventListener('submit', function(e) {
+      if (deviceFingerprintReady && deviceFingerprintValue !== '') return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      var formEl = form;
+      waitForFingerprint(3000).then(function(fp) {
+        formEl.querySelectorAll('input[name="device_fingerprint"]').forEach(function(el) {
+          el.value = fp;
+        });
+        if (fp === '') {
+          alert('Device verification is still loading. Please wait a moment and try again.');
+          var btn = formEl.querySelector('button[type="submit"]');
+          if (btn) {
+            btn.classList.remove('loading');
+            btn.disabled = false;
+          }
+          return;
+        }
+        formEl.submit();
+      });
+    }, true);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    bindFingerprintGuard(document.getElementById('mob-form'));
+    bindFingerprintGuard(document.getElementById('dt-form'));
   });
 
 
