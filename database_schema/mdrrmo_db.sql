@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 17, 2026 at 05:10 PM
+-- Generation Time: Jul 17, 2026 at 06:34 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -155,7 +155,6 @@ CREATE TABLE `disasters` (
 --
 
 INSERT INTO `disasters` (`id`, `type`, `level`, `title`, `status`, `description`, `started_at`, `ended_at`, `created_at`, `updated_at`) VALUES
-(5, 'flood', 1, 'version 2', 'ongoing', NULL, '2026-07-17 22:35:00', NULL, '2026-07-17 22:35:59', '2026-07-17 22:35:59'),
 (6, 'flood', 1, 'version 2', 'ongoing', NULL, '2026-07-17 22:35:00', NULL, '2026-07-17 22:36:01', '2026-07-17 22:36:01');
 
 -- --------------------------------------------------------
@@ -230,7 +229,7 @@ CREATE TABLE `evac_navigation_tracking` (
 INSERT INTO `evac_navigation_tracking` (`id`, `user_id`, `center_id`, `disaster_id`, `status`, `created_at`, `updated_at`) VALUES
 (1, 3, 2, NULL, 'navigating', '2026-03-12 23:12:25', '2026-07-17 22:17:24'),
 (81, 4, 1, NULL, 'cancelled', '2026-07-17 22:17:40', '2026-07-17 22:34:48'),
-(86, 6, 1, 5, 'cancelled', '2026-07-17 22:48:28', '2026-07-17 22:52:19');
+(86, 6, 1, NULL, 'arrived', '2026-07-17 22:48:28', '2026-07-17 23:54:00');
 
 -- --------------------------------------------------------
 
@@ -254,6 +253,13 @@ CREATE TABLE `evac_registrations` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `evac_registrations`
+--
+
+INSERT INTO `evac_registrations` (`id`, `center_id`, `family_head_name`, `contact_number`, `birthday`, `barangay_id`, `adults`, `children`, `seniors`, `pwds`, `total_members`, `created_by`, `created_at`, `updated_at`) VALUES
+(4, 1, 'Mycor DC Mendoza Jr.', '09686971314', '2026-07-17', 10, 1, 0, 6, 0, 7, 4, '2026-07-17 23:54:00', '2026-07-17 23:54:00');
 
 -- --------------------------------------------------------
 
@@ -327,9 +333,10 @@ CREATE TABLE `family_profiles` (
 --
 
 INSERT INTO `family_profiles` (`id`, `user_id`, `adults`, `children`, `seniors`, `pwds`, `total_members`, `created_at`, `updated_at`) VALUES
-(0, 4, 2, 0, 0, 0, 2, '2026-07-17 22:18:50', '2026-07-17 23:04:23'),
 (1, 3, 1, 0, 0, 0, 1, '2026-04-23 15:34:58', '2026-07-17 22:17:13'),
-(4, 12, 1, 4, 0, 0, 5, '2026-05-05 14:34:40', '2026-05-05 15:01:44');
+(4, 12, 1, 4, 0, 0, 5, '2026-05-05 14:34:40', '2026-05-05 15:01:44'),
+(5, 4, 1, 3, 0, 0, 4, '2026-07-17 22:18:50', '2026-07-17 23:31:50'),
+(6, 6, 1, 0, 6, 0, 7, '2026-07-17 23:32:59', '2026-07-17 23:32:59');
 
 -- --------------------------------------------------------
 
@@ -392,20 +399,23 @@ CREATE TABLE `users` (
   `is_device_trusted` tinyint(1) NOT NULL DEFAULT 0,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `otp_code` varchar(10) DEFAULT NULL,
+  `otp_purpose` varchar(30) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `full_name`, `first_name`, `middle_name`, `last_name`, `suffix`, `email`, `contact_number`, `password_hash`, `role`, `barangay_id`, `house_number`, `birthday`, `sex`, `is_email_verified`, `otp_code_hash`, `otp_expires_at`, `device_token`, `device_fingerprint`, `device_registered_at`, `is_device_trusted`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 'System Administrator', NULL, NULL, NULL, NULL, 'admin@system.com', NULL, '$2y$10$8x6M4nDkYq7YJ7Ew3LhF8eQxP3yP0mV5m9v0oQj7c7s8T1k1QwL7C', 'admin', 1, 'Admin Office', NULL, NULL, 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 22:07:21', '2026-03-07 22:07:21'),
-(2, 'System Administrator', NULL, NULL, NULL, NULL, 'admin@example.com', NULL, '$2y$10$XTTaYPYqjRG.i.YeeD/wxuSy28yygjcWz4B/InJApnGBWj/0GPQli', 'admin', 1, 'Admin Office', NULL, NULL, 1, NULL, NULL, 'a8fbd2c1fb7781fe2a91c23588b4ebc99772d49f9fbca3beb5f5a96d84a0c81a', '06c64157163a2cf72557126c2e93cfbf141573f9c79259c331a59088f34a715e', '2026-07-17 22:14:51', 1, 1, '2026-03-07 22:21:37', '2026-07-17 22:14:51'),
-(3, 'mycor mendoza', 'mycor', NULL, 'mendoza', NULL, 'marteflores07@gmail.com', '09686971314', '$2y$10$4lt1uymzeZlUXamB1IYA4.45aXITSsqiBF5d51ySdSG11dZeUFLi.', 'citizen', 2, '0325', '2005-06-09', 'female', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 22:32:15', '2026-07-17 22:17:13'),
-(4, 'Marte Flores Jr Jr.', 'Marte', NULL, 'Flores Jr', NULL, 'martefloresjr09@gmail.com', '09686971314', '$2y$10$2UeQpO1nyrNfZQr2qJo0JuFvBD3ON4E2QLHD5mGFUhGU6VCkACPOG', 'coordinator', 4, '0326', '2005-06-09', 'male', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 23:40:55', '2026-07-17 22:18:50'),
-(5, 'Marte Flores Jr.', NULL, NULL, NULL, NULL, 'truckflores09@gmail.com', '09686971314', '$2y$10$AUXnxr9tFqnLjLxWR8kKDe9Qs28FJGlgve66n56ucduVY0zRRE4B.', 'coordinator', 30, '0327', NULL, NULL, 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-11 18:21:48', '2026-03-11 18:21:48'),
-(6, 'Mycor DC Mendoza Jr.', 'Mycor', 'DC', 'Mendoza', 'Jr.', 'linkultra.free.nf@gmail.com', '09686971314', '$2y$10$e1QVwM/KtH/pUmKQ6H7Diuc1CNiFx0qoK3lkfz5YcdgiRknqfo/k2', 'citizen', 10, '143', '2026-07-17', 'female', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-07-17 22:47:25', '2026-07-17 23:04:23');
+INSERT INTO `users` (`id`, `full_name`, `first_name`, `middle_name`, `last_name`, `suffix`, `email`, `contact_number`, `password_hash`, `role`, `barangay_id`, `house_number`, `birthday`, `sex`, `is_email_verified`, `otp_code_hash`, `otp_expires_at`, `device_token`, `device_fingerprint`, `device_registered_at`, `is_device_trusted`, `is_active`, `created_at`, `updated_at`, `otp_code`, `otp_purpose`) VALUES
+(1, 'System Administrator', NULL, NULL, NULL, NULL, 'admin@system.com', NULL, '$2y$10$8x6M4nDkYq7YJ7Ew3LhF8eQxP3yP0mV5m9v0oQj7c7s8T1k1QwL7C', 'admin', 1, 'Admin Office', NULL, NULL, 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 22:07:21', '2026-03-07 22:07:21', NULL, NULL),
+(2, 'System Administrator', NULL, NULL, NULL, NULL, 'admin@example.com', NULL, '$2y$10$XTTaYPYqjRG.i.YeeD/wxuSy28yygjcWz4B/InJApnGBWj/0GPQli', 'admin', 1, 'Admin Office', NULL, NULL, 1, NULL, NULL, 'a8fbd2c1fb7781fe2a91c23588b4ebc99772d49f9fbca3beb5f5a96d84a0c81a', '06c64157163a2cf72557126c2e93cfbf141573f9c79259c331a59088f34a715e', '2026-07-17 22:14:51', 1, 1, '2026-03-07 22:21:37', '2026-07-17 22:14:51', NULL, NULL),
+(3, 'mycor mendoza', 'mycor', NULL, 'mendoza', NULL, 'marteflores07@gmail.com', '09686971314', '$2y$10$4lt1uymzeZlUXamB1IYA4.45aXITSsqiBF5d51ySdSG11dZeUFLi.', 'citizen', 2, '0325', '2005-06-09', 'female', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 22:32:15', '2026-07-17 22:17:13', NULL, NULL),
+(4, 'Marte Flores Jr Jr.', 'Marte', NULL, 'Flores Jr', NULL, 'martefloresjr09@gmail.com', '09686971314', '$2y$10$2UeQpO1nyrNfZQr2qJo0JuFvBD3ON4E2QLHD5mGFUhGU6VCkACPOG', 'coordinator', 4, '0326', '2005-06-09', 'male', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 23:40:55', '2026-07-17 22:18:50', NULL, NULL),
+(5, 'Marte Flores Jr.', NULL, NULL, NULL, NULL, 'truckflores09@gmail.com', '09686971314', '$2y$10$AUXnxr9tFqnLjLxWR8kKDe9Qs28FJGlgve66n56ucduVY0zRRE4B.', 'coordinator', 30, '0327', NULL, NULL, 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-11 18:21:48', '2026-03-11 18:21:48', NULL, NULL),
+(6, 'Mycor DC Mendoza Jr.', 'Mycor', 'DC', 'Mendoza', 'Jr.', 'linkultra.free.nf@gmail.com', '09686971314', '$2y$10$e1QVwM/KtH/pUmKQ6H7Diuc1CNiFx0qoK3lkfz5YcdgiRknqfo/k2', 'citizen', 10, '143', '2026-07-17', 'female', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-07-17 22:47:25', '2026-07-17 23:32:59', NULL, NULL),
+(7, 'Marte Flores Jr', NULL, NULL, NULL, NULL, 'c9171083@gmail.com', '09686971319', '$2y$10$Az2Eugjd/R3EeL.DMyV.ueQrwtDPwmSn6gqdz1QQVf0d6QVq2iQjK', 'admin', 18, '0325', NULL, NULL, 1, NULL, '2026-07-18 00:22:30', '26aed22abfd23754db8244d70918217fdf52a68e5649cda6ec98da5dd375a8b7', '33999cc834db555d2f12105d0b831c73f553411925a15e664a13d8804e25415b', '2026-07-18 00:00:13', 1, 1, '2026-07-18 00:00:01', '2026-07-18 00:12:30', '$2y$10$9BC', 'device_verify');
 
 -- --------------------------------------------------------
 
@@ -577,19 +587,25 @@ ALTER TABLE `evacuation_intentions`
 -- AUTO_INCREMENT for table `evac_navigation_tracking`
 --
 ALTER TABLE `evac_navigation_tracking`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
 
 --
 -- AUTO_INCREMENT for table `evac_registrations`
 --
 ALTER TABLE `evac_registrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `evac_registrations_archive`
 --
 ALTER TABLE `evac_registrations_archive`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+
+--
+-- AUTO_INCREMENT for table `family_profiles`
+--
+ALTER TABLE `family_profiles`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `ready_bag_templates`
@@ -601,7 +617,7 @@ ALTER TABLE `ready_bag_templates`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `weather_snapshots`
