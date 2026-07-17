@@ -174,13 +174,9 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                 <div class="page-header-left">
                     <h2>New Admin Account</h2>
                     <p>
-                        <i class="fas fa-user-shield" style="color:#7C3AED;"></i>
                         Create a new MDRRMO administrator account
                     </p>
                 </div>
-                <a href="users.php" class="btn-cancel" style="text-decoration:none;">
-                    <i class="fas fa-arrow-left"></i> Back to Users
-                </a>
             </div>
 
             <div class="card">
@@ -214,7 +210,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
 
                     <div class="form-group">
                         <label class="form-label">
-                            <i class="fas fa-user"></i>
                             Full Name <span class="form-required">*</span>
                         </label>
                         <input type="text" name="full_name" required class="form-control"
@@ -224,7 +219,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
 
                     <div class="form-group">
                         <label class="form-label">
-                            <i class="fas fa-phone"></i>
                             Contact Number <span class="form-required">*</span>
                         </label>
                         <input type="text" name="contact_number" required class="form-control"
@@ -237,7 +231,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
 
                     <div class="form-group">
                         <label class="form-label">
-                            <i class="fas fa-envelope"></i>
                             Email <span class="form-required">*</span>
                         </label>
                         <input type="email" name="email" required class="form-control"
@@ -248,7 +241,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">
-                                <i class="fas fa-lock"></i>
                                 Password <span class="form-required">*</span>
                             </label>
                             <input type="password" name="password" required minlength="8"
@@ -259,7 +251,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                         </div>
                         <div class="form-group">
                             <label class="form-label">
-                                <i class="fas fa-lock"></i>
                                 Confirm Password <span class="form-required">*</span>
                             </label>
                             <input type="password" name="confirm_password" required minlength="8"
@@ -270,7 +261,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">
-                                <i class="fas fa-map-marker-alt"></i>
                                 Barangay / Office Location <span class="form-required">*</span>
                             </label>
                             <select name="barangay_id" required class="form-control">
@@ -285,7 +275,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                         </div>
                         <div class="form-group">
                             <label class="form-label">
-                                <i class="fas fa-home"></i>
                                 House / Office Number <span class="form-required">*</span>
                             </label>
                             <input type="text" name="house_number" required class="form-control"
@@ -298,7 +287,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                         <input type="checkbox" name="is_active" value="1" id="is_active"
                                <?php echo !isset($_POST['is_active']) || $_POST['is_active'] ? 'checked' : ''; ?>>
                         <label for="is_active">
-                            <i class="fas fa-check-circle" style="color:#2E7D32;"></i>
                             Active account
                         </label>
                     </div>

@@ -211,7 +211,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                     <div class="page-header-left">
                         <h2><?php echo $id ? 'Edit Disaster Event' : 'Create New Disaster'; ?></h2>
                         <p>
-                            <i class="fas fa-exclamation-triangle" style="color: var(--primary-red);"></i> 
                             <?php echo $id ? 'Update disaster information' : 'Record a new disaster event'; ?>
                         </p>
                     </div>
@@ -224,7 +223,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                             <ul>
                                 <?php foreach ($errors as $err): ?>
                                     <li>
-                                        <i class="fas fa-exclamation-circle"></i>
                                         <?php echo htmlspecialchars($err); ?>
                                     </li>
                                 <?php endforeach; ?>
@@ -234,7 +232,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
 
                     <!-- Info Box -->
                     <div class="info-box">
-                        <i class="fas fa-info-circle"></i>
                         <p>Disaster levels range from 1 (minor) to 5 (catastrophic). Status indicates the current phase of the event.</p>
                     </div>
 
@@ -242,7 +239,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                         <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label">
-                                    <i class="fas fa-tag"></i>
                                     Type <span class="form-required">*</span>
                                 </label>
                                 <?php
@@ -259,7 +255,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
 
                             <div class="form-group">
                                 <label class="form-label">
-                                    <i class="fas fa-chart-line"></i>
                                     Level <span class="form-required">*</span>
                                 </label>
                                 <input type="number" name="level" min="1" max="5" required
@@ -275,7 +270,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                         <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label">
-                                    <i class="fas fa-clock"></i>
                                     Status <span class="form-required">*</span>
                                 </label>
                                 <?php
@@ -292,7 +286,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
 
                             <div class="form-group">
                                 <label class="form-label">
-                                    <i class="fas fa-heading"></i>
                                     Title <span class="form-required">*</span>
                                 </label>
                                 <input type="text" name="title" required
@@ -304,7 +297,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
 
                         <div class="form-group">
                             <label class="form-label">
-                                <i class="fas fa-align-left"></i>
                                 Description
                             </label>
                             <textarea name="description" rows="4" class="form-control"
@@ -312,7 +304,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                                 echo htmlspecialchars($_POST['description'] ?? ($disaster['description'] ?? ''));
                             ?></textarea>
                             <div class="form-hint">
-                                <i class="fas fa-info-circle"></i>
                                 Optional: Add additional information
                             </div>
                         </div>
@@ -320,7 +311,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                         <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label">
-                                    <i class="fas fa-calendar-alt"></i>
                                     Start Time
                                 </label>
                                 <input type="datetime-local" name="started_at"
@@ -341,7 +331,6 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
 
                             <div class="form-group">
                                 <label class="form-label">
-                                    <i class="fas fa-calendar-check"></i>
                                     End Time
                                 </label>
                                 <input type="datetime-local" name="ended_at"
