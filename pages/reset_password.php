@@ -118,137 +118,9 @@ if (!$hasResetSession && $email !== '' && $_SERVER['REQUEST_METHOD'] !== 'POST')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../asset/css/reset_password.css">
     <style>
-        body {
-            margin: 0;
-            min-height: 100vh;
-            font-family: 'Poppins', sans-serif;
-            background:
-                radial-gradient(ellipse at 30% 60%, rgba(140,25,10,0.55) 0%, transparent 55%),
-                radial-gradient(ellipse at 75% 30%, rgba(80,10,5,0.6) 0%, transparent 55%),
-                #0d0806;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            box-sizing: border-box;
-        }
-        .auth-card {
-            width: 100%;
-            max-width: 480px;
-            background: #fff;
-            border-radius: 20px;
-            padding: 40px 36px 32px;
-            box-shadow: 0 32px 80px rgba(0,0,0,0.45);
-        }
-        .auth-title {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 36px;
-            letter-spacing: 3px;
-            text-align: center;
-            color: #1a0a06;
-            margin-bottom: 8px;
-        }
-        .auth-sub {
-            text-align: center;
-            font-size: 13px;
-            color: #888;
-            line-height: 1.6;
-            margin-bottom: 24px;
-        }
-        .auth-sub strong { color: #444; }
-        .auth-field { margin-bottom: 16px; }
-        .auth-field label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            color: #666;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .auth-field input {
-            width: 100%;
-            padding: 13px 14px;
-            border: 1.5px solid #e8e8e8;
-            border-radius: 10px;
-            font-family: 'Poppins', sans-serif;
-            font-size: 14px;
-            outline: none;
-            background: #f7f7f7;
-            box-sizing: border-box;
-        }
-        .auth-field input:focus {
-            border-color: #c0391e;
-            background: #fff;
-            box-shadow: 0 0 0 3px rgba(192,57,30,0.10);
-        }
-        .otp-group {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-        .otp-group input {
-            width: 46px;
-            height: 54px;
-            text-align: center;
-            font-size: 20px;
-            font-weight: 700;
-            border: 1.5px solid #e8e8e8;
-            border-radius: 10px;
-            background: #f7f7f7;
-            outline: none;
-        }
-        .otp-group input:focus {
-            border-color: #c0391e;
-            background: #fff;
-        }
-        .auth-btn {
-            width: 100%;
-            padding: 14px;
-            margin-top: 8px;
-            background: linear-gradient(135deg, #c0391e 0%, #a02d15 100%);
-            color: #fff;
-            font-family: 'Poppins', sans-serif;
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-        .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .auth-errors, .auth-notice, .auth-success {
-            border-radius: 10px;
-            padding: 12px 16px;
-            margin-bottom: 18px;
-            font-size: 13px;
-        }
-        .auth-errors { background: rgba(192,57,30,0.08); border: 1px solid rgba(192,57,30,0.35); color: #c0391e; }
-        .auth-notice { background: rgba(234,179,8,0.12); border: 1px solid rgba(234,179,8,0.35); color: #a16207; }
-        .auth-success { background: rgba(21,128,61,0.08); border: 1px solid rgba(21,128,61,0.35); color: #15803d; }
-        .auth-links {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 20px;
-            font-size: 13px;
-        }
-        .auth-links a, .auth-links button {
-            color: #c0391e;
-            font-weight: 600;
-            text-decoration: none;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-family: 'Poppins', sans-serif;
-            font-size: 13px;
-            padding: 0;
-        }
-        .auth-timer { text-align: center; font-size: 12px; color: #aaa; margin-bottom: 16px; }
-        .auth-timer span { color: #c0391e; font-weight: 600; }
+
     </style>
 </head>
 <body>
@@ -309,11 +181,11 @@ if (!$hasResetSession && $email !== '' && $_SERVER['REQUEST_METHOD'] !== 'POST')
             <input type="hidden" name="email" value="<?php echo htmlspecialchars($email); ?>">
             <button type="submit" name="resend" value="1">Resend code</button>
         </form>
-        <a href="forgot_password.php">← Request new code</a>
+        <a href="forgot_password.php">← Back to forgot password</a>
     </div>
     <?php else: ?>
     <div class="auth-links" style="justify-content:center;">
-        <a href="forgot_password.php">← Back to forgot password</a>
+       
     </div>
     <?php endif; ?>
 
