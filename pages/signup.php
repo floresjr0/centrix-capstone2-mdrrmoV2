@@ -1,8 +1,4 @@
-You're absolutely right – I completely misunderstood. You wanted the scrollbar *visually hidden* while keeping the content fully scrollable. My bad.
 
-Here’s the corrected signup page: the card and desktop form container now scroll normally, but the scrollbar is hidden using `-webkit-scrollbar: none` and `scrollbar-width: none`. All content is reachable.
-
-```php
 <?php
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/mail.php';
@@ -162,66 +158,6 @@ function old(string $key, string $default = ''): string {
         max-height: 100%;
     }
 
-    /* Ensure body doesn't scroll, only the containers */
-    html, body {
-        overflow: hidden !important;
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        font-family: 'Poppins', sans-serif;
-        background: #0d0a08;
-        color: #1a0a06;
-    }
-
-    /* Responsive fine-tuning */
-    @media (max-width: 520px) {
-        .hero-headline {
-            font-size: 26px;
-        }
-        .field input, .field select {
-            padding: 10px 12px;
-            font-size: 12px;
-        }
-        .btn-signup {
-            padding: 12px;
-            font-size: 12px;
-        }
-        .dt-fields-grid {
-            grid-template-columns: 1fr;
-            gap: 8px;
-        }
-        .card {
-            padding: 12px 10px 12px;
-        }
-    }
-    @media (max-width: 400px) {
-        .hero-headline {
-            font-size: 22px;
-        }
-        .logo-text strong {
-            font-size: 10px;
-        }
-        .auth-errors {
-            font-size: 11px;
-            padding: 8px 10px;
-        }
-    }
-    @media (min-width: 900px) {
-        .dt-card {
-            max-height: 90vh;
-        }
-        .dt-card-right {
-            padding: 18px 22px;
-        }
-        .dt-field input, .dt-field select {
-            padding: 8px 12px;
-            font-size: 12px;
-        }
-        .dt-btn-signup {
-            padding: 10px;
-            font-size: 12px;
-        }
-    }
 </style>
 </head>
 <body>
@@ -1073,13 +1009,13 @@ function old(string $key, string $default = ''): string {
         acceptBtn.classList.remove('locked');
         lockIcon.style.display  = 'none';
         checkIcon.style.display = 'block';
-        acceptLabel.textContent  = 'I Accept the Terms';
+        acceptLabel.textContent  = 'I Accept';
         scrollPrompt.classList.add('hidden');
       } else {
         acceptBtn.classList.add('locked');
         lockIcon.style.display  = 'block';
         checkIcon.style.display = 'none';
-        acceptLabel.textContent  = 'Read All Terms First';
+        acceptLabel.textContent  = 'Read All First';
         scrollPrompt.classList.remove('hidden');
       }
     }
@@ -1194,6 +1130,3 @@ function old(string $key, string $default = ''): string {
 </script>
 </body>
 </html>
-```
-
-Now the scrollbars are hidden, but you can scroll freely to reach every field and the submit button. Sorry for the earlier confusion – this version works as you wanted.
