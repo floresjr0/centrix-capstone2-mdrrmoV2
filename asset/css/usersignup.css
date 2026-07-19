@@ -1,4 +1,6 @@
-/* ─── RESET & BASE ─── */
+
+
+    /* ─── RESET & BASE ─── */
 *,
 *::before,
 *::after {
@@ -13,7 +15,7 @@ body {
   height: 100%;
   font-family: 'Poppins', sans-serif;
   background: #0d0806;
-  overflow: hidden; /* page doesn't scroll – containers do */
+  overflow: hidden; /* page itself doesn't scroll — only .card-scroll does, same idea as the login page */
   -webkit-font-smoothing: antialiased;
 }
 
@@ -39,7 +41,8 @@ body {
   min-height: 100vh;
 }
 
-/* ─── MOBILE SHELL ─── */
+/* ─── MOBILE SHELL ───
+   Same fixed viewport sizing as the login page's .login-shell. */
 .signup-shell {
   width: 100%;
   max-width: 420px;
@@ -50,11 +53,12 @@ body {
   position: relative;
 }
 
-/* ─── HERO ─── */
+/* ─── HERO ───
+   Padding/sizing matched to the login page's .hero. */
 .hero {
   position: relative;
   flex-shrink: 0;
-  padding: 2.2rem 1.8rem 5.5rem 1.8rem;
+  padding: 2.4rem 1.8rem 6.5rem 1.8rem;
   overflow: hidden;
   background:
     radial-gradient(ellipse 75% 65% at 90% 10%, rgba(180, 80, 10, 0.75) 0%, transparent 60%),
@@ -66,7 +70,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  margin-bottom: 1.8rem;
+  margin-bottom: 2.4rem;
   opacity: 0;
   transform: translateY(-14px);
   transition: opacity 0.55s ease, transform 0.55s ease;
@@ -77,8 +81,8 @@ body {
 }
 
 .logo-circle {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.25);
@@ -94,8 +98,8 @@ body {
   object-fit: cover;
 }
 .logo-circle svg {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   fill: rgba(255, 255, 255, 0.80);
 }
 
@@ -118,7 +122,7 @@ body {
 }
 
 .hero-headline {
-  font-size: clamp(1.6rem, 6vw, 2.4rem);
+  font-size: clamp(2rem, 7vw, 2.85rem);
   font-weight: 800;
   line-height: 1.10;
   color: #fff;
@@ -133,7 +137,12 @@ body {
   transform: translateY(0);
 }
 
-/* ─── WHITE CARD ─── */
+/* ─── WHITE CARD ───
+   Sized/shadowed like the login page's .card. Split into a scrollable
+   region (.card-scroll, holds all the form fields) and a fixed footer
+   (.card-footer, holds the Sign Up button, the login link, the 3
+   partner logos, and the copyright) so only the fields scroll while
+   the button/logos/copyright always stay visible at the bottom. */
 .card {
   position: relative;
   z-index: 5;
@@ -144,7 +153,10 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 -6px 36px rgba(0, 0, 0, 0.13);
+  min-height: 0;
+  box-shadow:
+    0 -8px 40px rgba(0, 0, 0, 0.18),
+    0 -1px 0 rgba(255, 255, 255, 0.7) inset;
   opacity: 0;
   transform: translateY(100%);
   transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
@@ -156,9 +168,10 @@ body {
   transform: translateY(0);
 }
 
-/* Scrollable form area – everything above the fixed button */
+/* Scrollable form area – everything above the fixed footer */
 .card-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 2rem 1.8rem 1rem;
@@ -211,7 +224,8 @@ body {
   line-height: 1.5;
 }
 
-/* ─── FORM FIELDS ─── */
+/* ─── FORM FIELDS ───
+   Font sizes/weights/letter-spacing matched to the login page's fields. */
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -224,12 +238,14 @@ body {
 
 .field-label {
   display: block;
-  font-size: 0.73rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 700;
   color: #c0391e;
-  margin-bottom: 0.35rem;
-  letter-spacing: 0.01em;
+  margin-bottom: 0.42rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   word-break: break-word;
+  transition: color 0.2s;
 }
 .field-label .req {
   color: #c0391e;
@@ -240,17 +256,17 @@ body {
 .field select {
   width: 100%;
   border: none !important;
-  border-bottom: 1.5px solid #c8c8c8 !important;
+  border-bottom: 1.5px solid #d8d8d8 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  padding: 0.45rem 0;
-  font-size: 0.90rem;
+  padding: 0.55rem 0 0.5rem 0;
+  font-size: 0.95rem;
   font-family: 'Poppins', sans-serif;
   font-weight: 400;
   color: #1a1a1a;
   background: transparent !important;
   outline: none !important;
-  transition: border-color 0.22s;
+  transition: border-color 0.25s;
   -webkit-appearance: none;
   appearance: none;
   min-width: 0;
@@ -262,8 +278,8 @@ body {
   outline: none !important;
 }
 .field input::placeholder {
-  color: #c8c8c8;
-  font-size: 0.85rem;
+  color: #c4c4c4;
+  font-size: 0.88rem;
   font-weight: 300;
 }
 .field input[readonly] {
@@ -320,7 +336,7 @@ body {
 .pw-toggle {
   position: absolute;
   right: 0;
-  bottom: 0.45rem;
+  bottom: 0.5rem;
   left: auto !important;
   background: none;
   border: none;
@@ -391,17 +407,20 @@ body {
   color: #8f2608;
 }
 
-/* ─── CARD FOOTER – fixed bottom ─── */
+/* ─── CARD FOOTER – fixed bottom ───
+   Holds the Sign Up button, the login link, the 3 partner logos, and
+   the copyright line. This block never scrolls, exactly like the
+   login page keeps its button/logos/copyright always in view. */
 .card-footer {
   flex-shrink: 0;
-  padding: 0.9rem 1.8rem 1.1rem;
+  padding: 1rem 1.8rem 1.2rem;
   background: #fff;
   border-top: 1px solid #f0f0f0;
 }
 
 .btn-signup {
   width: 100%;
-  padding: 0.95rem;
+  padding: 0.98rem;
   border: none;
   border-radius: 50px;
   background: linear-gradient(135deg, #c0391e 0%, #a83010 55%, #8f2608 100%);
@@ -409,13 +428,15 @@ body {
   font-family: 'Poppins', sans-serif;
   font-size: 0.97rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  box-shadow: 0 6px 22px rgba(140, 40, 10, 0.42);
+  box-shadow:
+    0 6px 22px rgba(140, 40, 10, 0.42),
+    0 2px 0 rgba(255, 255, 255, 0.12) inset;
   position: relative;
   overflow: hidden;
   transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.7rem;
 }
 .btn-signup::before {
   content: '';
@@ -433,7 +454,7 @@ body {
 }
 .btn-signup:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 28px rgba(140, 40, 10, 0.52);
+  box-shadow: 0 10px 28px rgba(140, 40, 10, 0.52), 0 2px 0 rgba(255, 255, 255, 0.12) inset;
   filter: brightness(1.08);
 }
 .btn-signup:active {
@@ -443,7 +464,7 @@ body {
 
 .login-link {
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   color: #aaa;
 }
 .login-link a {
@@ -455,19 +476,21 @@ body {
   text-decoration: underline;
 }
 
-/* ─── PARTNER LOGOS & COPYRIGHT ─── */
+/* ─── PARTNER LOGOS & COPYRIGHT ───
+   Live inside .card-footer now, right under the login link, so they
+   stay fixed at the bottom together with the Sign Up button. */
 .login-partner-logos {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 14px;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid #f0f0f0;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
 }
 .login-partner-logo {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   overflow: hidden;
   display: flex;
@@ -489,8 +512,8 @@ body {
 }
 .login-partner-logo svg {
   display: none;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   fill: #c0391e;
 }
 
@@ -498,7 +521,7 @@ body {
   text-align: center;
   font-size: 10.5px;
   color: #bbb;
-  margin-top: 10px;
+  margin-top: 8px;
   letter-spacing: 0.2px;
 }
 
@@ -516,7 +539,7 @@ body {
     overflow: hidden;
   }
   .hero {
-    padding: 2.2rem 2.2rem 5.5rem 2.2rem;
+    padding: 2.5rem 2.2rem 6.2rem 2.2rem;
   }
   .card {
     transform: translateY(60px);
@@ -534,16 +557,16 @@ body {
 
 @media (min-width: 900px) {
   .signup-shell {
-    max-width: 420px;
+    max-width: 410px;
   }
   .hero {
-    padding: 2.5rem 2.6rem 5.8rem 2.6rem;
+    padding: 2.8rem 2.6rem 6.5rem 2.6rem;
   }
   .card-scroll {
     padding: 2rem 2.4rem 1rem;
   }
   .card-footer {
-    padding: 0.9rem 2.4rem 1.2rem;
+    padding: 1rem 2.4rem 1.2rem;
   }
 }
 
@@ -710,10 +733,13 @@ body {
   flex-direction: column;
   background: #ffffff;
   overflow: hidden;
+  min-height: 0;
 }
 
+/* Scrollable form area on desktop – only the fields scroll */
 .dt-form-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 48px 52px 20px;
@@ -729,11 +755,11 @@ body {
 
 .dt-welcome {
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 3px;
+  font-weight: 700;
+  letter-spacing: 4px;
   text-transform: uppercase;
   color: #c0391e;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .dt-form-title {
@@ -742,15 +768,15 @@ body {
   letter-spacing: 3px;
   color: #1a0a06;
   line-height: 1.05;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   word-break: break-word;
 }
 
 .dt-form-subtitle {
-  font-size: 12.5px;
-  color: #888;
+  font-size: 13px;
+  color: #999;
   font-weight: 400;
-  line-height: 1.6;
+  line-height: 1.65;
   word-break: break-word;
 }
 
@@ -804,47 +830,54 @@ body {
   grid-column: 1 / -1;
 }
 
+/* Field styling matched to the login page's boxed .dt-field inputs */
 .dt-field {
   margin-bottom: 18px;
+  position: relative;
 }
 
 .dt-field label {
   display: block;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #c0391e;
-  margin-bottom: 5px;
+  color: #a0a0a0;
+  margin-bottom: 8px;
   word-break: break-word;
+  transition: color 0.2s;
+}
+.dt-field:focus-within label {
+  color: #c0391e;
 }
 
 .dt-field input,
 .dt-field select {
   width: 100%;
-  border: none;
-  border-bottom: 1.5px solid #d0d0d0;
-  border-radius: 0;
-  padding: 7px 0;
-  font-size: 13.5px;
+  background: #f7f6f6;
+  border: 1.5px solid #ebebeb;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
   font-family: 'Poppins', sans-serif;
   font-weight: 400;
   color: #1a1a1a;
-  background: transparent;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
   -webkit-appearance: none;
   appearance: none;
-  box-shadow: none;
+  box-sizing: border-box;
   min-width: 0;
 }
 .dt-field input:focus,
 .dt-field select:focus {
-  border-bottom-color: #c0391e;
+  border-color: #c0391e;
+  background: #fff;
+  box-shadow: 0 0 0 3.5px rgba(192, 57, 30, 0.10);
 }
 .dt-field input::placeholder {
-  color: #c8c8c8;
-  font-size: 13px;
+  color: #c2c2c2;
+  font-size: 13.5px;
   font-weight: 300;
 }
 .dt-field input[readonly] {
@@ -866,7 +899,7 @@ body {
 .dt-select-wrap::after {
   content: '';
   position: absolute;
-  right: 4px;
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   width: 0;
@@ -877,7 +910,7 @@ body {
   pointer-events: none;
 }
 .dt-select-wrap select {
-  padding-right: 1.4rem;
+  padding-right: 2rem;
   cursor: pointer;
   width: 100%;
 }
@@ -887,7 +920,7 @@ body {
   position: relative;
 }
 .dt-pw-wrap input {
-  padding-right: 1.8rem !important;
+  padding-right: 2.4rem !important;
 }
 .dt-pw-wrap input[type="password"]::-ms-reveal,
 .dt-pw-wrap input[type="password"]::-ms-clear,
@@ -900,8 +933,8 @@ body {
 
 .dt-pw-toggle {
   position: absolute;
-  right: 0;
-  bottom: 7px;
+  right: 14px;
+  bottom: 13px;
   left: auto !important;
   background: none;
   border: none;
@@ -951,11 +984,20 @@ body {
   word-break: break-word;
 }
 
+/* ─── DESKTOP FOOTER – fixed bottom ───
+   Holds the Create Account button, the login link, the 3 partner
+   logos, and the copyright — never scrolls, mirrors the login page. */
 .dt-card-footer {
   flex-shrink: 0;
-  padding: 16px 48px 20px;
+  padding: 18px 48px 20px;
   background: #fff;
   border-top: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dt-card-footer-row {
   display: flex;
   align-items: center;
   gap: 20px;
@@ -963,18 +1005,20 @@ body {
 
 .dt-btn-signup {
   flex: 1;
-  padding: 13px;
+  padding: 14px;
   border: none;
-  border-radius: 50px;
+  border-radius: 10px;
   background: linear-gradient(135deg, #c0391e 0%, #a83010 55%, #8f2608 100%);
   color: #fff;
   font-family: 'Poppins', sans-serif;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 4px 18px rgba(140, 40, 10, 0.38);
+  box-shadow:
+    0 4px 22px rgba(140, 40, 10, 0.38),
+    0 2px 0 rgba(255, 255, 255, 0.10) inset;
   position: relative;
   overflow: hidden;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -995,7 +1039,7 @@ body {
 }
 .dt-btn-signup:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(140, 40, 10, 0.48);
+  box-shadow: 0 8px 24px rgba(140, 40, 10, 0.48), 0 2px 0 rgba(255, 255, 255, 0.10) inset;
 }
 .dt-btn-signup:active {
   transform: translateY(0);
@@ -1013,6 +1057,15 @@ body {
 }
 .dt-login-link a:hover {
   text-decoration: underline;
+}
+
+.dt-card-footer .login-partner-logos {
+  margin-top: 2px;
+  padding-top: 10px;
+}
+
+.dt-card-footer .login-copyright {
+  margin-top: 2px;
 }
 
 .dt-status-bar {
@@ -1632,18 +1685,18 @@ body {
 /* ─── EXTRA SMALL SCREEN FIXES (≤ 420px) ─── */
 @media (max-width: 420px) {
   .hero {
-    padding: 1.5rem 1rem 4rem 1rem;
+    padding: 1.6rem 1rem 4.4rem 1rem;
   }
   .hero-headline {
-    font-size: 1.4rem;
+    font-size: 1.7rem;
   }
   .logo-circle {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
   }
   .logo-circle svg {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
   }
   .logo-text strong {
     font-size: 0.5rem;
@@ -1652,7 +1705,7 @@ body {
     font-size: 0.45rem;
   }
   .card-scroll {
-    padding: 1rem 0.8rem 0.5rem;
+    padding: 1.2rem 1rem 0.5rem;
   }
   .field {
     margin-bottom: 0.9rem;
@@ -1662,39 +1715,36 @@ body {
   }
   .field input,
   .field select {
-    font-size: 0.8rem;
-    padding: 0.35rem 0;
+    font-size: 0.85rem;
+    padding: 0.45rem 0;
   }
   .pw-toggle svg {
     width: 14px;
     height: 14px;
   }
   .pw-toggle {
-    bottom: 0.3rem;
+    bottom: 0.35rem;
   }
   .section-divider span {
     font-size: 0.6rem;
   }
   .btn-signup {
-    font-size: 0.85rem;
-    padding: 0.8rem;
+    font-size: 0.88rem;
+    padding: 0.85rem;
   }
   .checkbox-field label {
     font-size: 0.65rem;
   }
   .card-footer {
-    padding: 0.6rem 0.8rem 0.8rem;
+    padding: 0.8rem 1rem 1rem;
   }
   .login-partner-logo {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
   }
   .dt-pw-toggle svg {
     width: 14px;
     height: 14px;
-  }
-  .dt-pw-toggle {
-    bottom: 5px;
   }
 }
 
