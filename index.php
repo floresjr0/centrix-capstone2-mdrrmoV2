@@ -193,6 +193,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div id="page-loading-bar"></div>
 
 <!-- ================================================
+     FLOATING NOTIFICATION STACK
+     Fixed position overlay — never pushes the header
+     or form. Holds multiple notifications and scrolls
+     internally if it ever gets too tall.
+     ================================================ -->
+<div class="notif-container" id="notifContainer">
+  <?php if ($success): ?>
+    <div class="notif-item success">
+      <div class="notif-icon">✓</div>
+      <div class="notif-body">
+        <ul><li><?php echo htmlspecialchars($success); ?></li></ul>
+      </div>
+    </div>
+  <?php endif; ?>
+
+  <?php if ($errors): ?>
+    <div class="notif-item">
+      <div class="notif-icon">⚠</div>
+      <div class="notif-body">
+        <ul>
+          <?php foreach ($errors as $err): ?>
+            <li><?php echo htmlspecialchars($err); ?></li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+    </div>
+  <?php endif; ?>
+</div>
+
+<!-- ================================================
      MOBILE: Splash Screen
      ================================================ -->
 <div id="splash" onclick="goToLogin()">
@@ -270,24 +300,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <div class="card" id="card">
-
-      <?php if ($success): ?>
-      <div class="auth-errors" style="background:rgba(21,128,61,0.08);border-color:rgba(21,128,61,0.35);">
-        <ul>
-          <li style="color:#15803d;"><?php echo htmlspecialchars($success); ?></li>
-        </ul>
-      </div>
-      <?php endif; ?>
-
-      <?php if ($errors): ?>
-      <div class="auth-errors">
-        <ul>
-          <?php foreach ($errors as $err): ?>
-            <li><?php echo htmlspecialchars($err); ?></li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-      <?php endif; ?>
 
       <form method="post" class="auth-form" id="mob-form">
 
@@ -407,24 +419,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="dt-form-title">Login to<br>Your Account</div>
         <div class="dt-form-subtitle">Stay prepared and informed.<br>Access your MDRRMO account.</div>
       </div>
-
-      <?php if ($success): ?>
-      <div class="dt-errors" style="background:rgba(21,128,61,0.08);border-color:rgba(21,128,61,0.35);">
-        <ul>
-          <li style="color:#15803d;"><?php echo htmlspecialchars($success); ?></li>
-        </ul>
-      </div>
-      <?php endif; ?>
-
-      <?php if ($errors): ?>
-      <div class="dt-errors">
-        <ul>
-          <?php foreach ($errors as $err): ?>
-            <li><?php echo htmlspecialchars($err); ?></li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-      <?php endif; ?>
 
       <form method="post" id="dt-form">
 
@@ -990,6 +984,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       dtCard.style.transform = 'perspective(1400px) rotateX(0deg) rotateY(0deg)';
     });
   }
+
+
+  /* ================================================
+     AUTO-DISMISS NOTIFICATIONS
+     Fades and removes each toast after a few seconds
+     so the small stack never gets crowded.
+     ================================================ */
+  document.addEventListener('DOMContentLoaded', function () {
+    var stack = document.getElementById('notifContainer');
+    if (!stack) return;
+    var items = stack.querySelectorAll('.notif-item');
+    items.forEach(function (item, i) {
+      setTimeout(function () {
+        item.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(-8px)';
+        setTimeout(function () { item.remove(); }, 420);
+      }, 6000 + i * 400);
+    });
+  });
 
 
   /* ================================================
