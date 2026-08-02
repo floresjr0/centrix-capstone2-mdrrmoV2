@@ -122,14 +122,14 @@
             </div>
           </div>
         </div>
-        <div class="float-card qr-card" onclick="openModal()">
+        <!-- <div class="float-card qr-card" onclick="openModal()">
           <div class="qr-badge">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><line x1="4" y1="21" x2="20" y2="21"/></svg>
             Free App
           </div>
           <div class="qr-box"><svg width="52" height="52" viewBox="0 0 100 100"><rect x="5" y="5" width="38" height="38" fill="rgba(214,62,44,0.6)" rx="4"/><rect x="57" y="5" width="38" height="38" fill="rgba(214,62,44,0.6)" rx="4"/><rect x="5" y="57" width="38" height="38" fill="rgba(214,62,44,0.6)" rx="4"/><circle cx="50" cy="50" r="8" fill="var(--accent)"/></svg></div>
           <div class="qr-text">Scan to download</div>
-        </div>
+        </div> -->
       </div>
     </div>
   </div>
