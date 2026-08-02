@@ -242,6 +242,12 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                                                 <a href="center_edit.php?id=<?php echo (int)$c['id']; ?>" class="action-btn">
                                                     <i class="fas fa-edit"></i> Edit
                                                 </a>
+                                                 <a href="center_delete.php?id=<?php echo (int)$c['id']; ?>"
+                                                    class="action-btn"
+                                                    style="color: #D32F2F;"
+                                                    onclick="return confirm('Delete this evacuation center?');">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -278,6 +284,12 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
         mobileToggle.addEventListener('click', () => {
             sidebar.classList.toggle('show');
         });
+
+        <?php if (!empty($_GET['blocked']) && $_GET['reason'] === 'registrations'): ?>
+        window.addEventListener('DOMContentLoaded', function() {
+            alert('Unable to Delete Evacuation Center\n\nThis center is currently linked to registered evacuees.\nPlease clear or transfer those registrations before deleting this center.');
+        });
+        <?php endif; ?>
     </script>
 </body>
 </html>
