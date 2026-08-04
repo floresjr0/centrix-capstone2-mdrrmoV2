@@ -1,4 +1,3 @@
-
 <?php
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/mail.php';
@@ -128,35 +127,6 @@ function old(string $key, string $default = ''): string {
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../asset/css/usersignup.css">
 <style>
-    /* ================================================
-       HIDE SCROLLBARS – BUT KEEP SCROLLING
-       ================================================ */
-    /* Global: hide scrollbar on the whole page */
-    ::-webkit-scrollbar {
-        width: 0 !important;
-        height: 0 !important;
-        background: transparent !important;
-    }
-    * {
-        scrollbar-width: none !important; /* Firefox */
-        -ms-overflow-style: none !important; /* IE/Edge */
-    }
-
-    /* Allow scrolling on card and desktop form container */
-    .card {
-        overflow-y: auto !important;
-        max-height: 80vh;
-        padding: 16px 14px 14px;
-    }
-    .dt-card-right {
-        overflow-y: auto !important;
-        max-height: 90vh;
-        padding: 20px 24px;
-    }
-    .dt-form-scroll {
-        overflow-y: auto !important;
-        max-height: 100%;
-    }
 
 </style>
 </head>
@@ -164,6 +134,9 @@ function old(string $key, string $default = ''): string {
 
 <!-- ================================================
      MOBILE: Signup Shell
+     Fixed-viewport shell like the login page — only the fields
+     (.card-scroll) scroll; the Sign Up button, login link, 3 partner
+     logos, and copyright live in the fixed .card-footer at the bottom.
      ================================================ -->
 <div class="signup-shell">
 
@@ -185,146 +158,150 @@ function old(string $key, string $default = ''): string {
 
   <div class="card" id="card">
 
-    <?php if ($errors): ?>
-    <div class="auth-errors">
-      <ul>
-        <?php foreach ($errors as $err): ?>
-          <li><?= htmlspecialchars($err) ?></li>
-        <?php endforeach; ?>
-      </ul>
+    <div class="card-scroll">
+
+      <?php if ($errors): ?>
+      <div class="auth-errors">
+        <ul>
+          <?php foreach ($errors as $err): ?>
+            <li><?= htmlspecialchars($err) ?></li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+      <?php endif; ?>
+
+      <form method="post" class="auth-form" id="signupForm">
+
+        <div class="section-divider"><span>Personal Information</span></div>
+
+        <div class="field">
+          <label class="field-label" for="first_name">First Name <span class="req">*</span></label>
+          <input type="text" id="first_name" name="first_name" required placeholder="Juan" value="<?= old('first_name') ?>">
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="middle_name">Middle Name <span class="optional">(optional)</span></label>
+          <input type="text" id="middle_name" name="middle_name" placeholder="Santos" value="<?= old('middle_name') ?>">
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="last_name">Last Name <span class="req">*</span></label>
+          <input type="text" id="last_name" name="last_name" required placeholder="Dela Cruz" value="<?= old('last_name') ?>">
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="suffix">Suffix <span class="optional">(optional)</span></label>
+          <div class="select-wrap">
+            <select id="suffix" name="suffix">
+              <option value="">— None —</option>
+              <?php foreach (['Jr.','Sr.','II','III','IV','V'] as $sfx): ?>
+                <option value="<?= $sfx ?>" <?= old('suffix') === $sfx ? 'selected' : '' ?>><?= $sfx ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="barangay_id">Barangay <span class="req">*</span></label>
+          <div class="select-wrap">
+            <select id="barangay_id" name="barangay_id" required>
+              <option value="">Select Barangay</option>
+              <?php foreach ($barangays as $b): ?>
+                <option value="<?= (int)$b['id'] ?>" <?= (isset($_POST['barangay_id']) && (int)$_POST['barangay_id'] === (int)$b['id']) ? 'selected' : '' ?>>
+                  <?= htmlspecialchars($b['name']) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="house_number">House Number <span class="req">*</span></label>
+          <input type="text" id="house_number" name="house_number" required placeholder="e.g. 123" value="<?= old('house_number') ?>">
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="address">Detected Address</label>
+          <input type="text" id="address" name="detected_address" readonly placeholder="Getting location...">
+          <small id="locationWarning" class="location-warning"></small>
+        </div>
+
+        <input type="hidden" id="lat">
+        <input type="hidden" id="lng">
+
+        <div class="section-divider" style="margin-top:0.5rem;"><span>Account Information</span></div>
+
+        <div class="field">
+          <label class="field-label" for="email">Email <span class="req">*</span></label>
+          <input type="email" id="email" name="email" required placeholder="juandelacruz@gmail.com" value="<?= old('email') ?>">
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="password">Password <span class="req">*</span></label>
+          <div class="pw-wrap">
+            <input type="password" id="password" name="password" required minlength="8" placeholder="At least 8 characters">
+            <button type="button" class="pw-toggle" data-target="password" aria-label="Toggle password visibility">
+              <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="confirm_password">Confirm Password <span class="req">*</span></label>
+          <div class="pw-wrap">
+            <input type="password" id="confirm_password" name="confirm_password" required minlength="8" placeholder="Repeat password">
+            <button type="button" class="pw-toggle" data-target="confirm_password" aria-label="Toggle confirm password visibility">
+              <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="checkbox-field">
+          <input type="checkbox" name="terms" id="terms" value="1" <?= isset($_POST['terms']) ? 'checked' : '' ?> readonly>
+          <label for="terms">
+            I confirm that I am a resident of San Ildefonso, Bulacan and agree to MDRRMO's
+            <button type="button" class="terms-trigger-link" id="termsOpenBtn">Data Policy &amp; Terms of Use</button>.
+          </label>
+        </div>
+
+      </form>
+
+    </div><!-- /.card-scroll -->
+
+    <div class="card-footer">
+      <button type="submit" form="signupForm" class="btn-signup">Sign Up</button>
+      <p class="login-link">Already have an account? <a href="../index.php">Login</a></p>
+
+      <div class="login-partner-logos">
+        <div class="login-partner-logo">
+          <img src="../img/mdrrmo.png" alt="MDRRMO" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <svg viewBox="0 0 24 24"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/></svg>
+        </div>
+        <div class="login-partner-logo">
+          <img src="../img/basc.png" alt="BASC" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>
+        </div>
+        <div class="login-partner-logo">
+          <img src="../img/ics.jpg" alt="ICS" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+        </div>
+      </div>
+      <p class="login-copyright">&copy; 2026 MDRRMOxBASC_ICS. All rights reserved.</p>
     </div>
-    <?php endif; ?>
-
-    <form method="post" class="auth-form" id="signupForm">
-
-      <div class="section-divider"><span>Personal Information</span></div>
-
-      <div class="field">
-        <label class="field-label" for="first_name">First Name <span class="req">*</span></label>
-        <input type="text" id="first_name" name="first_name" required placeholder="Juan" value="<?= old('first_name') ?>">
-      </div>
-
-      <div class="field">
-        <label class="field-label" for="middle_name">Middle Name <span class="optional">(optional)</span></label>
-        <input type="text" id="middle_name" name="middle_name" placeholder="Santos" value="<?= old('middle_name') ?>">
-      </div>
-
-      <div class="field">
-        <label class="field-label" for="last_name">Last Name <span class="req">*</span></label>
-        <input type="text" id="last_name" name="last_name" required placeholder="Dela Cruz" value="<?= old('last_name') ?>">
-      </div>
-
-      <div class="field">
-        <label class="field-label" for="suffix">Suffix <span class="optional">(optional)</span></label>
-        <div class="select-wrap">
-          <select id="suffix" name="suffix">
-            <option value="">— None —</option>
-            <?php foreach (['Jr.','Sr.','II','III','IV','V'] as $sfx): ?>
-              <option value="<?= $sfx ?>" <?= old('suffix') === $sfx ? 'selected' : '' ?>><?= $sfx ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="field-label" for="barangay_id">Barangay <span class="req">*</span></label>
-        <div class="select-wrap">
-          <select id="barangay_id" name="barangay_id" required>
-            <option value="">Select Barangay</option>
-            <?php foreach ($barangays as $b): ?>
-              <option value="<?= (int)$b['id'] ?>" <?= (isset($_POST['barangay_id']) && (int)$_POST['barangay_id'] === (int)$b['id']) ? 'selected' : '' ?>>
-                <?= htmlspecialchars($b['name']) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="field-label" for="house_number">House Number <span class="req">*</span></label>
-        <input type="text" id="house_number" name="house_number" required placeholder="e.g. 123" value="<?= old('house_number') ?>">
-      </div>
-
-      <div class="field">
-        <label class="field-label" for="address">Detected Address</label>
-        <input type="text" id="address" name="detected_address" readonly placeholder="Getting location...">
-        <small id="locationWarning" class="location-warning"></small>
-      </div>
-
-      <input type="hidden" id="lat">
-      <input type="hidden" id="lng">
-
-      <div class="section-divider" style="margin-top:0.5rem;"><span>Account Information</span></div>
-
-      <div class="field">
-        <label class="field-label" for="email">Email <span class="req">*</span></label>
-        <input type="email" id="email" name="email" required placeholder="juandelacruz@gmail.com" value="<?= old('email') ?>">
-      </div>
-
-      <div class="field">
-        <label class="field-label" for="password">Password <span class="req">*</span></label>
-        <div class="pw-wrap">
-          <input type="password" id="password" name="password" required minlength="8" placeholder="At least 8 characters">
-          <button type="button" class="pw-toggle" data-target="password" aria-label="Toggle password visibility">
-            <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
-              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-              <line x1="1" y1="1" x2="23" y2="23"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="field-label" for="confirm_password">Confirm Password <span class="req">*</span></label>
-        <div class="pw-wrap">
-          <input type="password" id="confirm_password" name="confirm_password" required minlength="8" placeholder="Repeat password">
-          <button type="button" class="pw-toggle" data-target="confirm_password" aria-label="Toggle confirm password visibility">
-            <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
-              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-              <line x1="1" y1="1" x2="23" y2="23"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="checkbox-field">
-        <input type="checkbox" name="terms" id="terms" value="1" <?= isset($_POST['terms']) ? 'checked' : '' ?> readonly>
-        <label for="terms">
-          I confirm that I am a resident of San Ildefonso, Bulacan and agree to MDRRMO's
-          <button type="button" class="terms-trigger-link" id="termsOpenBtn">Data Policy &amp; Terms of Use</button>.
-        </label>
-      </div>
-
-      <div class="card-footer">
-        <button type="submit" form="signupForm" class="btn-signup">Sign Up</button>
-        <p class="login-link">Already have an account? <a href="../index.php">Login</a></p>
-      </div>
-
-    </form>
-
-    <div class="login-partner-logos">
-      <div class="login-partner-logo">
-        <img src="../img/mdrrmo.png" alt="MDRRMO" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <svg viewBox="0 0 24 24"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/></svg>
-      </div>
-      <div class="login-partner-logo">
-        <img src="../img/basc.png" alt="BASC" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>
-      </div>
-      <div class="login-partner-logo">
-        <img src="../img/ics.jpg" alt="ICS" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-      </div>
-    </div>
-    <p class="login-copyright">&copy; 2026 MDRRMOxBASC_ICS. All rights reserved.</p>
 
   </div><!-- /card -->
 </div><!-- /.signup-shell -->
@@ -332,6 +309,9 @@ function old(string $key, string $default = ''): string {
 
 <!-- ================================================
      DESKTOP: Centered Card Layout
+     Same fixed-footer treatment: only the fields (.dt-form-scroll)
+     scroll; the Create Account button, login link, 3 partner logos
+     and copyright live in the fixed .dt-card-footer.
      ================================================ -->
 <div id="desktop-page">
 
@@ -486,8 +466,26 @@ function old(string $key, string $default = ''): string {
       </div><!-- /.dt-form-scroll -->
 
       <div class="dt-card-footer">
-        <button type="submit" form="dtSignupForm" class="dt-btn-signup">Create Account</button>
-        <p class="dt-login-link">Already have an account? <a href="../index.php">Login</a></p>
+        <div class="dt-card-footer-row">
+          <button type="submit" form="dtSignupForm" class="dt-btn-signup">Create Account</button>
+          <p class="dt-login-link">Already have an account? <a href="../index.php">Login</a></p>
+        </div>
+
+        <div class="login-partner-logos">
+          <div class="login-partner-logo">
+            <img src="../img/mdrrmo.png" alt="MDRRMO" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <svg viewBox="0 0 24 24"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/></svg>
+          </div>
+          <div class="login-partner-logo">
+            <img src="../img/basc.png" alt="BASC" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>
+          </div>
+          <div class="login-partner-logo">
+            <img src="../img/ics.jpg" alt="ICS" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+          </div>
+        </div>
+        <p class="login-copyright">&copy; 2026 MDRRMOxBASC_ICS. All rights reserved.</p>
       </div>
 
     </div><!-- /.dt-card-right -->

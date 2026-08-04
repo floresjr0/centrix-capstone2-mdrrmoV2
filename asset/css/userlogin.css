@@ -1,4 +1,5 @@
 
+
 /* =============================================
    CSS CUSTOM PROPERTIES
    ============================================= */
@@ -56,6 +57,111 @@ html, body {
 #page-loading-bar.active {
   opacity: 1;
   width: 85%;
+}
+
+/* =============================================
+   FLOATING NOTIFICATION STACK
+   Fixed-position toast container so success /
+   error messages never push the header, inputs,
+   or button out of place. Small, compact, high
+   contrast, and self-contained — scrolls
+   internally if more than a couple of
+   notifications appear at once, and sits above
+   every other layer (splash, mobile, desktop)
+   so it's never hidden.
+   ============================================= */
+.notif-container {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 340px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+  scrollbar-width: none;
+}
+.notif-container:empty { display: none; }
+.notif-container::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+.notif-item {
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  background: linear-gradient(135deg, #3a0b08 0%, #240504 100%);
+  border: 1px solid rgba(220,38,38,0.35);
+  border-radius: 10px;
+  padding: 0.6rem 0.65rem 0.6rem 0.6rem;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.50), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: slideInError 0.32s cubic-bezier(0.34,1.35,0.64,1);
+  flex-shrink: 0;
+}
+.notif-item.success {
+  background: linear-gradient(135deg, #06301c 0%, #041d12 100%);
+  border-color: rgba(34,197,94,0.35);
+}
+
+.notif-icon {
+  flex-shrink: 0;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  margin-top: 1px;
+  background: rgba(220,38,38,0.18);
+  color: #f87171;
+  box-shadow: 0 0 0 1px rgba(220,38,38,0.28) inset;
+}
+.notif-item.success .notif-icon {
+  background: rgba(34,197,94,0.18);
+  color: #4ade80;
+  box-shadow: 0 0 0 1px rgba(34,197,94,0.30) inset;
+}
+
+.notif-body { flex: 1; min-width: 0; }
+
+.notif-item ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.notif-item li {
+  font-size: 0.72rem;
+  color: #fecaca;
+  font-weight: 600;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.notif-item.success li { color: #bbf7d0; }
+
+@media (min-width: 900px) {
+  .notif-container {
+    top: 20px;
+    left: auto;
+    right: 20px;
+    transform: none;
+    max-width: 300px;
+  }
+}
+
+@keyframes slideInError {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* =============================================
@@ -472,34 +578,6 @@ html, body {
   background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(192,57,30,0.05) 0%, transparent 100%);
   border-radius: 28px 28px 0 0;
   pointer-events: none;
-}
-
-.auth-errors {
-  background: linear-gradient(135deg, #fff5f5, #fef2f2);
-  border: 1px solid #fecaca;
-  border-left: 4px solid var(--red-mid);
-  border-radius: 10px;
-  padding: 0.8rem 1rem;
-  margin-bottom: 1.4rem;
-  animation: slideInError 0.35s ease;
-}
-@keyframes slideInError {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.auth-errors ul { list-style: none; }
-.auth-errors li {
-  font-size: 0.80rem;
-  color: #b91c1c;
-  font-weight: 500;
-  line-height: 1.6;
-  padding-left: 1.1rem;
-  position: relative;
-}
-.auth-errors li::before {
-  content: '⚠';
-  position: absolute; left: 0;
-  font-size: 0.75rem;
 }
 
 .auth-form { display: flex; flex-direction: column; flex: 1; }
@@ -1122,29 +1200,6 @@ html, body {
 @keyframes dtFadeUp {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0);    }
-}
-
-.dt-errors {
-  background: linear-gradient(135deg, #fff5f5, #fef2f2);
-  border: 1px solid #fecaca;
-  border-left: 4px solid var(--red-mid);
-  border-radius: 10px;
-  padding: 14px 18px;
-  margin-bottom: 24px;
-  animation: slideInError 0.35s ease;
-}
-.dt-errors ul { list-style: none; margin: 0; padding: 0; }
-.dt-errors li {
-  font-size: 13px;
-  color: #b91c1c;
-  font-weight: 500;
-  padding-left: 1.2rem;
-  position: relative;
-}
-.dt-errors li::before {
-  content: '⚠';
-  position: absolute; left: 0;
-  font-size: 12px;
 }
 
 .dt-field {
