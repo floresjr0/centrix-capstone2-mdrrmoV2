@@ -66,15 +66,35 @@ $activeCenters  = count(array_filter($centers, fn($c) => $c['status'] !== 'close
     <title>Coordinator Dashboard - MDRRMO</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- External CSS (separated) -->
-    <link rel="stylesheet" href="../asset/css/coordinator_index.css">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../asset/css/coordinator_index.css">
 </head>
 <body>
 
 <!-- Overlay for drawer -->
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeMenu()"></div>
+
+<!-- Logout Confirmation Modal (added) -->
+<div class="logout-modal-overlay" id="logoutModal" role="dialog" aria-modal="true" aria-labelledby="logoutModalTitle">
+    <div class="logout-modal-box">
+        <div class="logout-modal-icon">
+            <svg viewBox="0 0 24 24">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+        </div>
+        <div class="logout-modal-title" id="logoutModalTitle">Log out?</div>
+        <p class="logout-modal-desc">You will be signed out of the system. Any unsaved changes will be lost.</p>
+        <div class="logout-modal-btns">
+            <button class="logout-modal-btn-cancel" onclick="closeLogoutModal()">Cancel</button>
+            <a href="../pages/logout.php" class="logout-modal-btn-confirm">Yes, Log Out</a>
+        </div>
+    </div>
+</div>
 
 <div class="layout">
 
@@ -121,10 +141,11 @@ $activeCenters  = count(array_filter($centers, fn($c) => $c['status'] !== 'close
             SYSTEM ONLINE
         </div>
         <div class="sidebar-footer">
-            <a href="../pages/logout.php" class="logout-btn">
+            <!-- Logout now triggers confirmation modal instead of direct redirect -->
+            <button class="logout-btn" onclick="openLogoutModal()">
                 <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 Log Out
-            </a>
+            </button>
         </div>
     </aside>
 
@@ -151,11 +172,12 @@ $activeCenters  = count(array_filter($centers, fn($c) => $c['status'] !== 'close
                 Registrations
                 <span class="bottom-nav-dot"></span>
             </a>
-            <a href="../pages/logout.php" class="bottom-nav-item">
+            <!-- Logout now triggers confirmation modal instead of direct redirect -->
+            <button class="bottom-nav-item" onclick="openLogoutModal()">
                 <span class="bottom-nav-icon"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
                 Logout
                 <span class="bottom-nav-dot"></span>
-            </a>
+            </button>
         </div>
     </nav>
 
@@ -306,7 +328,24 @@ function closeMenu() {
     document.getElementById('drawerOverlay').classList.remove('open');
     document.body.style.overflow = '';
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+// Logout confirmation modal (added)
+function openLogoutModal() {
+    closeMenu(); // close sidebar first if open
+    document.getElementById('logoutModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function closeLogoutModal() {
+    document.getElementById('logoutModal').classList.remove('open');
+    document.body.style.overflow = '';
+}
+document.getElementById('logoutModal').addEventListener('click', function(e) {
+    if (e.target === this) closeLogoutModal();
+});
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeMenu(); closeLogoutModal(); }
+});
 
 // Auto-refresh expected counts via AJAX
 const AUTO_REFRESH_INTERVAL = 30000;

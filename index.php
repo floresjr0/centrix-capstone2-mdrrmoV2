@@ -229,19 +229,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <div class="bg-base"></div>
   <div class="bg-pulse"></div>
-  <div class="bg-drift"></div>
   <div class="honeycomb"></div>
   <div class="bg-grain"></div>
   <div class="bg-vignette"></div>
 
   <div class="particle" style="width:5px;height:5px;left:8%;background:rgba(200,80,20,0.25);animation-duration:11s;animation-delay:0s;"></div>
-  <div class="particle" style="width:3px;height:3px;left:22%;background:rgba(212,150,10,0.35);animation-duration:14s;animation-delay:2s;"></div>
   <div class="particle" style="width:6px;height:6px;left:38%;background:rgba(200,80,20,0.20);animation-duration:9s;animation-delay:0.8s;"></div>
   <div class="particle" style="width:4px;height:4px;left:54%;background:rgba(255,200,80,0.28);animation-duration:12s;animation-delay:3.5s;"></div>
-  <div class="particle" style="width:7px;height:7px;left:68%;background:rgba(180,50,10,0.22);animation-duration:8s;animation-delay:1.2s;"></div>
-  <div class="particle" style="width:3px;height:3px;left:80%;background:rgba(212,150,10,0.40);animation-duration:13s;animation-delay:0.4s;"></div>
   <div class="particle" style="width:5px;height:5px;left:90%;background:rgba(200,80,20,0.18);animation-duration:10s;animation-delay:5s;"></div>
-  <div class="particle" style="width:4px;height:4px;left:45%;background:rgba(255,150,50,0.30);animation-duration:16s;animation-delay:6s;"></div>
 
   <div class="splash-content">
     <div class="seal-shine-wrap">
@@ -249,7 +244,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="seal-halo-extra"></div>
       <div class="seal-ring"></div>
       <div class="seal-ring-2"></div>
-      <canvas id="orbitCanvas" width="280" height="280"></canvas>
       <div class="seal-wrap">
         <img class="seal-img"
              src="./img/mdrrmo.png"
@@ -699,99 +693,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
 
-  /* ================================================
-     MOBILE: Orbit canvas animation
-     ================================================ */
-
-  var canvas = document.getElementById('orbitCanvas');
-  var ctx    = canvas ? canvas.getContext('2d') : null;
-
-  var CX       = 140;
-  var CY       = 140;
-  var R        = 114;
-  var TAIL_RAD = (220 * Math.PI) / 180;
-  var TOTAL    = Math.PI * 2 * 1.25;
-  var DURATION = 7000;
-
-  var startTime = null;
-  var rafId     = null;
-
-  if (!splashAlreadySeen && ctx) {
-    setTimeout(function() {
-      startTime = performance.now();
-      rafId = requestAnimationFrame(draw);
-    }, 1100);
-  }
-
-  function draw(now) {
-    var elapsed  = now - startTime;
-    var progress = Math.min(elapsed / DURATION, 1);
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    var eased     = easeInOutCubic(progress);
-    var headAngle = -Math.PI / 2 + eased * TOTAL;
-    var tailAngle = headAngle - TAIL_RAD;
-
-    var alpha = 1;
-    if (progress < 0.10) alpha = progress / 0.10;
-    else if (progress > 0.72) alpha = 1 - (progress - 0.72) / 0.28;
-
-    var STEPS = 100;
-    for (var i = 0; i < STEPS; i++) {
-      var frac = i / STEPS;
-      var a0   = tailAngle + frac * TAIL_RAD;
-      var a1   = tailAngle + (frac + 1 / STEPS) * TAIL_RAD;
-      var segOpacity = Math.pow(frac, 1.8) * alpha;
-      var w    = 1 + frac * 5.5;
-      var rr   = 255;
-      var gg   = Math.round(160 + frac * 90);
-      var bb   = Math.round(20  + frac * 200);
-
-      ctx.beginPath();
-      ctx.arc(CX, CY, R, a0, a1);
-      ctx.strokeStyle = 'rgba(' + rr + ',' + gg + ',' + bb + ',' + segOpacity + ')';
-      ctx.lineWidth   = w;
-      ctx.lineCap     = 'round';
-      ctx.stroke();
-    }
-
-    var hx = CX + R * Math.cos(headAngle);
-    var hy = CY + R * Math.sin(headAngle);
-
-    var g = ctx.createRadialGradient(hx, hy, 0, hx, hy, 28);
-    g.addColorStop(0,    'rgba(255,250,200,' + (0.90 * alpha) + ')');
-    g.addColorStop(0.25, 'rgba(255,210,100,' + (0.60 * alpha) + ')');
-    g.addColorStop(0.6,  'rgba(255,140, 30,' + (0.20 * alpha) + ')');
-    g.addColorStop(1,    'rgba(255, 80,  0,0)');
-    ctx.beginPath();
-    ctx.arc(hx, hy, 28, 0, Math.PI * 2);
-    ctx.fillStyle = g;
-    ctx.fill();
-
-    var core = ctx.createRadialGradient(hx, hy, 0, hx, hy, 6);
-    core.addColorStop(0,   'rgba(255,255,255,' + alpha + ')');
-    core.addColorStop(0.6, 'rgba(255,240,160,' + (0.75 * alpha) + ')');
-    core.addColorStop(1,   'rgba(255,200,80,0)');
-    ctx.beginPath();
-    ctx.arc(hx, hy, 6, 0, Math.PI * 2);
-    ctx.fillStyle = core;
-    ctx.fill();
-
-    if (progress < 1) {
-      rafId = requestAnimationFrame(draw);
-    } else {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-  }
-
-  function easeInOutCubic(t) {
-    return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2;
-  }
-
   function goToLogin() {
-    if (rafId) cancelAnimationFrame(rafId);
-
     if (splashAudioCtx && splashAudioCtx.state === 'suspended') {
       splashAudioCtx.resume();
     } else if (!splashAudioCtx && !splashAlreadySeen) {

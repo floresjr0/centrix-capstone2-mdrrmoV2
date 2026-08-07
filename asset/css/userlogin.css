@@ -197,16 +197,6 @@ html, body {
   50%       { opacity: 1;   transform: scale(1.06); }
 }
 
-.bg-drift {
-  position: absolute; inset: 0; z-index: 1;
-  background: radial-gradient(ellipse 45% 40% at 75% 65%, rgba(120,30,3,0.55) 0%, transparent 60%);
-  animation: bgDrift 9s ease-in-out infinite alternate;
-}
-@keyframes bgDrift {
-  0%   { transform: translate(0,0) scale(1);     opacity: 0.6; }
-  100% { transform: translate(-6%,-8%) scale(1.14); opacity: 1; }
-}
-
 .bg-grain {
   position: absolute; inset: 0; z-index: 2;
   opacity: 0.045;
@@ -217,11 +207,11 @@ html, body {
 .honeycomb {
   position: absolute; inset: 0; z-index: 2;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='48' viewBox='0 0 56 48'%3E%3Cpath d='M14 0 L42 0 L56 24 L42 48 L14 48 L0 24 Z' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='1'/%3E%3C/svg%3E");
-  animation: honeySway 14s ease-in-out infinite alternate;
+  opacity: 0;
+  animation: honeyFadeIn 2.2s ease-out 0.2s forwards;
 }
-@keyframes honeySway {
-  0%   { opacity: 0.4; background-position: 0 0; }
-  100% { opacity: 0.9; background-position: 28px 24px; }
+@keyframes honeyFadeIn {
+  to { opacity: 0.65; }
 }
 
 .bg-vignette {
@@ -277,30 +267,33 @@ html, body {
   content: '';
   position: absolute;
   top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
+  width: 100%; height: 100%;
+  transform: translate(-50%, -50%) scale(1);
   border-radius: 50%;
   border: 1.5px solid rgba(212,150,10,0.30);
   background: transparent;
   animation: haloExpand 3s ease-out infinite;
+  will-change: transform, opacity;
 }
-.seal-halo::before { width: 100%; height: 100%; animation-delay: 0s; }
-.seal-halo::after  { width: 100%; height: 100%; animation-delay: 1.5s; }
+.seal-halo::before { animation-delay: 0s; }
+.seal-halo::after  { animation-delay: 1.5s; }
 .seal-halo-extra {
   position: absolute;
   top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
   width: 220px; height: 220px;
   border-radius: 50%;
   border: 1.5px solid rgba(212,150,10,0.30);
   background: transparent;
   pointer-events: none;
   z-index: 1;
+  transform: translate(-50%, -50%) scale(1);
   animation: haloExpand 3s ease-out infinite;
   animation-delay: 1s;
+  will-change: transform, opacity;
 }
 @keyframes haloExpand {
-  0%   { width: 100%;  height: 100%;  opacity: 0.65; }
-  100% { width: 195%;  height: 195%;  opacity: 0;    }
+  0%   { transform: translate(-50%, -50%) scale(1);    opacity: 0.65; }
+  100% { transform: translate(-50%, -50%) scale(1.95); opacity: 0;    }
 }
 
 .seal-ring {
@@ -330,14 +323,6 @@ html, body {
 }
 @keyframes ringRotate {
   to { transform: translate(-50%,-50%) rotate(360deg); }
-}
-
-#orbitCanvas {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 3;
 }
 
 .seal-wrap {
@@ -875,11 +860,11 @@ html, body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50V18L28 2l28 16v32z' fill='none' stroke='rgba(255,255,255,0.025)' stroke-width='1'/%3E%3Cpath d='M28 100L0 84V52l28-16 28 16v32z' fill='none' stroke='rgba(255,255,255,0.025)' stroke-width='1'/%3E%3C/svg%3E");
   pointer-events: none;
   z-index: 0;
-  animation: dtHoneySway 20s ease-in-out infinite alternate;
+  opacity: 0;
+  animation: dtHoneyFadeIn 2.5s ease-out 0.2s forwards;
 }
-@keyframes dtHoneySway {
-  0%   { opacity: 0.5; background-position: 0 0; }
-  100% { opacity: 1;   background-position: 28px 50px; }
+@keyframes dtHoneyFadeIn {
+  to { opacity: 0.85; }
 }
 
 #desktop-page .dt-grain {
@@ -893,7 +878,7 @@ html, body {
 .dt-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(40px);
   pointer-events: none;
   z-index: 0;
 }
@@ -935,11 +920,11 @@ html, body {
   width: calc(100% - 80px);
   max-width: 920px;
   margin: 0 auto;
-  background: rgba(14, 8, 6, 0.70);
+  background: rgba(14, 8, 6, 0.86);
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 26px;
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   box-shadow:
     0 40px 100px rgba(0,0,0,0.70),
     0 0 0 1px rgba(192,57,30,0.06) inset,
@@ -1013,29 +998,32 @@ html, body {
   content: '';
   position: absolute;
   top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
+  width: 100%; height: 100%;
+  transform: translate(-50%, -50%) scale(1);
   border-radius: 50%;
   border: 1px solid rgba(212,150,10,0.28);
   background: transparent;
   animation: dtHaloExpand 3s ease-out infinite;
+  will-change: transform, opacity;
 }
-.dt-seal-halo::before { width: 100%; height: 100%; animation-delay: 0s; }
-.dt-seal-halo::after  { width: 100%; height: 100%; animation-delay: 1.5s; }
+.dt-seal-halo::before { animation-delay: 0s; }
+.dt-seal-halo::after  { animation-delay: 1.5s; }
 .dt-seal-halo-extra {
   position: absolute;
   top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
   width: 190px; height: 190px;
   border-radius: 50%;
   border: 1px solid rgba(212,150,10,0.28);
   background: transparent;
   pointer-events: none;
+  transform: translate(-50%, -50%) scale(1);
   animation: dtHaloExpand 3s ease-out infinite;
   animation-delay: 1s;
+  will-change: transform, opacity;
 }
 @keyframes dtHaloExpand {
-  0%   { width: 100%;  height: 100%;  opacity: 0.6; }
-  100% { width: 190%;  height: 190%;  opacity: 0;   }
+  0%   { transform: translate(-50%, -50%) scale(1);    opacity: 0.6; }
+  100% { transform: translate(-50%, -50%) scale(1.9); opacity: 0;   }
 }
 
 .dt-seal-ring {

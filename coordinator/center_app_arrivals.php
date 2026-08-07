@@ -24,6 +24,7 @@ if (!$center) {
 
 $errors = [];
 
+// ── Record arrival ──────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'record_app_arrival') {
     $trackingId = (int)($_POST['tracking_id'] ?? 0);
     $navUserId  = (int)($_POST['nav_user_id']  ?? 0);
@@ -50,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'recor
             $centerId,
             $trackRow['full_name'],
             $trackRow['contact_number'] ?? null,
-            $trackRow['birthday'] ?? null,
+            $trackRow['birthday']       ?? null,
             $trackRow['barangay_id'],
             $adults, $children, $seniors, $pwds, $total,
             $user['id']
@@ -69,7 +70,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'recor
     }
 }
 
-// Fetch app arrivals
+// ── Decline arrival ─────────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'decline_app_arrival') {
+    $trackingId = (int)($_POST['tracking_id'] ?? 0);
+
+    $chk = $pdo->prepare("SELECT id FROM evac_navigation_tracking
+                           WHERE id = ? AND center_id = ? AND status = 'navigating'");
+    $chk->execute([$trackingId, $centerId]);
+
+    if ($chk->fetch()) {
+        $upd = $pdo->prepare("UPDATE evac_navigation_tracking
+                              SET status = 'declined', updated_at = NOW()
+                              WHERE id = ?");
+        $upd->execute([$trackingId]);
+    }
+
+    header('Location: center_app_arrivals.php?id=' . $centerId);
+    exit;
+}
+
+// ── Fetch en-route citizens ─────────────────────────────────────────────────
 $appArrivalsStmt = $pdo->prepare("
     SELECT
         nt.id          AS tracking_id,
@@ -112,7 +132,6 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
     <link rel="stylesheet" href="../asset/css/center_app_arrivals.css">
 </head>
 <style>
-
 </style>
 <body>
 
@@ -125,6 +144,52 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
 
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeMenu()"></div>
 
+<!-- Decline Confirmation Modal -->
+<div class="modal-overlay" id="declineModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-box">
+        <div class="modal-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </div>
+        <div class="modal-title" id="modalTitle">Decline Arrival?</div>
+        <p class="modal-desc">Remove <span class="modal-name" id="modalPersonName">—</span> from the en-route queue. This will cancel their navigation tracking.</p>
+        <label class="modal-reason-label" for="declineReason">Reason (optional)</label>
+        <select class="modal-reason-select" id="declineReason">
+            <option value="">— Select a reason —</option>
+            <option value="redirected">Redirected to another center</option>
+            <option value="no_show">Did not arrive / no show</option>
+            <option value="wrong_center">Wrong center selected</option>
+            <option value="returned_home">Returned home safely</option>
+            <option value="other">Other</option>
+        </select>
+        <div class="modal-btns">
+            <button class="modal-btn-cancel" onclick="closeDeclineModal()">Cancel</button>
+            <button class="modal-btn-confirm" onclick="submitDecline()">Decline Arrival</button>
+        </div>
+    </div>
+</div>
+
+<!-- Logout Confirmation Modal -->
+<div class="modal-overlay" id="logoutModal" role="dialog" aria-modal="true" aria-labelledby="logoutModalTitle">
+    <div class="modal-box">
+        <div class="modal-icon" style="background:#fef3c7; border-color:#fcd34d;">
+            <svg viewBox="0 0 24 24" style="stroke:#b45309;"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </div>
+        <div class="modal-title" id="logoutModalTitle">Log out?</div>
+        <p class="modal-desc">You will be signed out of the system. Any unsaved changes will be lost.</p>
+        <div class="modal-btns">
+            <button class="modal-btn-cancel" onclick="closeLogoutModal()">Cancel</button>
+            <a href="../pages/logout.php" class="modal-btn-confirm" style="text-decoration:none; display:flex; align-items:center; justify-content:center; background:#b45309;">Yes, Log Out</a>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden decline form (submits to backend) -->
+<form id="declineForm" method="post" style="display:none;">
+    <input type="hidden" name="action"      value="decline_app_arrival">
+    <input type="hidden" name="tracking_id" id="declineTrackingId" value="">
+    <input type="hidden" name="reason"      id="declineReasonHidden" value="">
+</form>
+
 <div class="layout">
 
     <aside class="sidebar" id="sidebar">
@@ -133,19 +198,38 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                 <div class="brand-logo-sm"><img src="../img/mdrrmo.png" alt="MDRRMO Logo"></div>
                 <div><div class="brand-name-sm">MDRRMO</div><div class="brand-tagline-sm">#BidaAngLagingHanda</div></div>
             </div>
-            <button class="sidebar-close" onclick="closeMenu()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            <button class="sidebar-close" onclick="closeMenu()">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
         </div>
-        <div class="sidebar-user"><div class="user-avatar"><?php echo htmlspecialchars(mb_strtoupper(mb_substr($user['full_name'], 0, 1))); ?></div><div class="user-info"><div class="user-name"><?php echo htmlspecialchars($user['full_name']); ?></div><div class="user-role">Coordinator</div></div></div>
+        <div class="sidebar-user">
+            <div class="user-avatar"><?php echo htmlspecialchars(mb_strtoupper(mb_substr($user['full_name'], 0, 1))); ?></div>
+            <div class="user-info">
+                <div class="user-name"><?php echo htmlspecialchars($user['full_name']); ?></div>
+                <div class="user-role">Coordinator</div>
+            </div>
+        </div>
         <nav class="sidebar-nav">
             <div class="nav-label">Navigation</div>
-            <a href="index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span>Dashboard</a>
-            <a href="index.php" class="nav-item active"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 21V9h6v12"/><path d="M3 9h18"/></svg></span>Centers</a>
+            <a href="index.php" class="nav-item">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span>
+                Dashboard
+            </a>
+            <a href="index.php" class="nav-item active">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 21V9h6v12"/><path d="M3 9h18"/></svg></span>
+                Centers
+            </a>
         </nav>
         <div class="sidebar-status"><span class="status-dot-green"></span>SYSTEM ONLINE</div>
-        <div class="sidebar-footer"><a href="../pages/logout.php" class="logout-btn"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log Out</a></div>
+        <div class="sidebar-footer">
+            <button class="logout-btn" onclick="openLogoutModal()">
+                <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Log Out
+            </button>
+        </div>
     </aside>
 
-    <!-- BOTTOM NAVIGATION -->
+    <!-- Bottom navigation -->
     <nav class="bottom-nav">
         <div class="bottom-nav-inner">
             <a href="index.php" class="bottom-nav-item">
@@ -168,18 +252,28 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                 Registrations
                 <span class="bottom-nav-dot"></span>
             </a>
-            <a href="../pages/logout.php" class="bottom-nav-item">
+            <button class="bottom-nav-item" onclick="openLogoutModal()">
                 <span class="bottom-nav-icon"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
                 Logout
                 <span class="bottom-nav-dot"></span>
-            </a>
+            </button>
         </div>
     </nav>
 
     <div class="main">
         <header class="topbar">
-            <div class="topbar-brand"><div class="topbar-logo"><img src="../img/mdrrmo.png" alt="MDRRMO Logo"></div><div class="topbar-brand-text"><div class="topbar-title"><?php echo htmlspecialchars($center['name']); ?></div><div class="topbar-subtitle">San Ildefonso, Bulacan — MDRRMO</div></div></div>
-            <div class="topbar-right"><button class="hamburger-btn" onclick="openMenu()"><svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div>
+            <div class="topbar-brand">
+                <div class="topbar-logo"><img src="../img/mdrrmo.png" alt="MDRRMO Logo"></div>
+                <div class="topbar-brand-text">
+                    <div class="topbar-title"><?php echo htmlspecialchars($center['name']); ?></div>
+                    <div class="topbar-subtitle">San Ildefonso, Bulacan — MDRRMO</div>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <button class="hamburger-btn" onclick="openMenu()">
+                    <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+            </div>
         </header>
 
         <main class="dashboard">
@@ -194,38 +288,157 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
 
             <!-- Center Status Card -->
             <section class="card">
-                <div class="card-header"><div class="card-header-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><h2>Center Status</h2></div>
+                <div class="card-header">
+                    <div class="card-header-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+                    <h2>Center Status</h2>
+                </div>
                 <div class="card-body">
                     <div class="info-row"><strong>Barangay</strong> <?php echo htmlspecialchars($center['barangay_name']); ?></div>
-                    <div class="info-row"><strong>Status</strong> <span class="status-pill status-<?php echo strtolower(preg_replace('/\s+/', '-', $center['status'])); ?>"><?php echo htmlspecialchars($center['status']); ?></span></div>
-                    <div class="occ-bar-wrap"><div class="occ-bar-label"><span>Occupancy</span><span><?php echo $occ['current']; ?> / <?php echo $occ['max']; ?> people (<?php echo $pct; ?>%)</span></div><div class="occ-bar-track"><div class="occ-bar-fill" style="width:<?php echo min(100,$pct); ?>%; background:<?php echo $barColor; ?>;"></div></div></div>
+                    <div class="info-row"><strong>Status</strong>
+                        <span class="status-pill status-<?php echo strtolower(preg_replace('/\s+/', '-', $center['status'])); ?>">
+                            <?php echo htmlspecialchars($center['status']); ?>
+                        </span>
+                    </div>
+                    <div class="occ-bar-wrap">
+                        <div class="occ-bar-label">
+                            <span>Occupancy</span>
+                            <span><?php echo $occ['current']; ?> / <?php echo $occ['max']; ?> people (<?php echo $pct; ?>%)</span>
+                        </div>
+                        <div class="occ-bar-track">
+                            <div class="occ-bar-fill" style="width:<?php echo min(100,$pct); ?>%; background:<?php echo $barColor; ?>;"></div>
+                        </div>
+                    </div>
                     <p class="occ-note">When capacity reaches 100%, status is set to <strong>full</strong> and new arrivals should be redirected.</p>
                 </div>
             </section>
 
             <!-- App Arrivals Section -->
             <section class="card">
-                <div class="card-header"><svg class="card-header-icon-plain" viewBox="0 0 24 24" fill="none" stroke="var(--orange-dark)" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg><h2>Citizens en Route</h2><?php if ($appArrivals): ?><span class="en-route-badge" style="margin-left:auto;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg><?php echo count($appArrivals); ?> en route</span><?php endif; ?></div>
+                <div class="card-header">
+                    <svg class="card-header-icon-plain" viewBox="0 0 24 24" fill="none" stroke="var(--orange-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                    <h2>Citizens en Route</h2>
+                    <?php if ($appArrivals): ?>
+                    <span class="en-route-badge" style="margin-left:auto;">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                        <?php echo count($appArrivals); ?> en route
+                    </span>
+                    <?php endif; ?>
+                </div>
+
+                <?php if ($errors): ?>
+                <ul class="error-box">
+                    <?php foreach ($errors as $e): ?><li><?php echo htmlspecialchars($e); ?></li><?php endforeach; ?>
+                </ul>
+                <?php endif; ?>
+
                 <div class="card-body">
-                    <?php if ($justCheckedIn): ?><div class="checkin-toast"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Evacuee recorded successfully!</div><?php endif; ?>
-                    <?php if (!$appArrivals): ?><div class="arrival-queue-empty"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>No citizens are currently navigating to this center via the app.</div><?php else: ?>
+                    <?php if ($justCheckedIn): ?>
+                    <div class="checkin-toast">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        Evacuee recorded successfully!
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if (!$appArrivals): ?>
+                    <div class="arrival-queue-empty">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                        No citizens are currently navigating to this center via the app.
+                    </div>
+                    <?php else: ?>
                     <div class="app-arrivals-grid">
-                        <?php foreach ($appArrivals as $a): $initial = mb_strtoupper(mb_substr($a['full_name'], 0, 1)); $profileTotal = (int)$a['total_members']; ?>
+                        <?php foreach ($appArrivals as $a):
+                            $initial      = mb_strtoupper(mb_substr($a['full_name'], 0, 1));
+                            $profileTotal = (int)$a['total_members'];
+                        ?>
                         <div class="app-arrival-card" id="arrival-card-<?php echo (int)$a['tracking_id']; ?>">
-                            <div class="app-arrival-card-header"><div class="app-arrival-person"><div class="app-arrival-avatar"><?php echo htmlspecialchars($initial); ?></div><div><div class="app-arrival-name"><?php echo htmlspecialchars($a['full_name']); ?></div><div class="app-arrival-meta"><svg viewBox="0 0 14 14" width="10" height="10" fill="#c2410c"><path d="M7 1C4.79 1 3 2.79 3 5c0 3.25 4 8 4 8s4-4.75 4-8c0-2.21-1.79-4-4-4Z"/></svg><?php echo htmlspecialchars($a['barangay_name']); ?> <span class="dot">·</span> House #<?php echo htmlspecialchars($a['house_number']); ?> <span class="dot">·</span> Profile: <?php echo $profileTotal; ?> person<?php echo $profileTotal != 1 ? 's' : ''; ?></div></div></div><span class="app-badge-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>En Route</span></div>
-                            <form method="post" id="form-arrival-<?php echo (int)$a['tracking_id']; ?>" onsubmit="return confirmArrival(this)">
-                                <input type="hidden" name="action" value="record_app_arrival"><input type="hidden" name="tracking_id" value="<?php echo (int)$a['tracking_id']; ?>"><input type="hidden" name="nav_user_id" value="<?php echo (int)$a['user_id']; ?>">
+
+                            <div class="app-arrival-card-header">
+                                <div class="app-arrival-person">
+                                    <div class="app-arrival-avatar"><?php echo htmlspecialchars($initial); ?></div>
+                                    <div>
+                                        <div class="app-arrival-name"><?php echo htmlspecialchars($a['full_name']); ?></div>
+                                        <div class="app-arrival-meta">
+                                            <svg viewBox="0 0 14 14" width="10" height="10" fill="#c2410c"><path d="M7 1C4.79 1 3 2.79 3 5c0 3.25 4 8 4 8s4-4.75 4-8c0-2.21-1.79-4-4-4Z"/></svg>
+                                            <?php echo htmlspecialchars($a['barangay_name']); ?>
+                                            <span>·</span> House #<?php echo htmlspecialchars($a['house_number']); ?>
+                                            <span>·</span> Profile: <?php echo $profileTotal; ?> person<?php echo $profileTotal != 1 ? 's' : ''; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="app-badge-nav">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                                    En Route
+                                </span>
+                            </div>
+
+                            <form method="post"
+                                  id="form-arrival-<?php echo (int)$a['tracking_id']; ?>"
+                                  onsubmit="return confirmArrival(this)">
+                                <input type="hidden" name="action"      value="record_app_arrival">
+                                <input type="hidden" name="tracking_id" value="<?php echo (int)$a['tracking_id']; ?>">
+                                <input type="hidden" name="nav_user_id" value="<?php echo (int)$a['user_id']; ?>">
+
                                 <div class="app-arrival-members">
-                                    <?php foreach (['adults'=>'Adults','children'=>'Children','seniors'=>'Seniors','pwds'=>'PWDs'] as $field=>$label): $val = (int)$a[$field]; ?>
-                                    <div class="app-member-row"><span class="app-member-label"><?php echo $label; ?></span><div class="app-member-controls"><button type="button" onclick="adjustVal(<?php echo (int)$a['tracking_id']; ?>, '<?php echo $field; ?>', -1)">−</button><span class="app-member-val" id="val-<?php echo (int)$a['tracking_id']; ?>-<?php echo $field; ?>"><?php echo $val; ?></span><button type="button" onclick="adjustVal(<?php echo (int)$a['tracking_id']; ?>, '<?php echo $field; ?>', 1)">+</button></div><input type="hidden" name="<?php echo $field; ?>" id="hid-<?php echo (int)$a['tracking_id']; ?>-<?php echo $field; ?>" value="<?php echo $val; ?>"></div>
+                                    <?php foreach (['adults'=>'Adults','children'=>'Children','seniors'=>'Seniors','pwds'=>'PWDs'] as $field=>$label):
+                                        $val = (int)$a[$field]; ?>
+                                    <div class="app-member-row">
+                                        <span class="app-member-label"><?php echo $label; ?></span>
+                                        <div class="app-member-controls">
+                                            <button type="button" onclick="adjustVal(<?php echo (int)$a['tracking_id']; ?>, '<?php echo $field; ?>', -1)">−</button>
+                                            <span class="app-member-val" id="val-<?php echo (int)$a['tracking_id']; ?>-<?php echo $field; ?>"><?php echo $val; ?></span>
+                                            <button type="button" onclick="adjustVal(<?php echo (int)$a['tracking_id']; ?>, '<?php echo $field; ?>', 1)">+</button>
+                                        </div>
+                                        <input type="hidden"
+                                               name="<?php echo $field; ?>"
+                                               id="hid-<?php echo (int)$a['tracking_id']; ?>-<?php echo $field; ?>"
+                                               value="<?php echo $val; ?>">
+                                    </div>
                                     <?php endforeach; ?>
                                 </div>
-                                <div class="app-arrival-footer"><div class="app-total-wrap"><div class="app-total-num" id="total-<?php echo (int)$a['tracking_id']; ?>"><?php echo $profileTotal; ?></div><div class="app-total-label">total physically present</div></div><span class="profile-match match-ok" id="match-<?php echo (int)$a['tracking_id']; ?>"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Matches profile</span><button type="submit" class="btn-record-arrival"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>Record as Arrived</button></div>
-                                <input type="hidden" id="profile-total-<?php echo (int)$a['tracking_id']; ?>" value="<?php echo $profileTotal; ?>" data-adults="<?php echo (int)$a['adults']; ?>" data-children="<?php echo (int)$a['children']; ?>" data-seniors="<?php echo (int)$a['seniors']; ?>" data-pwds="<?php echo (int)$a['pwds']; ?>">
+
+                                <!-- Footer: two-row layout -->
+                                <div class="app-arrival-footer">
+                                    <!-- Row 1: total + match badge -->
+                                    <div class="app-footer-top">
+                                        <div class="app-total-wrap">
+                                            <div class="app-total-num" id="total-<?php echo (int)$a['tracking_id']; ?>"><?php echo $profileTotal; ?></div>
+                                            <div class="app-total-label">&nbsp;total present</div>
+                                        </div>
+                                        <span class="profile-match match-ok"
+                                              id="match-<?php echo (int)$a['tracking_id']; ?>">
+                                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                            Matches profile
+                                        </span>
+                                    </div>
+
+                                    <!-- Row 2: two equal buttons -->
+                                    <div class="app-footer-actions">
+                                        <button type="button"
+                                                class="btn-decline"
+                                                onclick="openDeclineModal(<?php echo (int)$a['tracking_id']; ?>, '<?php echo htmlspecialchars(addslashes($a['full_name'])); ?>')">
+                                            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                            Decline
+                                        </button>
+                                        <button type="submit" class="btn-record-arrival">
+                                            <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+                                            Record Arrived
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Hidden profile data for match check -->
+                                <input type="hidden"
+                                       id="profile-total-<?php echo (int)$a['tracking_id']; ?>"
+                                       value="<?php echo $profileTotal; ?>"
+                                       data-adults="<?php echo (int)$a['adults']; ?>"
+                                       data-children="<?php echo (int)$a['children']; ?>"
+                                       data-seniors="<?php echo (int)$a['seniors']; ?>"
+                                       data-pwds="<?php echo (int)$a['pwds']; ?>">
                             </form>
                         </div>
                         <?php endforeach; ?>
-                    </div><?php endif; ?>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </section>
         </main>
@@ -233,36 +446,88 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
 </div>
 
 <script>
-function openMenu() { document.getElementById('sidebar').classList.add('open'); document.getElementById('drawerOverlay').classList.add('open'); document.body.style.overflow = 'hidden'; }
+/* ── Sidebar ── */
+function openMenu()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('drawerOverlay').classList.add('open'); document.body.style.overflow = 'hidden'; }
 function closeMenu() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('drawerOverlay').classList.remove('open'); document.body.style.overflow = ''; }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMenu(); closeDeclineModal(); closeLogoutModal(); } });
 
+/* ── Logout modal ── */
+function openLogoutModal()  { closeMenu(); document.getElementById('logoutModal').classList.add('open'); document.body.style.overflow = 'hidden'; }
+function closeLogoutModal() { document.getElementById('logoutModal').classList.remove('open'); document.body.style.overflow = ''; }
+document.getElementById('logoutModal').addEventListener('click', function(e) { if (e.target === this) closeLogoutModal(); });
+
+/* ── Counter adjust + match badge ── */
 function adjustVal(trackingId, field, delta) {
     const valEl = document.getElementById('val-' + trackingId + '-' + field);
     const hidEl = document.getElementById('hid-' + trackingId + '-' + field);
     if (!valEl || !hidEl) return;
-    let current = parseInt(valEl.textContent, 10);
-    let next = Math.max(0, current + delta);
+    let next = Math.max(0, parseInt(valEl.textContent, 10) + delta);
     valEl.textContent = next;
     hidEl.value = next;
-    let newTotal = 0;
-    ['adults','children','seniors','pwds'].forEach(f => {
-        let el = document.getElementById('hid-' + trackingId + '-' + f);
-        if (el) newTotal += parseInt(el.value, 10) || 0;
-    });
+
+    let newTotal = ['adults','children','seniors','pwds']
+        .reduce((s, f) => s + (parseInt(document.getElementById('hid-' + trackingId + '-' + f)?.value, 10) || 0), 0);
     document.getElementById('total-' + trackingId).textContent = newTotal;
-    let profileEl = document.getElementById('profile-total-' + trackingId);
-    let matchEl = document.getElementById('match-' + trackingId);
-    if (profileEl && matchEl) {
-        let profileAdults = parseInt(profileEl.dataset.adults,10), profileChildren = parseInt(profileEl.dataset.children,10), profileSeniors = parseInt(profileEl.dataset.seniors,10), profilePwds = parseInt(profileEl.dataset.pwds,10);
-        let currentAdults = parseInt(document.getElementById('hid-' + trackingId + '-adults').value,10), currentChildren = parseInt(document.getElementById('hid-' + trackingId + '-children').value,10), currentSeniors = parseInt(document.getElementById('hid-' + trackingId + '-seniors').value,10), currentPwds = parseInt(document.getElementById('hid-' + trackingId + '-pwds').value,10);
-        let isMatch = (currentAdults === profileAdults && currentChildren === profileChildren && currentSeniors === profileSeniors && currentPwds === profilePwds);
-        if (isMatch) { matchEl.className = 'profile-match match-ok'; matchEl.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Matches profile'; }
-        else { matchEl.className = 'profile-match match-diff'; matchEl.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Count adjusted'; }
-    }
+
+    const profileEl = document.getElementById('profile-total-' + trackingId);
+    const matchEl   = document.getElementById('match-' + trackingId);
+    if (!profileEl || !matchEl) return;
+
+    const pA = parseInt(profileEl.dataset.adults,   10);
+    const pC = parseInt(profileEl.dataset.children, 10);
+    const pS = parseInt(profileEl.dataset.seniors,  10);
+    const pP = parseInt(profileEl.dataset.pwds,     10);
+    const cA = parseInt(document.getElementById('hid-' + trackingId + '-adults').value,   10);
+    const cC = parseInt(document.getElementById('hid-' + trackingId + '-children').value, 10);
+    const cS = parseInt(document.getElementById('hid-' + trackingId + '-seniors').value,  10);
+    const cP = parseInt(document.getElementById('hid-' + trackingId + '-pwds').value,     10);
+
+    const isMatch = cA === pA && cC === pC && cS === pS && cP === pP;
+    matchEl.className = 'profile-match ' + (isMatch ? 'match-ok' : 'match-diff');
+    matchEl.innerHTML = isMatch
+        ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Matches profile'
+        : '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Count adjusted';
 }
-function confirmArrival(form) { let card = form.closest('.app-arrival-card'); let nameEl = card.querySelector('.app-arrival-name'); let totalEl = card.querySelector('[id^="total-"]'); let name = nameEl ? nameEl.textContent.trim() : 'this evacuee'; let total = totalEl ? totalEl.textContent.trim() : '?'; return confirm('Record arrival for ' + name + ' — ' + total + ' person(s)?\n\nThis will mark them as arrived and add them to the occupancy count.'); }
-let toast = document.querySelector('.checkin-toast'); if (toast) { setTimeout(() => { toast.style.display = 'none'; }, 4200); }
+
+/* ── Confirm arrival ── */
+function confirmArrival(form) {
+    const card    = form.closest('.app-arrival-card');
+    const nameEl  = card.querySelector('.app-arrival-name');
+    const totalEl = card.querySelector('[id^="total-"]');
+    const name    = nameEl  ? nameEl.textContent.trim()  : 'this evacuee';
+    const total   = totalEl ? totalEl.textContent.trim() : '?';
+    return confirm('Record arrival for ' + name + ' — ' + total + ' person(s)?\n\nThis will mark them as arrived and add them to the occupancy count.');
+}
+
+/* ── Decline modal ── */
+let _declineTrackingId = null;
+
+function openDeclineModal(trackingId, name) {
+    _declineTrackingId = trackingId;
+    document.getElementById('modalPersonName').textContent = name;
+    document.getElementById('declineReason').value = '';
+    document.getElementById('declineModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function closeDeclineModal() {
+    document.getElementById('declineModal').classList.remove('open');
+    document.body.style.overflow = '';
+    _declineTrackingId = null;
+}
+document.getElementById('declineModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeclineModal();
+});
+
+function submitDecline() {
+    if (!_declineTrackingId) return;
+    document.getElementById('declineTrackingId').value  = _declineTrackingId;
+    document.getElementById('declineReasonHidden').value = document.getElementById('declineReason').value;
+    document.getElementById('declineForm').submit();
+}
+
+/* ── Toast auto-hide ── */
+const toast = document.querySelector('.checkin-toast');
+if (toast) setTimeout(() => { toast.style.display = 'none'; }, 4200);
 </script>
 </body>
 </html>

@@ -2,28 +2,49 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --accent:      #d45f10;
-  --accent-lit:  #e8742a;
-  --red:         #c0391e;
-  --red-dark:    #8c2a10;
-  --orange:      #d45f10;
-  --green:       #16a34a;
-  --yellow:      #b45309;
-  --red-alert:   #dc2626;
-  --bg:          #f2f1ee;
-  --surface:     #ffffff;
-  --surface2:    #f7f6f3;
-  --text:        #18140e;
-  --text-dim:    #6b6058;
-  --muted:       #9c9288;
-  --border:      #e2ddd6;
-  --font:        'Outfit', sans-serif;
-  --font-body:   'DM Sans', sans-serif;
+  --accent:       #d45f10;
+  --accent-lit:   #e8742a;
+  --red:          #c0391e;
+  --red-dark:     #8c2a10;
+  --orange:       #d45f10;
+  --green:        #16a34a;
+  --yellow:       #b45309;
+  --red-alert:    #dc2626;
+  --bg:           #f2f1ee;
+  --surface:      #ffffff;
+  --surface2:     #f7f6f3;
+  --text:         #18140e;
+  --text-dim:     #6b6058;
+  --muted:        #9c9288;
+  --border:       #e2ddd6;
+  --font:         'Outfit', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
   --panel-radius: 26px;
+
+  /*
+    iOS FIX #2: --vh custom property
+    Set by JS to window.innerHeight * 0.01 so 100 * var(--vh) = actual visible height.
+    Falls back to 1dvh which is supported on iOS 15.4+.
+    This covers both old and new iOS Safari.
+  */
+  --vh: 1dvh;
+
+  /* Safe area insets — fallback to 0 on non-iOS */
+  --sat: env(safe-area-inset-top,    0px);
+  --sar: env(safe-area-inset-right,  0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left,   0px);
 }
 
+/*
+  iOS FIX #3: Use calc(var(--vh, 1dvh) * 100) everywhere instead of 100vh.
+  On iPhones, 100vh includes the browser chrome area so elements get pushed
+  down. Our --vh var is set to the ACTUAL visible pixel height / 100.
+*/
 html, body {
-  width: 100%; height: 100%;
+  width: 100%;
+  /* Use the JS-set --vh var; dvh as modern fallback; 100vh as last resort */
+  height: calc(var(--vh, 1dvh) * 100);
   overflow: hidden;
   background: var(--bg);
   font-family: var(--font);
@@ -32,7 +53,8 @@ html, body {
 }
 
 #app {
-  width: 100%; height: 100vh;
+  width: 100%;
+  height: calc(var(--vh, 1dvh) * 100);
   position: relative;
   overflow: hidden;
 }
@@ -48,7 +70,6 @@ html, body {
 .leaflet-routing-container { display: none !important; }
 .leaflet-tile-pane { transition: filter .35s ease; }
 
-/* Leaflet popup polish */
 .leaflet-popup-content-wrapper {
   background: rgba(255,255,255,.98) !important;
   color: var(--text) !important;
@@ -61,10 +82,13 @@ html, body {
 
 /* ==============================================
    TOP DIRECTION CARD
+   iOS FIX #4: top offset accounts for safe-area-inset-top
+   so the card doesn't hide under the notch/Dynamic Island.
    ============================================== */
 #dirCard {
   position: absolute;
-  top: -140px;
+  /* Hidden state: pushed off-screen above safe area + some extra */
+  top: calc(-140px - var(--sat));
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;
@@ -82,7 +106,8 @@ html, body {
   box-shadow: 0 2px 0 rgba(255,255,255,.8) inset, 0 16px 48px rgba(0,0,0,.14);
   transition: top .5s cubic-bezier(.16,1,.3,1);
 }
-#dirCard.show { top: .9rem; }
+/* Shown state: .9rem below the safe area top */
+#dirCard.show { top: calc(.9rem + var(--sat)); }
 #dirCard::before {
   content: '';
   position: absolute;
@@ -139,15 +164,16 @@ html, body {
   flex-shrink: 0;
   box-shadow: 0 2px 6px rgba(0,0,0,.06);
 }
-#etaMin  { font-size: 1.4rem; font-weight: 800; color: var(--accent); line-height: 1; }
+#etaMin   { font-size: 1.4rem; font-weight: 800; color: var(--accent); line-height: 1; }
 #etaLabel { font-size: .58rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
 
 /* ==============================================
    OFF-ROUTE BANNER
+   iOS FIX #5: top position accounts for safe area + dirCard height
    ============================================== */
 #offrouteBanner {
   position: absolute;
-  top: 5.2rem;
+  top: calc(5.2rem + var(--sat));
   left: 50%;
   transform: translate(-50%, -20px);
   z-index: 60;
@@ -178,11 +204,12 @@ html, body {
 
 /* ==============================================
    BACK BUTTON
+   iOS FIX #6: top and left account for safe area insets (notch/Dynamic Island)
    ============================================== */
 #backBtn {
   position: absolute;
-  top: 1rem;
-  left: 1rem;
+  top:  calc(1rem + var(--sat));
+  left: calc(1rem + var(--sal));
   z-index: 40;
   width: 46px; height: 46px;
   border-radius: 50%;
@@ -196,20 +223,15 @@ html, body {
   text-decoration: none;
   transition: transform .15s, box-shadow .2s;
 }
-#backBtn:hover {
-  transform: scale(1.06);
-  box-shadow: 0 6px 22px rgba(0,0,0,.15), 0 0 0 3px rgba(212,95,16,.1);
-}
+#backBtn:hover  { transform: scale(1.06); box-shadow: 0 6px 22px rgba(0,0,0,.15), 0 0 0 3px rgba(212,95,16,.1); }
 #backBtn:active { transform: scale(.94); }
 
 /* ==============================================
-   COMPASS
+   COMPASS (static inside #topRightControls)
    ============================================== */
 #compassWrap {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  z-index: 40;
+  position: static;
+  z-index: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -258,14 +280,13 @@ html, body {
   overflow: hidden;
   flex-shrink: 0;
 }
-#mapModeBtn:hover { transform: scale(1.06); }
+#mapModeBtn:hover  { transform: scale(1.06); }
 #mapModeBtn:active { transform: scale(.93); }
 #mapModeBtn .mode-icon-light,
 #mapModeBtn .mode-icon-dark { transition: opacity .25s, transform .3s; position: absolute; }
 #mapModeBtn .mode-icon-dark  { opacity: 0; transform: rotate(-30deg) scale(.7); }
 #mapModeBtn .mode-icon-light { opacity: 1; transform: rotate(0deg)   scale(1);  }
 
-/* Dark state */
 #mapModeBtn.is-dark {
   background: rgba(24,20,14,.88);
   border-color: rgba(255,255,255,.12);
@@ -273,7 +294,6 @@ html, body {
 }
 #mapModeBtn.is-dark .mode-icon-dark  { opacity: 1; transform: rotate(0deg)   scale(1);  }
 #mapModeBtn.is-dark .mode-icon-light { opacity: 0; transform: rotate(30deg)  scale(.7); }
-#mapModeBtn.is-dark + #mapModeLabel  { color: rgba(255,255,255,.55); }
 
 #mapModeLabel {
   font-size: .55rem;
@@ -285,18 +305,19 @@ html, body {
   text-align: center;
 }
 
-/* Wrap compass + map-mode toggle side by side */
+/*
+  iOS FIX #7: Top-right controls also respect safe area top + right insets
+*/
 #topRightControls {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top:   calc(1rem + var(--sat));
+  right: calc(1rem + var(--sar));
   z-index: 40;
   display: flex;
   flex-direction: row;
   align-items: flex-start;
   gap: .55rem;
 }
-/* Each pill (button + label stacked) */
 .top-pill {
   display: flex;
   flex-direction: column;
@@ -304,19 +325,16 @@ html, body {
   gap: 3px;
 }
 
-/* Override old compassWrap absolute positioning — now lives inside #topRightControls */
-#compassWrap {
-  position: static;
-  z-index: auto;
-}
-
 /* ==============================================
    SPEED BUBBLE
+   iOS FIX #8: bottom offset uses dvh-based calculation
+   (handled by JS syncToggleBtn which sets inline style,
+    but we still set a sensible CSS default here)
    ============================================== */
 #speedBubble {
   position: absolute;
   bottom: 18rem;
-  left: 1rem;
+  left: calc(1rem + var(--sal));
   z-index: 40;
   background: rgba(255,255,255,.95);
   backdrop-filter: blur(16px);
@@ -338,7 +356,7 @@ html, body {
 #recenterBtn {
   position: absolute;
   bottom: 18rem;
-  right: 1rem;
+  right: calc(1rem + var(--sar));
   z-index: 40;
   width: 46px; height: 46px;
   border-radius: 50%;
@@ -387,10 +405,7 @@ html, body {
   border-radius: 12px 0 0 0;
   pointer-events: none;
 }
-#panelToggleBtn:hover {
-  background: linear-gradient(160deg, #a0220f 0%, #b84a00 100%);
-  transform: scaleX(1.12);
-}
+#panelToggleBtn:hover  { background: linear-gradient(160deg, #a0220f 0%, #b84a00 100%); transform: scaleX(1.12); }
 #panelToggleBtn:active { transform: scaleX(.94); }
 
 #toggleArrow {
@@ -402,12 +417,12 @@ html, body {
   stroke-linejoin: round;
   transition: transform .3s cubic-bezier(.34,1.56,.64,1);
 }
-#panelToggleBtn.collapsed #toggleArrow {
-  transform: rotate(180deg);
-}
+#panelToggleBtn.collapsed #toggleArrow { transform: rotate(180deg); }
 
 /* ==============================================
    BOTTOM PANEL
+   iOS FIX #9: padding-bottom accounts for home indicator safe area.
+   Without this the Start button gets hidden behind the iPhone home bar.
    ============================================== */
 #bottomPanel {
   position: absolute;
@@ -419,17 +434,22 @@ html, body {
   -webkit-backdrop-filter: blur(24px);
   border-radius: var(--panel-radius) var(--panel-radius) 0 0;
   border-top: 1.5px solid rgba(255,255,255,1);
-  padding: 0 1.2rem 1.8rem;
+  /* iOS FIX: extra bottom padding = home indicator height */
+  padding: 0 1.2rem calc(1.8rem + var(--sab));
   box-shadow: 0 -1px 0 rgba(255,255,255,.8) inset, 0 -24px 60px rgba(0,0,0,.10);
   transition: bottom .5s cubic-bezier(.16,1,.3,1);
-  max-height: 72vh;
+  /*
+    iOS FIX #10: max-height uses dvh so the panel never taller than visible area.
+    We also subtract the safe area bottom so the panel doesn't overflow behind home bar.
+  */
+  max-height: calc(72 * var(--vh, 1dvh) - var(--sab));
   overflow-y: auto;
   scrollbar-width: none;
   touch-action: none;
 }
 #bottomPanel::-webkit-scrollbar { display: none; }
-#bottomPanel.show { bottom: 0; }
-#bottomPanel.collapsed { bottom: -88%; }
+#bottomPanel.show     { bottom: 0; }
+#bottomPanel.collapsed{ bottom: -88%; }
 #bottomPanel.no-transition { transition: none; }
 #bottomPanel::before {
   content: '';
@@ -522,23 +542,10 @@ html, body {
   box-shadow: 0 1px 4px rgba(0,0,0,.06);
   transition: border-color .2s, box-shadow .2s, transform .15s;
 }
-.center-item:hover {
-  border-color: rgba(212,95,16,.40);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0,0,0,.10);
-}
-.center-item.selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(212,95,16,.12), 0 4px 16px rgba(0,0,0,.08);
-}
-.center-item.is-full {
-  opacity: .52;
-  cursor: not-allowed;
-}
-.center-item.is-full .center-name {
-  text-decoration: line-through;
-  text-decoration-color: var(--red-alert);
-}
+.center-item:hover  { border-color: rgba(212,95,16,.40); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.10); }
+.center-item.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(212,95,16,.12), 0 4px 16px rgba(0,0,0,.08); }
+.center-item.is-full { opacity: .52; cursor: not-allowed; }
+.center-item.is-full .center-name { text-decoration: line-through; text-decoration-color: var(--red-alert); }
 
 .center-body {
   flex: 1;
@@ -557,7 +564,6 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .center-badges { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .cbadge {
   display: inline-flex;
@@ -586,15 +592,9 @@ html, body {
 }
 .center-sub span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Capacity bar */
 .cap-bar-wrap { margin-top: 4px; }
-.cap-bar-track {
-  width: 100%; height: 4px;
-  background: var(--border);
-  border-radius: 99px;
-  overflow: hidden;
-}
-.cap-bar-fill { height: 100%; border-radius: 99px; transition: width .4s ease; }
+.cap-bar-track { width: 100%; height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.cap-bar-fill  { height: 100%; border-radius: 99px; transition: width .4s ease; }
 .cap-bar-fill.fill-ok   { background: linear-gradient(90deg, #16a34a, #22c55e); }
 .cap-bar-fill.fill-near { background: linear-gradient(90deg, #a16207, #d97706); }
 .cap-bar-fill.fill-full { background: linear-gradient(90deg, #dc2626, #ef4444); }
@@ -608,10 +608,10 @@ html, body {
   color: var(--muted);
   font-family: var(--font-body);
 }
-.cap-label .slots { font-weight: 700; font-size: 10.5px; }
-.cap-label .slots.ok   { color: #16a34a; }
-.cap-label .slots.near { color: #a16207; }
-.cap-label .slots.full { color: #dc2626; }
+.cap-label .slots          { font-weight: 700; font-size: 10.5px; }
+.cap-label .slots.ok       { color: #16a34a; }
+.cap-label .slots.near     { color: #a16207; }
+.cap-label .slots.full     { color: #dc2626; }
 
 .center-meta {
   display: flex;
@@ -624,19 +624,13 @@ html, body {
   min-width: 78px;
   gap: 3px;
 }
-.center-distance { font-size: .85rem; font-weight: 800; color: var(--accent); white-space: nowrap; }
-.center-status-text {
-  font-size: .58rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  white-space: nowrap;
-}
+.center-distance           { font-size: .85rem; font-weight: 800; color: var(--accent); white-space: nowrap; }
+.center-status-text        { font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
 .center-status-available   { color: var(--green); }
 .center-status-near_capacity { color: var(--yellow); }
 .center-status-full        { color: var(--red-alert); }
 .center-status-closed      { color: var(--muted); }
-.center-status-temp_shelter { color: #1d4ed8; }
+.center-status-temp_shelter{ color: #1d4ed8; }
 
 #modeSelector {
   display: grid;
@@ -648,8 +642,8 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: .3rem;
-  padding: .62rem .3rem;
+  gap: .25rem;
+  padding: .5rem .3rem .55rem;
   border: 1.5px solid var(--border);
   border-radius: 14px;
   background: var(--surface2);
@@ -675,15 +669,26 @@ html, body {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.mode-btn.active {
-  border-color: var(--accent);
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(212,95,16,.10), 0 4px 12px rgba(212,95,16,.12);
-}
+.mode-btn.active { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(212,95,16,.10), 0 4px 12px rgba(212,95,16,.12); }
 .mode-btn:hover  { border-color: rgba(212,95,16,.4); background: #fff; transform: translateY(-1px); }
 .mode-btn:active { transform: scale(.95); }
-.mode-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
-.mode-icon svg { width: 24px; height: 24px; }
+
+.mode-icon {
+  width: 52px; height: 52px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.mode-icon svg { width: 52px; height: 52px; }
+.mode-icon img {
+  width: 120%;
+  height: 120%;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,.14));
+  transition: transform .2s;
+}
+.mode-btn:hover .mode-icon img  { transform: scale(1.06); }
+.mode-btn.active .mode-icon img { transform: scale(1.08); }
 .mode-name { font-size: .62rem; font-weight: 600; color: var(--text-dim); }
 .mode-btn.active .mode-name { color: var(--accent); }
 
@@ -712,12 +717,8 @@ html, body {
 .stat-val { font-size: 1.1rem; font-weight: 800; color: var(--accent); }
 .stat-lbl { font-size: .57rem; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .06em; }
 
-.traffic-legend {
-  display: flex;
-  gap: 1.1rem;
-  margin-bottom: 1rem;
-}
-.tleg { display: flex; align-items: center; gap: .4rem; font-size: .66rem; color: var(--muted); font-family: var(--font-body); }
+.traffic-legend { display: flex; gap: 1.1rem; margin-bottom: 1rem; }
+.tleg     { display: flex; align-items: center; gap: .4rem; font-size: .66rem; color: var(--muted); font-family: var(--font-body); }
 .tleg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
 .nav-btn {
@@ -802,11 +803,7 @@ html, body {
 /* ==============================================
    USER / DEST MAP MARKERS
    ============================================== */
-.user-dot-wrap {
-  position: relative;
-  width: 40px; height: 40px;
-  display: flex; align-items: center; justify-content: center;
-}
+.user-dot-wrap { position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
 .user-halo {
   position: absolute;
   width: 40px; height: 40px;
@@ -836,7 +833,6 @@ html, body {
   z-index: 3;
   clip-path: polygon(50% 0%,100% 100%,0% 100%);
 }
-
 .dest-pin-head {
   width: 40px; height: 40px;
   border-radius: 50% 50% 50% 0;
@@ -845,10 +841,7 @@ html, body {
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 6px 20px rgba(212,95,16,.45), 0 2px 0 rgba(255,200,140,.3) inset;
 }
-.dest-pin-icon {
-  transform: rotate(45deg);
-  width: 20px; height: 20px;
-}
+.dest-pin-icon { transform: rotate(45deg); width: 20px; height: 20px; }
 
 /* ==============================================
    ARRIVAL OVERLAY
@@ -868,6 +861,8 @@ html, body {
   opacity: 0;
   pointer-events: none;
   transition: opacity .4s ease;
+  /* iOS FIX: pad content away from home indicator */
+  padding-bottom: var(--sab);
 }
 #arrivalOverlay.show { opacity: 1; pointer-events: all; }
 
@@ -913,10 +908,11 @@ html, body {
 
 /* ==============================================
    REROUTE TOAST
+   iOS FIX: top accounts for safe area
    ============================================== */
 #rerouteToast {
   position: fixed;
-  top: 70px;
+  top: calc(70px + var(--sat));
   left: 50%;
   transform: translateX(-50%) translateY(-14px);
   background: rgba(255,255,255,.97);
@@ -971,7 +967,6 @@ html, body {
     0 -1px 0 rgba(220,38,38,.10) inset,
     0 6px 24px rgba(220,38,38,.14);
 }
-
 .slide-track::before {
   content: '';
   position: absolute;
@@ -994,7 +989,6 @@ html, body {
   60%  { background-position: -50% center; }
   100% { background-position: -50% center; }
 }
-
 .slide-fill {
   position: absolute;
   left: 0; top: 0; bottom: 0;
@@ -1009,7 +1003,6 @@ html, body {
   pointer-events: none;
   transition: width .04s linear;
 }
-
 .slide-fill::after {
   content: '';
   position: absolute;
@@ -1058,16 +1051,8 @@ html, body {
     0 6px 16px rgba(0,0,0,.14),
     0 10px 32px rgba(220,38,38,.28);
 }
-
-.slide-chevrons {
-  display: flex;
-  gap: 1px;
-  align-items: center;
-}
-.slide-chevrons svg {
-  flex-shrink: 0;
-  transition: opacity .15s;
-}
+.slide-chevrons { display: flex; gap: 1px; align-items: center; }
+.slide-chevrons svg { flex-shrink: 0; transition: opacity .15s; }
 
 .slide-thumb.confirmed {
   background: linear-gradient(145deg, #ef4444, #b91c1c);
@@ -1100,10 +1085,7 @@ html, body {
   transition: opacity .18s, transform .18s;
 }
 .slide-label svg { flex-shrink: 0; opacity: .7; }
-
-.slide-dots {
-  display: flex; gap: 3px; align-items: center;
-}
+.slide-dots { display: flex; gap: 3px; align-items: center; }
 .slide-dots span {
   width: 4px; height: 4px;
   border-radius: 50%;

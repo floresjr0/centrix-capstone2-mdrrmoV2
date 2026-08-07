@@ -810,6 +810,22 @@ body {
 .empty-title { font-size: 0.97rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }
 .empty-desc  { font-size: 0.83rem; color: var(--text-muted); line-height: 1.65; }
 
+/* ── Logout modal (added) ── */
+.logout-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,14,8,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; padding: 1.5rem; }
+.logout-modal-overlay.open { display: flex; }
+.logout-modal-box { background: #fff; border-radius: 18px; max-width: 380px; width: 100%; padding: 1.75rem; box-shadow: 0 24px 60px rgba(28,23,18,0.22); animation: logoutModalIn .25s cubic-bezier(0.22,1,0.36,1); }
+@keyframes logoutModalIn { from { opacity: 0; transform: scale(0.94) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.logout-modal-icon { width: 48px; height: 48px; border-radius: 50%; background: #fef3c7; border: 1.5px solid #fcd34d; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; }
+.logout-modal-icon svg { width: 22px; height: 22px; stroke: #b45309; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.logout-modal-title { font-size: 1rem; font-weight: 800; color: #1c1712; margin-bottom: 0.35rem; }
+.logout-modal-desc { font-size: 0.83rem; color: #5c564a; line-height: 1.55; margin-bottom: 1.25rem; }
+.logout-modal-btns { display: flex; gap: 8px; }
+.logout-modal-btn-cancel { flex: 1; padding: 0.65rem; border: 1.5px solid #d9d3c5; border-radius: 10px; background: transparent; font-size: 0.85rem; font-weight: 600; color: #5c564a; cursor: pointer; transition: background .15s; font-family: var(--font); }
+.logout-modal-btn-cancel:hover { background: #f6f5f1; }
+.logout-modal-btn-confirm { flex: 1.2; padding: 0.65rem; border: none; border-radius: 10px; background: #b45309; color: #fff; font-size: 0.85rem; font-weight: 700; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; transition: filter .15s, transform .1s; font-family: var(--font); }
+.logout-modal-btn-confirm:hover  { filter: brightness(1.08); }
+.logout-modal-btn-confirm:active { transform: scale(.97); }
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
   .hamburger-btn { display: none; }

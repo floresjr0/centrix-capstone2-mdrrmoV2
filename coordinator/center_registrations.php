@@ -95,6 +95,25 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
 
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeMenu()"></div>
 
+<!-- Logout Confirmation Modal -->
+<div class="logout-modal-overlay" id="logoutModal" role="dialog" aria-modal="true" aria-labelledby="logoutModalTitle">
+    <div class="logout-modal-box">
+        <div class="logout-modal-icon">
+            <svg viewBox="0 0 24 24">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+        </div>
+        <div class="logout-modal-title" id="logoutModalTitle">Log out?</div>
+        <p class="logout-modal-desc">You will be signed out of the system. Any unsaved changes will be lost.</p>
+        <div class="logout-modal-btns">
+            <button class="logout-modal-btn-cancel" onclick="closeLogoutModal()">Cancel</button>
+            <a href="../pages/logout.php" class="logout-modal-btn-confirm">Yes, Log Out</a>
+        </div>
+    </div>
+</div>
+
 <div class="layout">
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
@@ -104,17 +123,29 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
             </div>
             <button class="sidebar-close" onclick="closeMenu()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
-        <div class="sidebar-user"><div class="user-avatar"><?php echo htmlspecialchars(mb_strtoupper(mb_substr($user['full_name'], 0, 1))); ?></div><div class="user-info"><div class="user-name"><?php echo htmlspecialchars($user['full_name']); ?></div><div class="user-role">Coordinator</div></div></div>
+        <div class="sidebar-user">
+            <div class="user-avatar"><?php echo htmlspecialchars(mb_strtoupper(mb_substr($user['full_name'], 0, 1))); ?></div>
+            <div class="user-info">
+                <div class="user-name"><?php echo htmlspecialchars($user['full_name']); ?></div>
+                <div class="user-role">Coordinator</div>
+            </div>
+        </div>
         <nav class="sidebar-nav">
             <div class="nav-label">Navigation</div>
             <a href="index.php" class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span>Dashboard</a>
             <a href="index.php" class="nav-item active"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 21V9h6v12"/><path d="M3 9h18"/></svg></span>Centers</a>
         </nav>
         <div class="sidebar-status"><span class="status-dot-green"></span>SYSTEM ONLINE</div>
-        <div class="sidebar-footer"><a href="../pages/logout.php" class="logout-btn"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log Out</a></div>
+        <div class="sidebar-footer">
+            <!-- Logout triggers modal instead of direct link -->
+            <button class="logout-btn" onclick="openLogoutModal()">
+                <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Log Out
+            </button>
+        </div>
     </aside>
 
-    <!-- BOTTOM NAVIGATION (5 items, "Registrations" active) -->
+    <!-- Bottom navigation ("Registrations" active) -->
     <nav class="bottom-nav">
         <div class="bottom-nav-inner">
             <a href="index.php" class="bottom-nav-item">
@@ -137,18 +168,29 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                 Registrations
                 <span class="bottom-nav-dot"></span>
             </a>
-            <a href="../pages/logout.php" class="bottom-nav-item">
+            <!-- Logout triggers modal instead of direct link -->
+            <button class="bottom-nav-item" onclick="openLogoutModal()">
                 <span class="bottom-nav-icon"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
                 Logout
                 <span class="bottom-nav-dot"></span>
-            </a>
+            </button>
         </div>
     </nav>
 
     <div class="main">
         <header class="topbar">
-            <div class="topbar-brand"><div class="topbar-logo"><img src="../img/mdrrmo.png" alt="MDRRMO Logo"></div><div class="topbar-brand-text"><div class="topbar-title"><?php echo htmlspecialchars($center['name']); ?></div><div class="topbar-subtitle">San Ildefonso, Bulacan — MDRRMO</div></div></div>
-            <div class="topbar-right"><button class="hamburger-btn" onclick="openMenu()"><svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div>
+            <div class="topbar-brand">
+                <div class="topbar-logo"><img src="../img/mdrrmo.png" alt="MDRRMO Logo"></div>
+                <div class="topbar-brand-text">
+                    <div class="topbar-title"><?php echo htmlspecialchars($center['name']); ?></div>
+                    <div class="topbar-subtitle">San Ildefonso, Bulacan — MDRRMO</div>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <button class="hamburger-btn" onclick="openMenu()">
+                    <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+            </div>
         </header>
 
         <main class="dashboard">
@@ -163,21 +205,42 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
 
             <!-- Center Status Card -->
             <section class="card">
-                <div class="card-header"><div class="card-header-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><h2>Center Status</h2></div>
+                <div class="card-header">
+                    <div class="card-header-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+                    <h2>Center Status</h2>
+                </div>
                 <div class="card-body">
                     <div class="info-row"><strong>Barangay</strong> <?php echo htmlspecialchars($center['barangay_name']); ?></div>
-                    <div class="info-row"><strong>Status</strong> <span class="status-pill status-<?php echo strtolower(preg_replace('/\s+/', '-', $center['status'])); ?>"><?php echo htmlspecialchars($center['status']); ?></span></div>
-                    <div class="occ-bar-wrap"><div class="occ-bar-label"><span>Occupancy</span><span><?php echo $occ['current']; ?> / <?php echo $occ['max']; ?> people (<?php echo $pct; ?>%)</span></div><div class="occ-bar-track"><div class="occ-bar-fill" style="width:<?php echo min(100,$pct); ?>%; background:<?php echo $barColor; ?>;"></div></div></div>
+                    <div class="info-row"><strong>Status</strong>
+                        <span class="status-pill status-<?php echo strtolower(preg_replace('/\s+/', '-', $center['status'])); ?>">
+                            <?php echo htmlspecialchars($center['status']); ?>
+                        </span>
+                    </div>
+                    <div class="occ-bar-wrap">
+                        <div class="occ-bar-label">
+                            <span>Occupancy</span>
+                            <span><?php echo $occ['current']; ?> / <?php echo $occ['max']; ?> people (<?php echo $pct; ?>%)</span>
+                        </div>
+                        <div class="occ-bar-track">
+                            <div class="occ-bar-fill" style="width:<?php echo min(100,$pct); ?>%; background:<?php echo $barColor; ?>;"></div>
+                        </div>
+                    </div>
                     <p class="occ-note">When capacity reaches 100%, status is set to <strong>full</strong> and new arrivals should be redirected.</p>
                 </div>
             </section>
 
             <!-- Registered Families Table + Mobile Cards -->
             <section class="card">
-                <div class="card-header"><div class="card-header-icon"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div><h2>Occupant List</h2></div>
+                <div class="card-header">
+                    <div class="card-header-icon"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+                    <h2>Occupant List</h2>
+                </div>
 
                 <?php if (!$registrations): ?>
-                    <div class="no-data"><div class="no-data-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>No families have been registered yet.</div>
+                    <div class="no-data">
+                        <div class="no-data-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+                        No families have been registered yet.
+                    </div>
                 <?php else: ?>
                     <!-- Search + filter toolbar -->
                     <div class="reg-toolbar">
@@ -202,7 +265,9 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                             </thead>
                             <tbody>
                             <?php foreach ($registrations as $r): ?>
-                                <tr class="reg-row" data-name="<?php echo htmlspecialchars(mb_strtolower($r['family_head_name'] . ' ' . ($r['contact_number'] ?? ''))); ?>" data-barangay="<?php echo htmlspecialchars(mb_strtolower($r['barangay_name'])); ?>">
+                                <tr class="reg-row"
+                                    data-name="<?php echo htmlspecialchars(mb_strtolower($r['family_head_name'] . ' ' . ($r['contact_number'] ?? ''))); ?>"
+                                    data-barangay="<?php echo htmlspecialchars(mb_strtolower($r['barangay_name'])); ?>">
                                     <td class="cell-head"><?php echo htmlspecialchars($r['family_head_name']); ?></td>
                                     <td><?php echo htmlspecialchars($r['contact_number'] ?? ''); ?></td>
                                     <td><?php echo !empty($r['birthday']) ? date('M d, Y', strtotime($r['birthday'])) : ''; ?></td>
@@ -211,18 +276,18 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                                     <td>
                                         <div class="adjust-cell">
                                             <form method="post" class="inline-adjust">
-                                                <input type="hidden" name="action" value="adjust">
-                                                <input type="hidden" name="reg_id" value="<?php echo (int)$r['id']; ?>">
-                                                <input type="hidden" name="field" value="<?php echo $field; ?>">
-                                                <input type="hidden" name="delta" value="-1">
+                                                <input type="hidden" name="action"  value="adjust">
+                                                <input type="hidden" name="reg_id"  value="<?php echo (int)$r['id']; ?>">
+                                                <input type="hidden" name="field"   value="<?php echo $field; ?>">
+                                                <input type="hidden" name="delta"   value="-1">
                                                 <button type="submit">−</button>
                                             </form>
                                             <span class="adjust-val"><?php echo (int)$r[$field]; ?></span>
                                             <form method="post" class="inline-adjust">
-                                                <input type="hidden" name="action" value="adjust">
-                                                <input type="hidden" name="reg_id" value="<?php echo (int)$r['id']; ?>">
-                                                <input type="hidden" name="field" value="<?php echo $field; ?>">
-                                                <input type="hidden" name="delta" value="1">
+                                                <input type="hidden" name="action"  value="adjust">
+                                                <input type="hidden" name="reg_id"  value="<?php echo (int)$r['id']; ?>">
+                                                <input type="hidden" name="field"   value="<?php echo $field; ?>">
+                                                <input type="hidden" name="delta"   value="1">
                                                 <button type="submit">+</button>
                                             </form>
                                         </div>
@@ -239,13 +304,15 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                     <!-- Mobile cards -->
                     <div class="reg-cards" id="regCards">
                         <?php foreach ($registrations as $r): ?>
-                        <div class="reg-card reg-row" data-name="<?php echo htmlspecialchars(mb_strtolower($r['family_head_name'] . ' ' . ($r['contact_number'] ?? ''))); ?>" data-barangay="<?php echo htmlspecialchars(mb_strtolower($r['barangay_name'])); ?>">
+                        <div class="reg-card reg-row"
+                             data-name="<?php echo htmlspecialchars(mb_strtolower($r['family_head_name'] . ' ' . ($r['contact_number'] ?? ''))); ?>"
+                             data-barangay="<?php echo htmlspecialchars(mb_strtolower($r['barangay_name'])); ?>">
                             <div class="reg-card-head">
                                 <div>
                                     <div class="reg-card-name"><?php echo htmlspecialchars($r['family_head_name']); ?></div>
                                     <div class="reg-card-barangay"><?php echo htmlspecialchars($r['barangay_name']); ?></div>
-                                    <div class="reg-card-contact"> <?php echo htmlspecialchars($r['contact_number'] ?? ''); ?></div>
-                                    <div class="reg-card-bday"> <?php echo !empty($r['birthday']) ? date('M d, Y', strtotime($r['birthday'])) : ''; ?></div>
+                                    <div class="reg-card-contact"><?php echo htmlspecialchars($r['contact_number'] ?? ''); ?></div>
+                                    <div class="reg-card-bday"><?php echo !empty($r['birthday']) ? date('M d, Y', strtotime($r['birthday'])) : ''; ?></div>
                                 </div>
                                 <div class="reg-card-total">
                                     <div class="reg-card-total-num"><?php echo (int)$r['total_members']; ?></div>
@@ -260,16 +327,16 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                                         <form method="post" class="inline-adjust">
                                             <input type="hidden" name="action" value="adjust">
                                             <input type="hidden" name="reg_id" value="<?php echo (int)$r['id']; ?>">
-                                            <input type="hidden" name="field" value="<?php echo $field; ?>">
-                                            <input type="hidden" name="delta" value="-1">
+                                            <input type="hidden" name="field"  value="<?php echo $field; ?>">
+                                            <input type="hidden" name="delta"  value="-1">
                                             <button type="submit">−</button>
                                         </form>
                                         <span class="adjust-val"><?php echo (int)$r[$field]; ?></span>
                                         <form method="post" class="inline-adjust">
                                             <input type="hidden" name="action" value="adjust">
                                             <input type="hidden" name="reg_id" value="<?php echo (int)$r['id']; ?>">
-                                            <input type="hidden" name="field" value="<?php echo $field; ?>">
-                                            <input type="hidden" name="delta" value="1">
+                                            <input type="hidden" name="field"  value="<?php echo $field; ?>">
+                                            <input type="hidden" name="delta"  value="1">
                                             <button type="submit">+</button>
                                         </form>
                                     </div>
@@ -287,6 +354,7 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
 </div>
 
 <script>
+/* ── Sidebar ── */
 function openMenu() {
     document.getElementById('sidebar').classList.add('open');
     document.getElementById('drawerOverlay').classList.add('open');
@@ -297,13 +365,30 @@ function closeMenu() {
     document.getElementById('drawerOverlay').classList.remove('open');
     document.body.style.overflow = '';
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
 
-// Search + barangay filter for the occupant list (table + mobile cards)
+/* ── Logout modal ── */
+function openLogoutModal() {
+    closeMenu(); // close sidebar first if open
+    document.getElementById('logoutModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function closeLogoutModal() {
+    document.getElementById('logoutModal').classList.remove('open');
+    document.body.style.overflow = '';
+}
+document.getElementById('logoutModal').addEventListener('click', function(e) {
+    if (e.target === this) closeLogoutModal();
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeMenu(); closeLogoutModal(); }
+});
+
+/* ── Search + barangay filter for the occupant list (table + mobile cards) ── */
 (function () {
-    const searchInput   = document.getElementById('regSearchInput');
+    const searchInput    = document.getElementById('regSearchInput');
     const barangaySelect = document.getElementById('regBarangayFilter');
-    const countBadge    = document.getElementById('regCountBadge');
+    const countBadge     = document.getElementById('regCountBadge');
     const noResultsTable = document.getElementById('regNoResultsTable');
     const noResultsCards = document.getElementById('regNoResultsCards');
     if (!searchInput || !barangaySelect) return;
@@ -311,12 +396,12 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu();
     const rows = Array.from(document.querySelectorAll('.reg-row'));
 
     function applyFilters() {
-        const q = searchInput.value.trim().toLowerCase();
+        const q    = searchInput.value.trim().toLowerCase();
         const brgy = barangaySelect.value;
         let visibleCount = 0;
 
         rows.forEach(row => {
-            const nameMatch = !q || row.dataset.name.includes(q);
+            const nameMatch = !q    || row.dataset.name.includes(q);
             const brgyMatch = !brgy || row.dataset.barangay === brgy;
             const show = nameMatch && brgyMatch;
             row.style.display = show ? '' : 'none';
