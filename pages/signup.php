@@ -37,7 +37,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'A valid email is required.';
     }
     if (strlen($password) < 8) {
-        $errors[] = 'Password must be at least 8 characters.';
+    $errors[] = 'Password must be at least 8 characters.';
+    } elseif (!preg_match('/[A-Z]/', $password)) {
+        $errors[] = 'Password must contain at least one uppercase letter.';
+    } elseif (!preg_match('/[a-z]/', $password)) {
+        $errors[] = 'Password must contain at least one lowercase letter.';
+    } elseif (!preg_match('/[0-9]/', $password)) {
+        $errors[] = 'Password must contain at least one number.';
+    } elseif (!preg_match('/[^A-Za-z0-9]/', $password)) {
+        $errors[] = 'Password must contain at least one special character (e.g. !@#$%).';
     }
     if ($password !== $confirm) {
         $errors[] = 'Passwords do not match.';
@@ -251,6 +259,13 @@ function old(string $key, string $default = ''): string {
               </svg>
             </button>
           </div>
+          <ul class="pw-requirements" id="pwRequirements">
+            <li data-rule="length">At least 8 characters</li>
+            <li data-rule="upper">One uppercase letter (A-Z)</li>
+            <li data-rule="lower">One lowercase letter (a-z)</li>
+            <li data-rule="number">One number (0-9)</li>
+            <li data-rule="special">One special character (!@#$%^&*)</li>
+          </ul>
         </div>
 
         <div class="field">
@@ -433,6 +448,13 @@ function old(string $key, string $default = ''): string {
                   </svg>
                 </button>
               </div>
+               <ul class="pw-requirements" id="dt-pwRequirements">
+                <li data-rule="length">At least 8 characters</li>
+                <li data-rule="upper">One uppercase letter (A-Z)</li>
+                <li data-rule="lower">One lowercase letter (a-z)</li>
+                <li data-rule="number">One number (0-9)</li>
+                <li data-rule="special">One special character (!@#$%^&*)</li>
+              </ul>
             </div>
 
             <div class="dt-field">
@@ -872,6 +894,30 @@ function old(string $key, string $default = ''): string {
       inputEl.focus();
     });
   });
+  function attachPasswordValidation(inputId, listId) {
+  var input = document.getElementById(inputId);
+  var list  = document.getElementById(listId);
+  if (!input || !list) return;
+
+  input.addEventListener('input', function () {
+    var val = input.value;
+    var rules = {
+      length:  val.length >= 8,
+      upper:   /[A-Z]/.test(val),
+      lower:   /[a-z]/.test(val),
+      number:  /[0-9]/.test(val),
+      special: /[^A-Za-z0-9]/.test(val)
+    };
+    Object.keys(rules).forEach(function (key) {
+      var li = list.querySelector('[data-rule="' + key + '"]');
+      if (!li) return;
+      li.classList.toggle('valid', rules[key]);
+    });
+  });
+}
+
+attachPasswordValidation('password', 'pwRequirements');
+attachPasswordValidation('dt-password', 'dt-pwRequirements');
 
   /* ================================================
      TERMS & CONDITIONS MODAL LOGIC

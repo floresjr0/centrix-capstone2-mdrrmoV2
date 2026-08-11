@@ -1681,7 +1681,33 @@ body {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
 }
-
+.pw-requirements {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  font-size: 11.5px;
+  color: #999;
+}
+.pw-requirements li {
+  position: relative;
+  padding-left: 18px;
+  margin-bottom: 3px;
+  transition: color 0.2s ease;
+}
+.pw-requirements li::before {
+  content: "✕";
+  position: absolute;
+  left: 0;
+  color: #c0391e;
+  font-size: 10px;
+}
+.pw-requirements li.valid {
+  color: #166534;
+}
+.pw-requirements li.valid::before {
+  content: "✓";
+  color: #166534;
+}
 /* ─── EXTRA SMALL SCREEN FIXES (≤ 420px) ─── */
 @media (max-width: 420px) {
   .hero {
