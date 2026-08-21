@@ -209,7 +209,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                 <!-- Page Header -->
                 <div class="page-header">
                     <div class="page-header-left">
-                        <h2><?php echo $id ? 'Edit Disaster Event' : 'Create New Disaster'; ?></h2>
+                        <h2><?php echo $id ? 'Edit Disaster Event' : 'Create New Disaster Alert'; ?></h2>
                         <p>
                             <?php echo $id ? 'Update disaster information' : 'Record a new disaster event'; ?>
                         </p>
@@ -353,7 +353,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                         <div class="form-actions">
                             <button type="submit" class="btn-submit">
                                 <i class="fas fa-save"></i>
-                                <?php echo $id ? 'Save Changes' : 'Create Disaster'; ?>
+                                <?php echo $id ? 'Save Changes' : 'Post Disaster Alert'; ?>
                             </button>
                             <a href="disasters.php" class="btn-cancel">
                                 <i class="fas fa-times"></i>

@@ -279,7 +279,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                         <div class="form-actions">
                             <button type="submit" class="btn-submit">
                                 <i class="fas fa-save"></i>
-                                <?php echo $id ? 'Save Changes' : 'Create Announcement'; ?>
+                                <?php echo $id ? 'Save Changes' : 'Post Announcement'; ?>
                             </button>
                             <a href="announcements.php" class="btn-cancel">
                                 <i class="fas fa-times"></i>
