@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../pages/session.php';
 require_login('coordinator');
 require_once __DIR__ . '/../pages/center_helpers.php';
+require_once __DIR__ . '/../pages/demographic_helpers.php';
 
 $pdo  = db();
 $user = current_user();
@@ -28,20 +29,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'adjus
     $field = $_POST['field'] ?? '';
     $delta = (int)($_POST['delta'] ?? 0);
 
-    if (in_array($field, ['adults','children','seniors','pwds'], true) && in_array($delta, [-1, 1], true)) {
+    if (in_array($field, demo_field_keys(), true) && in_array($delta, [-1, 1], true)) {
         $check = $pdo->prepare("SELECT * FROM evac_registrations WHERE id = ? AND center_id = ?");
         $check->execute([$regId, $centerId]);
         $reg = $check->fetch();
         if ($reg) {
-            $newVal   = max(0, (int)$reg[$field] + $delta);
-            $adults   = $field === 'adults'   ? $newVal : (int)$reg['adults'];
-            $children = $field === 'children' ? $newVal : (int)$reg['children'];
-            $seniors  = $field === 'seniors'  ? $newVal : (int)$reg['seniors'];
-            $pwds     = $field === 'pwds'     ? $newVal : (int)$reg['pwds'];
-            $total    = $adults + $children + $seniors + $pwds;
-
-            $upd = $pdo->prepare("UPDATE evac_registrations SET adults=?, children=?, seniors=?, pwds=?, total_members=? WHERE id=?");
-            $upd->execute([$adults, $children, $seniors, $pwds, $total, $regId]);
+            $demo = demo_from_request($reg);
+            $demo[$field] = max(0, (int)$reg[$field] + $delta);
+            $total = demo_sum_row($demo);
+            $sets = implode(', ', array_map(fn($k) => "$k=?", demo_field_keys()));
+            $upd = $pdo->prepare("UPDATE evac_registrations SET $sets, total_members=? WHERE id=?");
+            $upd->execute([...array_values($demo), $total, $regId]);
             refresh_center_status($centerId);
         }
     }
@@ -261,7 +259,7 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                     <div class="table-wrap">
                         <table class="table" id="regTable">
                             <thead>
-                                <tr><th>Head</th><th>Contact</th><th>Birthday</th><th>Barangay</th><th>Adults</th><th>Children</th><th>Seniors</th><th>PWDs</th><th>Total</th></tr>
+                                <tr><th>Head</th><th>Contact</th><th>Birthday</th><th>Barangay</th><?php foreach (DEMO_FIELDS as $label): ?><th><?php echo htmlspecialchars($label); ?></th><?php endforeach; ?><th>Total</th></tr>
                             </thead>
                             <tbody>
                             <?php foreach ($registrations as $r): ?>
@@ -272,7 +270,7 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                                     <td><?php echo htmlspecialchars($r['contact_number'] ?? ''); ?></td>
                                     <td><?php echo !empty($r['birthday']) ? date('M d, Y', strtotime($r['birthday'])) : ''; ?></td>
                                     <td><?php echo htmlspecialchars($r['barangay_name']); ?></td>
-                                    <?php foreach (['adults','children','seniors','pwds'] as $field): ?>
+                                    <?php foreach (demo_field_keys() as $field): ?>
                                     <td>
                                         <div class="adjust-cell">
                                             <form method="post" class="inline-adjust">
@@ -320,7 +318,7 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                                 </div>
                             </div>
                             <div class="reg-card-members">
-                                <?php foreach (['adults'=>'Adults','children'=>'Children','seniors'=>'Seniors','pwds'=>'PWDs'] as $field=>$label): ?>
+                                <?php foreach (DEMO_FIELDS as $field => $label): ?>
                                 <div class="member-row">
                                     <span class="member-row-label"><?php echo $label; ?></span>
                                     <div class="member-row-controls">

@@ -365,11 +365,14 @@ function refreshCounts() {
                 const pill = document.getElementById('pill-' + c.id);
                 const capBar = document.getElementById('capbar-' + c.id);
                 const capPct = document.getElementById('cappct-' + c.id);
+                const card = document.querySelector('.center-card[data-center-id="' + c.id + '"]');
+                const breakdown = card ? card.querySelector('.breakdown-section') : null;
                 if (pill) {
                     const val = pill.querySelector('.pill-val');
                     if (val) val.textContent = c.expected_count;
                     pill.className = 'expected-pill ' + (c.expected_count > 0 ? 'has-evacuees' : 'no-evacuees');
                 }
+                if (breakdown) breakdown.style.display = c.expected_count > 0 ? '' : 'none';
                 if (capBar && c.max_capacity_people > 0) {
                     const pct = Math.min(100, Math.round(c.expected_count / c.max_capacity_people * 100));
                     capBar.style.width = pct + '%';

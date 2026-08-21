@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 17, 2026 at 07:30 PM
+-- Generation Time: Aug 21, 2026 at 03:54 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -119,7 +119,10 @@ CREATE TABLE `citizen_household` (
   `children` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
   `seniors` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
   `pwds` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
-  `total_members` tinyint(3) UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Computed: adults+children+seniors+pwds',
+  `pregnant_women` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  `lactating_mothers` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  `infants_toddlers` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  `total_members` tinyint(3) UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Sum of all demographic categories',
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -150,13 +153,6 @@ CREATE TABLE `disasters` (
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `disasters`
---
-
-INSERT INTO `disasters` (`id`, `type`, `level`, `title`, `status`, `description`, `started_at`, `ended_at`, `created_at`, `updated_at`) VALUES
-(6, 'flood', 1, 'version 2', 'ongoing', NULL, '2026-07-17 22:35:00', NULL, '2026-07-17 22:36:01', '2026-07-17 22:36:01');
-
 -- --------------------------------------------------------
 
 --
@@ -184,10 +180,7 @@ CREATE TABLE `evacuation_centers` (
 --
 
 INSERT INTO `evacuation_centers` (`id`, `name`, `barangay_id`, `address`, `lat`, `lng`, `max_capacity_people`, `max_capacity_families`, `status`, `coordinator_user_id`, `notes`, `created_at`, `updated_at`) VALUES
-(1, 'sample', 6, 'San Ildefonso', 15.1112000, 120.9459000, 10, 0, 'available', 4, 'dasda', '2026-03-07 22:44:23', '2026-07-17 22:40:12'),
-(2, 'ETivac Sample', 7, 'dyan lang', 15.1169570, 120.9475340, 20, 20, 'available', 5, 'dito na sila babe', '2026-03-08 00:54:43', '2026-03-11 22:26:52'),
-(3, 'Sample center', 2, 'Malapit sa COurt', 15.0834100, 120.9462390, 10, 10, 'available', 5, '', '2026-03-11 22:37:47', '2026-03-11 22:37:47'),
-(4, 'Poblacion Evacuation Center', 34, 'poblacion', 15.0789400, 120.9444420, 100, 100, 'available', 5, '', '2026-03-31 23:50:14', '2026-03-31 23:50:14');
+(1, 'example', 1, 'example', 15.0834160, 120.9395170, 10, 10, 'available', 4, '', '2026-08-04 11:19:04', '2026-08-21 21:48:23');
 
 -- --------------------------------------------------------
 
@@ -227,9 +220,7 @@ CREATE TABLE `evac_navigation_tracking` (
 --
 
 INSERT INTO `evac_navigation_tracking` (`id`, `user_id`, `center_id`, `disaster_id`, `status`, `created_at`, `updated_at`) VALUES
-(1, 3, 2, NULL, 'navigating', '2026-03-12 23:12:25', '2026-07-17 22:17:24'),
-(81, 4, 1, NULL, 'cancelled', '2026-07-17 22:17:40', '2026-07-17 22:34:48'),
-(86, 6, 1, NULL, 'arrived', '2026-07-17 22:48:28', '2026-07-17 23:54:00');
+(1, 3, 1, NULL, 'navigating', '2026-08-10 21:17:59', '2026-08-21 21:51:03');
 
 -- --------------------------------------------------------
 
@@ -248,18 +239,14 @@ CREATE TABLE `evac_registrations` (
   `children` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `seniors` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `pwds` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `pregnant_women` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `lactating_mothers` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `infants_toddlers` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `total_members` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `created_by` int(10) UNSIGNED NOT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `evac_registrations`
---
-
-INSERT INTO `evac_registrations` (`id`, `center_id`, `family_head_name`, `contact_number`, `birthday`, `barangay_id`, `adults`, `children`, `seniors`, `pwds`, `total_members`, `created_by`, `created_at`, `updated_at`) VALUES
-(4, 1, 'Mycor DC Mendoza Jr.', '09686971314', '2026-07-17', 10, 1, 0, 6, 0, 7, 4, '2026-07-17 23:54:00', '2026-07-17 23:54:00');
 
 -- --------------------------------------------------------
 
@@ -279,6 +266,9 @@ CREATE TABLE `evac_registrations_archive` (
   `children` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `seniors` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `pwds` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `pregnant_women` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `lactating_mothers` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `infants_toddlers` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `total_members` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `created_by` int(10) UNSIGNED NOT NULL,
   `created_at` datetime NOT NULL,
@@ -287,28 +277,6 @@ CREATE TABLE `evac_registrations_archive` (
   `archived_by` int(10) UNSIGNED NOT NULL COMMENT 'Admin user who triggered the archive',
   `archived_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `evac_registrations_archive`
---
-
-INSERT INTO `evac_registrations_archive` (`id`, `original_id`, `center_id`, `family_head_name`, `contact_number`, `birthday`, `barangay_id`, `adults`, `children`, `seniors`, `pwds`, `total_members`, `created_by`, `created_at`, `archive_label`, `disaster_id`, `archived_by`, `archived_at`) VALUES
-(1, 1, 1, 'Jusin pogi', NULL, NULL, 2, 2, 2, 2, 2, 8, 4, '2026-03-08 00:29:37', 'sample bagyo 1233', 1, 2, '2026-03-27 23:14:33'),
-(2, 2, 1, 'sample', NULL, NULL, 5, 1, 0, 0, 0, 1, 4, '2026-04-01 21:23:29', 'updated evacuees record', 2, 2, '2026-04-23 15:56:57'),
-(3, 3, 1, 'Juan Dele Cruz', NULL, NULL, 2, 2, 3, 0, 0, 5, 4, '2026-04-23 15:36:35', 'updated evacuees record', 2, 2, '2026-04-23 15:56:57'),
-(5, 4, 1, 'Juan Dele Cruz', NULL, NULL, 2, 1, 4, 0, 0, 5, 4, '2026-04-23 16:54:43', 'sample version 2 with evacuee details', 2, 2, '2026-04-23 16:55:15'),
-(6, 5, 1, 'james pogi', '09686971314', '2005-06-09', 7, 1, 0, 0, 0, 1, 4, '2026-04-23 18:08:51', 'update sample 3?', 2, 2, '2026-04-23 20:07:16'),
-(7, 6, 1, 'Juan Dele Cruz', '09686971314', '2005-06-09', 2, 1, 3, 0, 0, 4, 4, '2026-04-23 21:27:07', 'sample demo while meeting', 2, 2, '2026-04-23 21:33:24'),
-(8, 7, 1, 'nataniel dela curx', '09686971314', '2005-06-09', 24, 1, 1, 0, 0, 2, 4, '2026-04-24 17:18:37', 'Sample data of Evacuees', 2, 2, '2026-04-26 15:17:23'),
-(9, 8, 1, 'Juan Dele Cruz', '09686971314', '2005-06-09', 2, 1, 4, 0, 0, 5, 4, '2026-04-24 17:18:50', 'Sample data of Evacuees', 2, 2, '2026-04-26 15:17:23'),
-(10, 9, 1, 'arlyn pogi', '09686971315', '2005-06-09', 3, 20, 0, 0, 0, 20, 4, '2026-04-24 17:22:34', 'Sample data of Evacuees', 2, 2, '2026-04-26 15:17:23'),
-(11, 10, 1, 'marte flores', '09686971314', '2005-06-09', 33, 2, 0, 0, 0, 2, 4, '2026-05-05 14:29:21', 'sample names', 2, 2, '2026-05-05 14:36:47'),
-(12, 11, 1, 'charlene flores', NULL, NULL, 9, 1, 0, 0, 0, 1, 4, '2026-05-05 14:36:08', 'sample names', 2, 2, '2026-05-05 14:36:47'),
-(14, 12, 1, 'Juan Dele Cruz', '09686971314', '2005-06-09', 2, 1, 4, 0, 0, 5, 4, '2026-05-05 15:01:22', 'sadasd', 2, 2, '2026-05-05 15:03:05'),
-(15, 13, 1, 'Charlene Retoria Flores', '09686971314', '2005-06-09', 9, 1, 4, 0, 0, 5, 4, '2026-05-05 15:02:35', 'sadasd', 2, 2, '2026-05-05 15:03:05'),
-(16, 1, 1, 'Jusin pogi', NULL, NULL, 2, 2, 2, 2, 1, 7, 4, '2026-03-08 00:29:37', 'updated evacuees record', NULL, 2, '2026-07-17 22:40:12'),
-(17, 2, 1, 'Marco Legaspi', NULL, NULL, 23, 0, 0, 0, 1, 1, 4, '2026-03-27 22:29:34', 'updated evacuees record', NULL, 2, '2026-07-17 22:40:12'),
-(18, 3, 1, 'Marte Flores Jr Jr.', '09686971314', '2005-06-09', 4, 1, 0, 0, 0, 1, 4, '2026-07-17 22:34:37', 'updated evacuees record', NULL, 2, '2026-07-17 22:40:12');
 
 -- --------------------------------------------------------
 
@@ -323,6 +291,9 @@ CREATE TABLE `family_profiles` (
   `children` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
   `seniors` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
   `pwds` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  `pregnant_women` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  `lactating_mothers` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  `infants_toddlers` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
   `total_members` tinyint(3) UNSIGNED NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -333,10 +304,11 @@ CREATE TABLE `family_profiles` (
 --
 
 INSERT INTO `family_profiles` (`id`, `user_id`, `adults`, `children`, `seniors`, `pwds`, `total_members`, `created_at`, `updated_at`) VALUES
-(1, 3, 1, 0, 0, 0, 1, '2026-04-23 15:34:58', '2026-07-17 22:17:13'),
+(1, 3, 1, 29, 0, 0, 30, '2026-04-23 15:34:58', '2026-08-21 21:47:15'),
 (4, 12, 1, 4, 0, 0, 5, '2026-05-05 14:34:40', '2026-05-05 15:01:44'),
 (5, 4, 1, 3, 0, 0, 4, '2026-07-17 22:18:50', '2026-07-17 23:31:50'),
-(6, 6, 1, 0, 6, 0, 7, '2026-07-17 23:32:59', '2026-07-17 23:32:59');
+(6, 6, 1, 0, 6, 0, 7, '2026-07-17 23:32:59', '2026-07-17 23:32:59'),
+(7, 9, 1, 1, 0, 0, 2, '2026-07-19 09:15:03', '2026-07-19 09:15:03');
 
 -- --------------------------------------------------------
 
@@ -410,13 +382,14 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `full_name`, `first_name`, `middle_name`, `last_name`, `suffix`, `email`, `contact_number`, `password_hash`, `role`, `barangay_id`, `house_number`, `birthday`, `sex`, `is_email_verified`, `otp_code_hash`, `otp_expires_at`, `device_token`, `device_fingerprint`, `device_registered_at`, `is_device_trusted`, `is_active`, `created_at`, `updated_at`, `otp_code`, `otp_purpose`) VALUES
 (1, 'System Administrator', NULL, NULL, NULL, NULL, 'admin@system.com', NULL, '$2y$10$8x6M4nDkYq7YJ7Ew3LhF8eQxP3yP0mV5m9v0oQj7c7s8T1k1QwL7C', 'admin', 1, 'Admin Office', NULL, NULL, 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 22:07:21', '2026-03-07 22:07:21', NULL, NULL),
-(2, 'System Administrator', NULL, NULL, NULL, NULL, 'admin@example.com', NULL, '$2y$10$XTTaYPYqjRG.i.YeeD/wxuSy28yygjcWz4B/InJApnGBWj/0GPQli', 'admin', 1, 'Admin Office', NULL, NULL, 1, '$2y$10$KWA1.CivN2EsNTAFQxTCFer46RyYuRFTJv/i8ORoS/l8e1hGcoXHK', '2026-07-18 01:39:54', 'a8fbd2c1fb7781fe2a91c23588b4ebc99772d49f9fbca3beb5f5a96d84a0c81a', '06c64157163a2cf72557126c2e93cfbf141573f9c79259c331a59088f34a715e', '2026-07-17 22:14:51', 1, 1, '2026-03-07 22:21:37', '2026-07-18 01:24:54', NULL, 'device_verify'),
-(3, 'mycor mendoza', 'mycor', NULL, 'mendoza', NULL, 'marteflores07@gmail.com', '09686971314', '$2y$10$4lt1uymzeZlUXamB1IYA4.45aXITSsqiBF5d51ySdSG11dZeUFLi.', 'citizen', 2, '0325', '2005-06-09', 'female', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 22:32:15', '2026-07-17 22:17:13', NULL, NULL),
-(4, 'Marte Flores Jr Jr.', 'Marte', NULL, 'Flores Jr', NULL, 'martefloresjr09@gmail.com', '09686971314', '$2y$10$2UeQpO1nyrNfZQr2qJo0JuFvBD3ON4E2QLHD5mGFUhGU6VCkACPOG', 'coordinator', 4, '0326', '2005-06-09', 'male', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 23:40:55', '2026-07-17 22:18:50', NULL, NULL),
-(5, 'Marte Flores Jr.', NULL, NULL, NULL, NULL, 'truckflores09@gmail.com', '09686971314', '$2y$10$AUXnxr9tFqnLjLxWR8kKDe9Qs28FJGlgve66n56ucduVY0zRRE4B.', 'coordinator', 30, '0327', NULL, NULL, 1, '$2y$10$J4xI8ttFgr39hP0PDCBirO/FvO/JMo2Wq2o5x.BWPEIOFBUNJAMEq', '2026-07-18 01:38:06', NULL, NULL, NULL, 0, 1, '2026-03-11 18:21:48', '2026-07-18 01:23:06', NULL, 'password_reset'),
+(2, 'System Administrator', NULL, NULL, NULL, NULL, 'marteflores07@gmail.com', NULL, '$2y$10$XTTaYPYqjRG.i.YeeD/wxuSy28yygjcWz4B/InJApnGBWj/0GPQli', 'admin', 1, 'Admin Office', NULL, NULL, 1, NULL, NULL, '4bd74e725d76d96ccf5570b1036372b674da1199997804ee3dc7038388db3181', 'fafc6ca470aa1d1191d0d584cb4ebc300b56ed6b9f49afaaed16219464d96391', '2026-08-10 22:04:21', 1, 1, '2026-03-07 22:21:37', '2026-08-10 22:04:21', NULL, NULL),
+(3, 'Marte Flores', 'Marte', NULL, 'Flores', NULL, 'marteflores071@gmail.com', '09686971314', '$2y$10$4lt1uymzeZlUXamB1IYA4.45aXITSsqiBF5d51ySdSG11dZeUFLi.', 'citizen', 2, '0325', '2005-06-09', 'male', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-03-07 22:32:15', '2026-08-21 21:47:15', NULL, NULL),
+(4, 'Marte Flores Jr Jr.', 'Marte', NULL, 'Flores Jr', NULL, 'martefloresjr09@gmail.com', '09686971314', '$2y$10$2UeQpO1nyrNfZQr2qJo0JuFvBD3ON4E2QLHD5mGFUhGU6VCkACPOG', 'coordinator', 4, '0326', '2005-06-09', 'male', 1, '$2y$10$HFqEmbEYkwgB08IWLahnbOQN.FS7eIR5dnZhv3kh3BG.GlToqIbnu', '2026-07-19 09:32:32', NULL, NULL, NULL, 0, 1, '2026-03-07 23:40:55', '2026-07-19 09:17:32', NULL, 'password_reset'),
+(5, 'Marte Flores Jr.', NULL, NULL, NULL, NULL, 'truckflores09@gmail.com', '09686971314', '$2y$10$AUXnxr9tFqnLjLxWR8kKDe9Qs28FJGlgve66n56ucduVY0zRRE4B.', 'coordinator', 30, '0327', NULL, NULL, 1, '$2y$10$VXHLq40Hzi/s0Z67DBFBcuVGZstEgnA4LcsGTA6Y3Axh0TT5zraVm', '2026-07-18 20:32:36', NULL, NULL, NULL, 0, 1, '2026-03-11 18:21:48', '2026-07-18 20:17:36', NULL, 'password_reset'),
 (6, 'Mycor DC Mendoza Jr.', 'Mycor', 'DC', 'Mendoza', 'Jr.', 'linkultra.free.nf@gmail.com', '09686971314', '$2y$10$e1QVwM/KtH/pUmKQ6H7Diuc1CNiFx0qoK3lkfz5YcdgiRknqfo/k2', 'citizen', 10, '143', '2026-07-17', 'female', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-07-17 22:47:25', '2026-07-17 23:32:59', NULL, NULL),
 (7, 'Marte Flores Jr', NULL, NULL, NULL, NULL, 'c9171083@gmail.com', '09686971319', '$2y$10$Az2Eugjd/R3EeL.DMyV.ueQrwtDPwmSn6gqdz1QQVf0d6QVq2iQjK', 'admin', 18, '0325', NULL, NULL, 1, NULL, NULL, '38cead65125f7fca9be48d3f4d245ffdfff2642d45fd05833222faa94666abbb', 'c1c89d5c427b6b83b81347525d0e1809af3474ada88ba58598e158b09e8a71ed', '2026-07-18 01:14:11', 1, 1, '2026-07-18 00:00:01', '2026-07-18 01:14:11', '$2y$10$9BC', NULL),
-(8, '', 'Eula', NULL, 'Tolentino', NULL, 'jakepogi060905@gmail.com', NULL, '$2y$10$EA8Lz1WSyHS9o8P/qKyBnO0EmfFoSJj1AlpTvtiLU/3RTPKeFlc8u', 'citizen', 8, '321', NULL, NULL, 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-07-18 01:01:58', '2026-07-18 01:03:11', NULL, NULL);
+(8, '', 'Eula', NULL, 'Tolentino', NULL, 'jakepogi060905@gmail.com', NULL, '$2y$10$EA8Lz1WSyHS9o8P/qKyBnO0EmfFoSJj1AlpTvtiLU/3RTPKeFlc8u', 'citizen', 8, '321', NULL, NULL, 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-07-18 01:01:58', '2026-07-18 01:03:11', NULL, NULL),
+(9, 'Mycor DC Mendoza', 'Mycor', 'DC', 'Mendoza', NULL, 'rosariosungaflores28@gmail.com', NULL, '$2y$10$vbgFTpAH5FuOVrFaoK81Z.Q4/WNkckLk5VXK50DsuY/2Vwjsq5O3G', 'citizen', 10, '123', '2005-06-09', 'female', 1, NULL, NULL, NULL, NULL, NULL, 0, 1, '2026-07-19 09:13:58', '2026-07-19 09:15:03', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -576,7 +549,7 @@ ALTER TABLE `disasters`
 -- AUTO_INCREMENT for table `evacuation_centers`
 --
 ALTER TABLE `evacuation_centers`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `evacuation_intentions`
@@ -588,25 +561,25 @@ ALTER TABLE `evacuation_intentions`
 -- AUTO_INCREMENT for table `evac_navigation_tracking`
 --
 ALTER TABLE `evac_navigation_tracking`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `evac_registrations`
 --
 ALTER TABLE `evac_registrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `evac_registrations_archive`
 --
 ALTER TABLE `evac_registrations_archive`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `family_profiles`
 --
 ALTER TABLE `family_profiles`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `ready_bag_templates`
@@ -618,7 +591,7 @@ ALTER TABLE `ready_bag_templates`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `weather_snapshots`

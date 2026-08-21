@@ -381,10 +381,13 @@ $riskLabels = ['low'=>'LOW','medium'=>'MODERATE','high'=>'HIGH','extreme'=>'SEVE
     </div>
     <div class="profile-section"><div class="profile-section-label">Household Members</div></div>
     <div class="household-grid">
-      <div class="hh-card"><div class="hh-card-label">Adults (18-59)</div><div class="hh-counter"><button class="hh-counter-btn" onclick="hhChange('adults',-1)">−</button><div class="hh-counter-val" id="hhAdults">1</div><button class="hh-counter-btn" onclick="hhChange('adults',1)">+</button></div></div>
-      <div class="hh-card"><div class="hh-card-label">Children (&lt;18)</div><div class="hh-counter"><button class="hh-counter-btn" onclick="hhChange('children',-1)">−</button><div class="hh-counter-val" id="hhChildren">0</div><button class="hh-counter-btn" onclick="hhChange('children',1)">+</button></div></div>
-      <div class="hh-card"><div class="hh-card-label">Seniors (60+)</div><div class="hh-counter"><button class="hh-counter-btn" onclick="hhChange('seniors',-1)">−</button><div class="hh-counter-val" id="hhSeniors">0</div><button class="hh-counter-btn" onclick="hhChange('seniors',1)">+</button></div></div>
-      <div class="hh-card"><div class="hh-card-label">PWDs</div><div class="hh-counter"><button class="hh-counter-btn" onclick="hhChange('pwds',-1)">−</button><div class="hh-counter-val" id="hhPwds">0</div><button class="hh-counter-btn" onclick="hhChange('pwds',1)">+</button></div></div>
+      <div class="hh-card"><div class="hh-card-label">Adults (18-59)</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('adults',-1)">−</button><div class="hh-counter-val" id="hhAdults">1</div><button type="button" class="hh-counter-btn" onclick="hhChange('adults',1)">+</button></div></div>
+      <div class="hh-card"><div class="hh-card-label">Children (&lt;18)</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('children',-1)">−</button><div class="hh-counter-val" id="hhChildren">0</div><button type="button" class="hh-counter-btn" onclick="hhChange('children',1)">+</button></div></div>
+      <div class="hh-card"><div class="hh-card-label">Senior Citizens (60+)</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('seniors',-1)">−</button><div class="hh-counter-val" id="hhSeniors">0</div><button type="button" class="hh-counter-btn" onclick="hhChange('seniors',1)">+</button></div></div>
+      <div class="hh-card"><div class="hh-card-label">PWD</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('pwds',-1)">−</button><div class="hh-counter-val" id="hhPwds">0</div><button type="button" class="hh-counter-btn" onclick="hhChange('pwds',1)">+</button></div></div>
+      <div class="hh-card"><div class="hh-card-label">Pregnant Women</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('pregnant_women',-1)">−</button><div class="hh-counter-val" id="hhPregnantWomen">0</div><button type="button" class="hh-counter-btn" onclick="hhChange('pregnant_women',1)">+</button></div></div>
+      <div class="hh-card"><div class="hh-card-label">Lactating / Breastfeeding</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('lactating_mothers',-1)">−</button><div class="hh-counter-val" id="hhLactatingMothers">0</div><button type="button" class="hh-counter-btn" onclick="hhChange('lactating_mothers',1)">+</button></div></div>
+      <div class="hh-card"><div class="hh-card-label">Infants / Toddlers</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('infants_toddlers',-1)">−</button><div class="hh-counter-val" id="hhInfantsToddlers">0</div><button type="button" class="hh-counter-btn" onclick="hhChange('infants_toddlers',1)">+</button></div></div>
     </div>
     <div class="hh-total-banner">
       <div><div class="hh-total-label">Total Household Members</div><div style="font-size:.60rem;color:var(--muted)">Sent to coordinators when you evacuate</div></div>
@@ -788,7 +791,9 @@ function closeAnnModal(e){
 
 // ── PROFILE ──
 let profileCache=null;
-const hhState={adults:1,children:0,seniors:0,pwds:0};
+const HH_FIELDS=['adults','children','seniors','pwds','pregnant_women','lactating_mothers','infants_toddlers'];
+const HH_FIELD_IDS={adults:'hhAdults',children:'hhChildren',seniors:'hhSeniors',pwds:'hhPwds',pregnant_women:'hhPregnantWomen',lactating_mothers:'hhLactatingMothers',infants_toddlers:'hhInfantsToddlers'};
+const hhState={adults:1,children:0,seniors:0,pwds:0,pregnant_women:0,lactating_mothers:0,infants_toddlers:0};
 function showProfileToast(msg,type=''){
   const el=document.getElementById('profileToast'); if(!el) return;
   el.textContent=msg; el.className='profile-toast show '+type;
@@ -809,7 +814,7 @@ function requireProfileBeforeRoute(e){
   return false;
 }
 function updateHHTotal(){
-  const total=hhState.adults+hhState.children+hhState.seniors+hhState.pwds;
+  const total=HH_FIELDS.reduce((s,f)=>s+(hhState[f]||0),0);
   const el=document.getElementById('hhTotal'); if(el) el.textContent=total;
   let badge=document.getElementById('hhSizeBadge');
   if(!badge){
@@ -820,7 +825,8 @@ function updateHHTotal(){
 }
 function hhChange(field,delta){
   hhState[field]=Math.max(field==='adults'?1:0,(hhState[field]||0)+delta);
-  document.getElementById('hh'+field.charAt(0).toUpperCase()+field.slice(1)).textContent=hhState[field];
+  const el=document.getElementById(HH_FIELD_IDS[field]);
+  if(el) el.textContent=hhState[field];
   updateHHTotal();
 }
 function renderProfileFromCache(){
@@ -836,11 +842,8 @@ function renderProfileFromCache(){
   if(profileCache.birthday) document.getElementById('pfBirthday').value=profileCache.birthday;
   if(profileCache.sex) document.getElementById('pfSex').value=profileCache.sex;
   if(profileCache.age!=null) document.getElementById('ageDisplay').innerText=profileCache.age+' yrs';
-  hhState.adults  =profileCache.household?.adults  ??1;
-  hhState.children=profileCache.household?.children??0;
-  hhState.seniors =profileCache.household?.seniors ??0;
-  hhState.pwds    =profileCache.household?.pwds    ??0;
-  ['Adults','Children','Seniors','Pwds'].forEach(f=>document.getElementById('hh'+f).textContent=hhState[f.toLowerCase()]);
+  HH_FIELDS.forEach(f=>{ hhState[f]=profileCache.household?.[f]??(f==='adults'?1:0); });
+  HH_FIELDS.forEach(f=>{ const el=document.getElementById(HH_FIELD_IDS[f]); if(el) el.textContent=hhState[f]; });
   updateHHTotal();
   const name=[profileCache.first_name,profileCache.last_name].filter(Boolean).join(' ');
   const initial=profileCache.first_name?profileCache.first_name[0].toUpperCase():'?';

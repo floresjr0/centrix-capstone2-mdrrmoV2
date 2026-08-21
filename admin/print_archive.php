@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../pages/session.php';
+require_once __DIR__ . '/../pages/demographic_helpers.php';
 require_login('admin');
 
 $pdo = db();
@@ -27,7 +28,10 @@ $batchSql = "
         SUM(era.adults)           AS total_adults,
         SUM(era.children)         AS total_children,
         SUM(era.seniors)          AS total_seniors,
-        SUM(era.pwds)             AS total_pwds
+        SUM(era.pwds)             AS total_pwds,
+        SUM(era.pregnant_women)    AS total_pregnant_women,
+        SUM(era.lactating_mothers) AS total_lactating_mothers,
+        SUM(era.infants_toddlers)  AS total_infants_toddlers
     FROM evac_registrations_archive era
     LEFT JOIN users u    ON u.id  = era.archived_by
     LEFT JOIN disasters d ON d.id = era.disaster_id
@@ -61,6 +65,9 @@ foreach ($batches as $batch) {
             era.children,
             era.seniors,
             era.pwds,
+            era.pregnant_women,
+            era.lactating_mothers,
+            era.infants_toddlers,
             era.total_members,
             era.created_at,
             ec.name        AS center_name,
@@ -91,6 +98,9 @@ foreach ($batches as $batch) {
             SUM(era.children)      AS children,
             SUM(era.seniors)       AS seniors,
             SUM(era.pwds)          AS pwds,
+            SUM(era.pregnant_women)    AS pregnant_women,
+            SUM(era.lactating_mothers) AS lactating_mothers,
+            SUM(era.infants_toddlers)  AS infants_toddlers,
             SUM(era.total_members) AS total_members,
             COUNT(*)               AS families
         FROM evac_registrations_archive era
@@ -173,7 +183,7 @@ body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: var(-
 .batch-meta  { font-size: 11px; color: var(--gray); margin-top: 4px; }
 .batch-meta span { margin-right: 14px; }
 .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--blue); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
-.summary-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 20px; }
+.summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
 .summary-card { background: var(--light); border: 1px solid var(--border); border-radius: 6px; padding: 10px 8px; text-align: center; }
 .summary-card .val { font-size: 20px; font-weight: 700; color: var(--red); line-height: 1; }
 .summary-card .lbl { font-size: 10px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; }
@@ -221,10 +231,13 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
     $byCentre= $detail['byCentre'];
     $byBrgy  = $detail['byBarangay'];
 
-    $grandChildren = (int)$batch['total_children'];
-    $grandAdults   = (int)$batch['total_adults'];
-    $grandSeniors  = (int)$batch['total_seniors'];
-    $grandPwds     = (int)$batch['total_pwds'];
+    $grandAdults    = (int)$batch['total_adults'];
+    $grandChildren  = (int)$batch['total_children'];
+    $grandSeniors   = (int)$batch['total_seniors'];
+    $grandPwds      = (int)$batch['total_pwds'];
+    $grandPregnant  = (int)$batch['total_pregnant_women'];
+    $grandLactating = (int)$batch['total_lactating_mothers'];
+    $grandInfants   = (int)$batch['total_infants_toddlers'];
     $grandTotal    = (int)$batch['total_evacuees'];
     $grandFamilies = (int)$batch['total_families'];
 ?>
@@ -263,25 +276,33 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
         <div class="summary-card"><div class="val"><?php echo number_format($grandAdults); ?></div><div class="lbl">Adults</div></div>
         <div class="summary-card"><div class="val"><?php echo number_format($grandChildren); ?></div><div class="lbl">Children</div></div>
         <div class="summary-card"><div class="val"><?php echo number_format($grandSeniors); ?></div><div class="lbl">Seniors</div></div>
-        <div class="summary-card"><div class="val"><?php echo number_format($grandPwds); ?></div><div class="lbl">PWDs</div></div>
+        <div class="summary-card"><div class="val"><?php echo number_format($grandPwds); ?></div><div class="lbl">PWD</div></div>
+        <div class="summary-card"><div class="val"><?php echo number_format($grandPregnant); ?></div><div class="lbl">Pregnant</div></div>
+        <div class="summary-card"><div class="val"><?php echo number_format($grandLactating); ?></div><div class="lbl">Lactating</div></div>
+        <div class="summary-card"><div class="val"><?php echo number_format($grandInfants); ?></div><div class="lbl">Infants</div></div>
     </div>
 
     <div class="section-title">Demographic Matrix by Evacuation Center</div>
     <div class="matrix-wrap no-break">
         <table>
-            <thead><tr><th style="width:24%">Evacuation Center</th><th class="center">Families</th><th class="center">Children</th><th class="center">Adults</th><th class="center">Seniors</th><th class="center">PWDs</th><th class="center">Total</th><th class="center">% Share</th></tr></thead>
+            <thead><tr><th style="width:20%">Evacuation Center</th><th class="center">Families</th><th class="center">Adults</th><th class="center">Children</th><th class="center">Seniors</th><th class="center">PWD</th><th class="center">Pregnant</th><th class="center">Lactating</th><th class="center">Infants</th><th class="center">Total</th><th class="center">% Share</th></tr></thead>
             <tbody>
             <?php
             $centreStats = [];
             foreach ($records as $rec) {
                 $cn = $rec['center_name'] ?? 'Unknown Center';
-                if (!isset($centreStats[$cn])) $centreStats[$cn] = ['families'=>0,'adults'=>0,'children'=>0,'seniors'=>0,'pwds'=>0,'total'=>0,'address'=>$rec['center_address']??''];
+                if (!isset($centreStats[$cn])) {
+                    $centreStats[$cn] = [
+                        'families' => 0, 'adults' => 0, 'children' => 0, 'seniors' => 0, 'pwds' => 0,
+                        'pregnant_women' => 0, 'lactating_mothers' => 0, 'infants_toddlers' => 0,
+                        'total' => 0, 'address' => $rec['center_address'] ?? '',
+                    ];
+                }
                 $centreStats[$cn]['families']++;
-                $centreStats[$cn]['adults']   += $rec['adults'];
-                $centreStats[$cn]['children'] += $rec['children'];
-                $centreStats[$cn]['seniors']  += $rec['seniors'];
-                $centreStats[$cn]['pwds']     += $rec['pwds'];
-                $centreStats[$cn]['total']    += $rec['total_members'];
+                foreach (demo_field_keys() as $dk) {
+                    $centreStats[$cn][$dk] += (int)$rec[$dk];
+                }
+                $centreStats[$cn]['total'] += $rec['total_members'];
             }
             foreach ($centreStats as $cname => $cs):
                 $pct = $grandTotal > 0 ? round(($cs['total'] / $grandTotal) * 100, 1) : 0;
@@ -289,16 +310,19 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
             <tr>
                 <td class="center-col"><?php echo htmlspecialchars($cname); ?><?php if ($cs['address']): ?><small><?php echo htmlspecialchars($cs['address']); ?></small><?php endif; ?></td>
                 <td class="num"><?php echo number_format($cs['families']); ?></td>
-                <td class="num"><span class="chip chip-c"><?php echo number_format($cs['children']); ?></span></td>
                 <td class="num"><span class="chip chip-a"><?php echo number_format($cs['adults']); ?></span></td>
+                <td class="num"><span class="chip chip-c"><?php echo number_format($cs['children']); ?></span></td>
                 <td class="num"><span class="chip chip-s"><?php echo number_format($cs['seniors']); ?></span></td>
                 <td class="num"><span class="chip chip-p"><?php echo number_format($cs['pwds']); ?></span></td>
+                <td class="num"><?php echo number_format($cs['pregnant_women']); ?></td>
+                <td class="num"><?php echo number_format($cs['lactating_mothers']); ?></td>
+                <td class="num"><?php echo number_format($cs['infants_toddlers']); ?></td>
                 <td class="num"><span class="chip chip-t"><?php echo number_format($cs['total']); ?></span></td>
                 <td class="num"><?php echo $pct; ?>%</td>
             </tr>
             <?php endforeach; ?>
             </tbody>
-            <tfoot><tr><td>TOTAL</td><td class="num"><?php echo number_format($grandFamilies); ?></td><td class="num"><?php echo number_format($grandChildren); ?></td><td class="num"><?php echo number_format($grandAdults); ?></td><td class="num"><?php echo number_format($grandSeniors); ?></td><td class="num"><?php echo number_format($grandPwds); ?></td><td class="num"><?php echo number_format($grandTotal); ?></td><td class="num">100%</td></tr></tfoot>
+            <tfoot><tr><td>TOTAL</td><td class="num"><?php echo number_format($grandFamilies); ?></td><td class="num"><?php echo number_format($grandAdults); ?></td><td class="num"><?php echo number_format($grandChildren); ?></td><td class="num"><?php echo number_format($grandSeniors); ?></td><td class="num"><?php echo number_format($grandPwds); ?></td><td class="num"><?php echo number_format($grandPregnant); ?></td><td class="num"><?php echo number_format($grandLactating); ?></td><td class="num"><?php echo number_format($grandInfants); ?></td><td class="num"><?php echo number_format($grandTotal); ?></td><td class="num">100%</td></tr></tfoot>
         </table>
     </div>
 
@@ -306,7 +330,7 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
     <div class="section-title">Barangay of Origin Breakdown</div>
     <div class="matrix-wrap no-break">
         <table class="brgy-table">
-            <thead><tr><th style="width:26%">Barangay</th><th class="center">Families</th><th class="center">Children</th><th class="center">Adults</th><th class="center">Seniors</th><th class="center">PWDs</th><th class="center">Total</th><th class="center">% Share</th></tr></thead>
+            <thead><tr><th style="width:20%">Barangay</th><th class="center">Families</th><th class="center">Adults</th><th class="center">Children</th><th class="center">Seniors</th><th class="center">PWD</th><th class="center">Pregnant</th><th class="center">Lactating</th><th class="center">Infants</th><th class="center">Total</th><th class="center">% Share</th></tr></thead>
             <tbody>
             <?php foreach ($byBrgy as $br):
                 $pct = $grandTotal > 0 ? round(($br['total_members'] / $grandTotal) * 100, 1) : 0;
@@ -314,16 +338,19 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
             <tr>
                 <td class="center-col"><?php echo htmlspecialchars($br['barangay_name']); ?></td>
                 <td class="num"><?php echo number_format($br['families']); ?></td>
-                <td class="num"><span class="chip chip-c"><?php echo number_format($br['children']); ?></span></td>
                 <td class="num"><span class="chip chip-a"><?php echo number_format($br['adults']); ?></span></td>
+                <td class="num"><span class="chip chip-c"><?php echo number_format($br['children']); ?></span></td>
                 <td class="num"><span class="chip chip-s"><?php echo number_format($br['seniors']); ?></span></td>
                 <td class="num"><span class="chip chip-p"><?php echo number_format($br['pwds']); ?></span></td>
+                <td class="num"><?php echo number_format($br['pregnant_women']); ?></td>
+                <td class="num"><?php echo number_format($br['lactating_mothers']); ?></td>
+                <td class="num"><?php echo number_format($br['infants_toddlers']); ?></td>
                 <td class="num"><span class="chip chip-t"><?php echo number_format($br['total_members']); ?></span></td>
                 <td class="num"><?php echo $pct; ?>%</td>
             </tr>
             <?php endforeach; ?>
             </tbody>
-            <tfoot><tr><td>TOTAL</td><td class="num"><?php echo number_format($grandFamilies); ?></td><td class="num"><?php echo number_format($grandChildren); ?></td><td class="num"><?php echo number_format($grandAdults); ?></td><td class="num"><?php echo number_format($grandSeniors); ?></td><td class="num"><?php echo number_format($grandPwds); ?></td><td class="num"><?php echo number_format($grandTotal); ?></td><td class="num">100%</td></tr></tfoot>
+            <tfoot><tr><td>TOTAL</td><td class="num"><?php echo number_format($grandFamilies); ?></td><td class="num"><?php echo number_format($grandAdults); ?></td><td class="num"><?php echo number_format($grandChildren); ?></td><td class="num"><?php echo number_format($grandSeniors); ?></td><td class="num"><?php echo number_format($grandPwds); ?></td><td class="num"><?php echo number_format($grandPregnant); ?></td><td class="num"><?php echo number_format($grandLactating); ?></td><td class="num"><?php echo number_format($grandInfants); ?></td><td class="num"><?php echo number_format($grandTotal); ?></td><td class="num">100%</td></tr></tfoot>
         </table>
     </div>
     <?php endif; ?>
@@ -362,14 +389,20 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
     $cChld = array_sum(array_column($centreRecs,'children'));
     $cSnr  = array_sum(array_column($centreRecs,'seniors'));
     $cPwd  = array_sum(array_column($centreRecs,'pwds'));
+    $cPreg = array_sum(array_column($centreRecs,'pregnant_women'));
+    $cLact = array_sum(array_column($centreRecs,'lactating_mothers'));
+    $cInf  = array_sum(array_column($centreRecs,'infants_toddlers'));
     $cTot  = array_sum(array_column($centreRecs,'total_members'));
     ?>
     <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap" class="no-break">
         <span style="background:#FDEDEC;color:#C0392B;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:700"><?php echo number_format($cTot); ?> total</span>
-        <span style="background:#D6EAF8;color:#1A5276;padding:4px 11px;border-radius:20px;font-size:11px"><?php echo number_format($cChld); ?> children</span>
         <span style="background:#D5F5E3;color:#1E8449;padding:4px 11px;border-radius:20px;font-size:11px"><?php echo number_format($cAdlt); ?> adults</span>
+        <span style="background:#D6EAF8;color:#1A5276;padding:4px 11px;border-radius:20px;font-size:11px"><?php echo number_format($cChld); ?> children</span>
         <span style="background:#EDE7F6;color:#6A1B9A;padding:4px 11px;border-radius:20px;font-size:11px"><?php echo number_format($cSnr); ?> seniors</span>
         <span style="background:#FEF9E7;color:#B7950B;padding:4px 11px;border-radius:20px;font-size:11px"><?php echo number_format($cPwd); ?> PWDs</span>
+        <span style="background:#FCE4EC;color:#C2185B;padding:4px 11px;border-radius:20px;font-size:11px"><?php echo number_format($cPreg); ?> pregnant</span>
+        <span style="background:#E8F5E9;color:#2E7D32;padding:4px 11px;border-radius:20px;font-size:11px"><?php echo number_format($cLact); ?> lactating</span>
+        <span style="background:#FFF3E0;color:#EF6C00;padding:4px 11px;border-radius:20px;font-size:11px"><?php echo number_format($cInf); ?> infants</span>
     </div>
 
     <div class="matrix-wrap">
@@ -382,7 +415,9 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
                     <th>Birthday</th>
                     <th>Age</th>
                     <th>Barangay</th>
-                    <th class="center">C</th><th class="center">A</th><th class="center">S</th><th class="center">P</th>
+                    <?php foreach (DEMO_SHORT as $short): ?>
+                    <th class="center"><?php echo htmlspecialchars($short); ?></th>
+                    <?php endforeach; ?>
                     <th class="center">Total</th>
                     <th>Registered By</th>
                     <th style="white-space:nowrap">Date</th>
@@ -400,10 +435,9 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
                 <td style="font-size:11px"><?php echo $bdayFormatted; ?></td>
                 <td style="font-size:11px"><?php echo $age; ?></td>
                 <td><?php echo htmlspecialchars($rec['barangay_name']); ?></td>
-                <td class="num"><span class="chip chip-c"><?php echo $rec['children']; ?></span></td>
-                <td class="num"><span class="chip chip-a"><?php echo $rec['adults']; ?></span></td>
-                <td class="num"><span class="chip chip-s"><?php echo $rec['seniors']; ?></span></td>
-                <td class="num"><span class="chip chip-p"><?php echo $rec['pwds']; ?></span></td>
+                <?php foreach (demo_field_keys() as $dk): ?>
+                <td class="num"><span class="chip chip-<?php echo $dk === 'children' ? 'c' : ($dk === 'adults' ? 'a' : ($dk === 'seniors' ? 's' : 'p')); ?>"><?php echo (int)$rec[$dk]; ?></span></td>
+                <?php endforeach; ?>
                 <td class="num"><span class="chip chip-t"><?php echo $rec['total_members']; ?></span></td>
                 <td style="font-size:10.5px;color:var(--muted)"><?php echo htmlspecialchars($rec['registered_by'] ?? '—'); ?></td>
                 <td style="font-size:10.5px;white-space:nowrap"><?php echo date('M j, Y', strtotime($rec['created_at'])); ?><br><span style="color:var(--muted)"><?php echo date('g:i A', strtotime($rec['created_at'])); ?></span></td>
@@ -413,10 +447,13 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
             <tfoot>
                 <tr>
                     <td colspan="6" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.5px">Center Totals</td>
-                    <td class="num"><?php echo $cChld; ?></td>
                     <td class="num"><?php echo $cAdlt; ?></td>
+                    <td class="num"><?php echo $cChld; ?></td>
                     <td class="num"><?php echo $cSnr; ?></td>
                     <td class="num"><?php echo $cPwd; ?></td>
+                    <td class="num"><?php echo $cPreg; ?></td>
+                    <td class="num"><?php echo $cLact; ?></td>
+                    <td class="num"><?php echo $cInf; ?></td>
                     <td class="num"><?php echo $cTot; ?></td>
                     <td colspan="2"></td>
                 </tr>
@@ -451,6 +488,9 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
                 <tr><td>Adults (18–59 years old)</td><td class="num"><?php echo number_format($grandAdults); ?></td><td class="num"><?php echo $grandTotal>0?round(($grandAdults/$grandTotal)*100,1):0; ?>%</td><td style="font-size:10.5px;color:var(--muted)">Potential volunteers / workforce for response</td></tr>
                 <tr><td>Senior Citizens (60 years and above)</td><td class="num"><?php echo number_format($grandSeniors); ?></td><td class="num"><?php echo $grandTotal>0?round(($grandSeniors/$grandTotal)*100,1):0; ?>%</td><td style="font-size:10.5px;color:var(--muted)">Prioritize medical monitoring and mobility support</td></tr>
                 <tr><td>Persons with Disabilities (PWDs)</td><td class="num"><?php echo number_format($grandPwds); ?></td><td class="num"><?php echo $grandTotal>0?round(($grandPwds/$grandTotal)*100,1):0; ?>%</td><td style="font-size:10.5px;color:var(--muted)">Ensure accessible facilities and dedicated assistance</td></tr>
+                <tr><td>Pregnant Women</td><td class="num"><?php echo number_format($grandPregnant); ?></td><td class="num"><?php echo $grandTotal>0?round(($grandPregnant/$grandTotal)*100,1):0; ?>%</td><td style="font-size:10.5px;color:var(--muted)">Prioritize prenatal care and safe shelter placement</td></tr>
+                <tr><td>Lactating / Breastfeeding Mothers</td><td class="num"><?php echo number_format($grandLactating); ?></td><td class="num"><?php echo $grandTotal>0?round(($grandLactating/$grandTotal)*100,1):0; ?>%</td><td style="font-size:10.5px;color:var(--muted)">Ensure privacy and infant feeding support</td></tr>
+                <tr><td>Infants / Toddlers</td><td class="num"><?php echo number_format($grandInfants); ?></td><td class="num"><?php echo $grandTotal>0?round(($grandInfants/$grandTotal)*100,1):0; ?>%</td><td style="font-size:10.5px;color:var(--muted)">Prioritize diapers, formula, and pediatric care</td></tr>
                 <tr><td><strong>Total Evacuees</strong></td><td class="num"><strong><?php echo number_format($grandTotal); ?></strong></td><td class="num"><strong>100%</strong></td><td style="font-size:10.5px;color:var(--muted)"><?php echo number_format($grandFamilies); ?> families across <?php echo count($byCentre); ?> center(s)</td></tr>
             </tbody>
         </table>

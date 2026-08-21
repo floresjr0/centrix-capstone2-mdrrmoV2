@@ -26,9 +26,12 @@ $user   = current_user();
 $userId = (int) $user['id'];
 
 // ── Parse request ──────────────────────────────────────────────
-$raw    = file_get_contents('php://input');
-$body   = json_decode($raw, true);
-$action = $body['action'] ?? '';
+$raw  = file_get_contents('php://input');
+$body = json_decode($raw, true);
+if (!is_array($body) && !empty($_POST['action'])) {
+    $body = $_POST;
+}
+$action = is_array($body) ? ($body['action'] ?? '') : '';
 
 if (!in_array($action, ['select', 'cancel', 'arrived'], true)) {
     http_response_code(400);
@@ -81,8 +84,7 @@ try {
 
     } elseif ($action === 'cancel') {
         $stmt = $pdo->prepare("
-            UPDATE evac_navigation_tracking
-            SET    status = 'cancelled', updated_at = NOW()
+            DELETE FROM evac_navigation_tracking
             WHERE  user_id = ?
         ");
         $stmt->execute([$userId]);

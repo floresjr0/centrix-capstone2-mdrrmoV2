@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../pages/session.php';
+require_once __DIR__ . '/../pages/demographic_helpers.php';
 require_login('admin');
 
 $user = current_user();
@@ -15,7 +16,10 @@ $demo = $pdo->query("
         COALESCE(SUM(adults),0)   AS grand_adults,
         COALESCE(SUM(children),0) AS grand_children,
         COALESCE(SUM(seniors),0)  AS grand_seniors,
-        COALESCE(SUM(pwds),0)     AS grand_pwds
+        COALESCE(SUM(pwds),0)     AS grand_pwds,
+        COALESCE(SUM(pregnant_women),0)    AS grand_pregnant_women,
+        COALESCE(SUM(lactating_mothers),0) AS grand_lactating_mothers,
+        COALESCE(SUM(infants_toddlers),0)  AS grand_infants_toddlers
     FROM evac_registrations
 ")->fetch();
 
@@ -33,6 +37,9 @@ $evacSummary = $pdo->query("
         COALESCE(SUM(er.children),0)      AS total_children,
         COALESCE(SUM(er.seniors),0)       AS total_seniors,
         COALESCE(SUM(er.pwds),0)          AS total_pwds,
+        COALESCE(SUM(er.pregnant_women),0)    AS total_pregnant_women,
+        COALESCE(SUM(er.lactating_mothers),0) AS total_lactating_mothers,
+        COALESCE(SUM(er.infants_toddlers),0)  AS total_infants_toddlers,
         COALESCE(SUM(er.total_members),0) AS total_evacuees,
         COUNT(DISTINCT er.id)             AS total_families
     FROM evacuation_centers ec
@@ -52,6 +59,9 @@ $barangaySummary = $pdo->query("
         COALESCE(SUM(er.children),0)      AS total_children,
         COALESCE(SUM(er.seniors),0)       AS total_seniors,
         COALESCE(SUM(er.pwds),0)          AS total_pwds,
+        COALESCE(SUM(er.pregnant_women),0)    AS total_pregnant_women,
+        COALESCE(SUM(er.lactating_mothers),0) AS total_lactating_mothers,
+        COALESCE(SUM(er.infants_toddlers),0)  AS total_infants_toddlers,
         COALESCE(SUM(er.total_members),0) AS total_evacuees,
         COUNT(DISTINCT er.id)             AS total_families
     FROM evac_registrations er
@@ -64,7 +74,9 @@ $recentRegs = $pdo->query("
     SELECT
         er.id,
         er.family_head_name,
-        er.adults, er.children, er.seniors, er.pwds, er.total_members,
+        er.adults, er.children, er.seniors, er.pwds,
+        er.pregnant_women, er.lactating_mothers, er.infants_toddlers,
+        er.total_members,
         er.created_at,
         ec.name   AS center_name,
         b.name    AS barangay_name,
@@ -89,6 +101,9 @@ $archiveBatches = $pdo->query("
         SUM(era.children)         AS total_children,
         SUM(era.seniors)          AS total_seniors,
         SUM(era.pwds)             AS total_pwds,
+        SUM(era.pregnant_women)    AS total_pregnant_women,
+        SUM(era.lactating_mothers) AS total_lactating_mothers,
+        SUM(era.infants_toddlers)  AS total_infants_toddlers,
         u.full_name           AS archived_by_name
     FROM evac_registrations_archive era
     LEFT JOIN users u ON u.id = era.archived_by
@@ -101,10 +116,13 @@ $disasters = $pdo->query("
     ORDER BY status = 'ongoing' DESC, started_at DESC
 ")->fetchAll();
 
-$grandChildren = array_sum(array_column($evacSummary, 'total_children'));
-$grandAdults   = array_sum(array_column($evacSummary, 'total_adults'));
-$grandSeniors  = array_sum(array_column($evacSummary, 'total_seniors'));
-$grandPwds     = array_sum(array_column($evacSummary, 'total_pwds'));
+$grandAdults    = array_sum(array_column($evacSummary, 'total_adults'));
+$grandChildren  = array_sum(array_column($evacSummary, 'total_children'));
+$grandSeniors   = array_sum(array_column($evacSummary, 'total_seniors'));
+$grandPwds      = array_sum(array_column($evacSummary, 'total_pwds'));
+$grandPregnant  = array_sum(array_column($evacSummary, 'total_pregnant_women'));
+$grandLactating = array_sum(array_column($evacSummary, 'total_lactating_mothers'));
+$grandInfants   = array_sum(array_column($evacSummary, 'total_infants_toddlers'));
 $grandFamilies = array_sum(array_column($evacSummary, 'total_families'));
 $grandTotal    = array_sum(array_column($evacSummary, 'total_evacuees'));
 $grandCap      = array_sum(array_column($evacSummary, 'max_capacity_people'));
@@ -293,7 +311,28 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                     <div class="stat-icon-small yellow"><i class="fas fa-wheelchair"></i></div>
                     <div class="stat-content">
                         <div class="stat-value-small"><?php echo number_format($demo['grand_pwds']); ?></div>
-                        <div class="stat-label-small">PWDs</div>
+                        <div class="stat-label-small">PWD</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon-small" style="background:#FCE4EC;color:#C2185B"><i class="fas fa-person-pregnant"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-value-small"><?php echo number_format($demo['grand_pregnant_women']); ?></div>
+                        <div class="stat-label-small">Pregnant</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon-small" style="background:#E8F5E9;color:#2E7D32"><i class="fas fa-baby"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-value-small"><?php echo number_format($demo['grand_lactating_mothers']); ?></div>
+                        <div class="stat-label-small">Lactating</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon-small" style="background:#FFF3E0;color:#EF6C00"><i class="fas fa-child-reaching"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-value-small"><?php echo number_format($demo['grand_infants_toddlers']); ?></div>
+                        <div class="stat-label-small">Infants</div>
                     </div>
                 </div>
             </div>
@@ -352,10 +391,13 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                             <tr>
                                 <th>Center</th>
                                 <th>Coordinator</th>
-                                <th>Children</th>
                                 <th>Adults</th>
+                                <th>Children</th>
                                 <th>Seniors</th>
                                 <th>PWD</th>
+                                <th>Pregnant</th>
+                                <th>Lactating</th>
+                                <th>Infants</th>
                                 <th>Families</th>
                                 <th>Total</th>
                                 <th>Capacity</th>
@@ -389,10 +431,13 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                                     <span style="color:#95A5A6;font-style:italic;font-size:12px">Unassigned</span>
                                 <?php endif; ?>
                             </td>
-                            <td><span class="chip <?php echo $isClosed ? '' : 'chip-child'; ?>"><?php echo number_format($row['total_children']); ?></span></td>
                             <td><span class="chip <?php echo $isClosed ? '' : 'chip-adult'; ?>"><?php echo number_format($row['total_adults']); ?></span></td>
+                            <td><span class="chip <?php echo $isClosed ? '' : 'chip-child'; ?>"><?php echo number_format($row['total_children']); ?></span></td>
                             <td><span class="chip <?php echo $isClosed ? '' : 'chip-senior'; ?>"><?php echo number_format($row['total_seniors']); ?></span></td>
                             <td><span class="chip <?php echo $isClosed ? '' : 'chip-pwd'; ?>"><?php echo number_format($row['total_pwds']); ?></span></td>
+                            <td><span class="chip"><?php echo number_format($row['total_pregnant_women']); ?></span></td>
+                            <td><span class="chip"><?php echo number_format($row['total_lactating_mothers']); ?></span></td>
+                            <td><span class="chip"><?php echo number_format($row['total_infants_toddlers']); ?></span></td>
                             <td><strong><?php echo number_format($row['total_families']); ?></strong></td>
                             <td><span class="chip <?php echo $isClosed ? '' : 'chip-total'; ?>"><?php echo number_format($row['total_evacuees']); ?></span></td>
                             <td>
@@ -410,10 +455,13 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                         <tfoot>
                             <tr>
                                 <td colspan="2" style="color:#95A5A6;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Totals</td>
-                                <td><span class="chip chip-child"><?php echo number_format($grandChildren); ?></span></td>
                                 <td><span class="chip chip-adult"><?php echo number_format($grandAdults); ?></span></td>
+                                <td><span class="chip chip-child"><?php echo number_format($grandChildren); ?></span></td>
                                 <td><span class="chip chip-senior"><?php echo number_format($grandSeniors); ?></span></td>
                                 <td><span class="chip chip-pwd"><?php echo number_format($grandPwds); ?></span></td>
+                                <td><span class="chip"><?php echo number_format($grandPregnant); ?></span></td>
+                                <td><span class="chip"><?php echo number_format($grandLactating); ?></span></td>
+                                <td><span class="chip"><?php echo number_format($grandInfants); ?></span></td>
                                 <td><strong><?php echo number_format($grandFamilies); ?></strong></td>
                                 <td><span class="chip chip-total"><?php echo number_format($grandTotal); ?></span></td>
                                 <td colspan="2">
@@ -439,10 +487,13 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                     <div class="brgy-card">
                         <div class="brgy-name"><i class="fas fa-location-dot"></i><?php echo htmlspecialchars($brgy['barangay_name']); ?></div>
                         <div class="brgy-demos">
-                            <span class="chip chip-child"><?php echo $brgy['total_children']; ?> C</span>
                             <span class="chip chip-adult"><?php echo $brgy['total_adults']; ?> A</span>
+                            <span class="chip chip-child"><?php echo $brgy['total_children']; ?> C</span>
                             <span class="chip chip-senior"><?php echo $brgy['total_seniors']; ?> S</span>
                             <span class="chip chip-pwd"><?php echo $brgy['total_pwds']; ?> P</span>
+                            <span class="chip"><?php echo $brgy['total_pregnant_women']; ?> PW</span>
+                            <span class="chip"><?php echo $brgy['total_lactating_mothers']; ?> LM</span>
+                            <span class="chip"><?php echo $brgy['total_infants_toddlers']; ?> IT</span>
                         </div>
                         <div class="brgy-total"><?php echo number_format($brgy['total_evacuees']); ?></div>
                         <div class="brgy-sublbl"><?php echo number_format($brgy['total_families']); ?> families</div>
@@ -471,7 +522,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                                 <th>Family Head</th>
                                 <th>Evacuation Center</th>
                                 <th>Barangay</th>
-                                <th>C</th><th>A</th><th>S</th><th>P</th>
+                                <th>A</th><th>C</th><th>S</th><th>P</th><th>PW</th><th>LM</th><th>IT</th>
                                 <th>Total</th>
                                 <th>Registered By</th>
                                 <th>Date / Time</th>
@@ -491,10 +542,13 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                             </td>
                             <td style="font-size:12.5px"><?php echo htmlspecialchars($reg['center_name']); ?></td>
                             <td style="font-size:12.5px"><?php echo htmlspecialchars($reg['barangay_name']); ?></td>
-                            <td><span class="chip chip-child"><?php echo $reg['children']; ?></span></td>
                             <td><span class="chip chip-adult"><?php echo $reg['adults']; ?></span></td>
+                            <td><span class="chip chip-child"><?php echo $reg['children']; ?></span></td>
                             <td><span class="chip chip-senior"><?php echo $reg['seniors']; ?></span></td>
                             <td><span class="chip chip-pwd"><?php echo $reg['pwds']; ?></span></td>
+                            <td><span class="chip"><?php echo $reg['pregnant_women']; ?></span></td>
+                            <td><span class="chip"><?php echo $reg['lactating_mothers']; ?></span></td>
+                            <td><span class="chip"><?php echo $reg['infants_toddlers']; ?></span></td>
                             <td><span class="chip chip-total"><?php echo $reg['total_members']; ?></span></td>
                             <td style="font-size:12px;color:#95A5A6"><?php echo htmlspecialchars($reg['registered_by']); ?></td>
                             <td style="font-size:11.5px;color:#95A5A6;white-space:nowrap">
@@ -546,10 +600,13 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                                 by <?php echo htmlspecialchars($batch['archived_by_name'] ?? 'Admin'); ?>
                             </div>
                             <div class="archive-batch-demos" style="margin-top:8px">
-                                <span class="chip chip-child"><?php echo number_format($batch['total_children']); ?> C</span>
                                 <span class="chip chip-adult"><?php echo number_format($batch['total_adults']); ?> A</span>
+                                <span class="chip chip-child"><?php echo number_format($batch['total_children']); ?> C</span>
                                 <span class="chip chip-senior"><?php echo number_format($batch['total_seniors']); ?> S</span>
                                 <span class="chip chip-pwd"><?php echo number_format($batch['total_pwds']); ?> P</span>
+                                <span class="chip"><?php echo number_format($batch['total_pregnant_women']); ?> PW</span>
+                                <span class="chip"><?php echo number_format($batch['total_lactating_mothers']); ?> LM</span>
+                                <span class="chip"><?php echo number_format($batch['total_infants_toddlers']); ?> IT</span>
                                 <span style="font-size:12px;color:#888"><?php echo number_format($batch['total_families']); ?> families</span>
                             </div>
                         </div>

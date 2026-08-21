@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../pages/session.php';
 require_login('coordinator');
 require_once __DIR__ . '/../pages/center_helpers.php';
+require_once __DIR__ . '/../pages/demographic_helpers.php';
 
 $pdo  = db();
 $user = current_user();
@@ -30,11 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_f
     $contactNumber = trim($_POST['contact_number'] ?? '');
     $birthday      = $_POST['birthday'] ?? '';
     $barangayId    = (int)($_POST['barangay_id'] ?? 0);
-    $adults        = max(0, (int)($_POST['adults']   ?? 0));
-    $children      = max(0, (int)($_POST['children'] ?? 0));
-    $seniors       = max(0, (int)($_POST['seniors']  ?? 0));
-    $pwds          = max(0, (int)($_POST['pwds']     ?? 0));
-    $total         = $adults + $children + $seniors + $pwds;
+    $demo          = demo_from_request($_POST);
+    $total         = demo_sum_row($demo);
 
     if ($headName === '')      $errors[] = 'Head of family name is required.';
     if ($contactNumber === '') $errors[] = 'Contact number is required.';
@@ -44,14 +42,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_f
     if ($total <= 0)           $errors[] = 'Please specify at least one member.';
 
     if (!$errors) {
+        $demoCols = implode(', ', demo_field_keys());
+        $demoPh   = implode(', ', array_fill(0, count(demo_field_keys()), '?'));
         $ins = $pdo->prepare("INSERT INTO evac_registrations
             (center_id, family_head_name, contact_number, birthday, barangay_id,
-             adults, children, seniors, pwds, total_members, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $ins->execute([
+             $demoCols, total_members, created_by)
+            VALUES (?, ?, ?, ?, ?, $demoPh, ?, ?)");
+        $ins->execute(array_merge([
             $centerId, $headName, $contactNumber, $birthday, $barangayId,
-            $adults, $children, $seniors, $pwds, $total, $user['id']
-        ]);
+        ], array_values($demo), [$total, $user['id']]));
         refresh_center_status($centerId);
         header('Location: center_walkin.php?id=' . $centerId . '&added=1');
         exit;
@@ -327,18 +326,11 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                     </label>
 
                     <div class="grid-2">
-                        <label class="form-label">Adults
-                            <input type="number" name="adults" min="0" value="<?php echo (int)($_POST['adults'] ?? 0); ?>">
+                        <?php foreach (DEMO_FIELDS as $field => $label): ?>
+                        <label class="form-label"><?php echo htmlspecialchars($label); ?>
+                            <input type="number" name="<?php echo $field; ?>" min="0" value="<?php echo (int)($_POST[$field] ?? 0); ?>">
                         </label>
-                        <label class="form-label">Children
-                            <input type="number" name="children" min="0" value="<?php echo (int)($_POST['children'] ?? 0); ?>">
-                        </label>
-                        <label class="form-label">Seniors
-                            <input type="number" name="seniors" min="0" value="<?php echo (int)($_POST['seniors'] ?? 0); ?>">
-                        </label>
-                        <label class="form-label">PWDs
-                            <input type="number" name="pwds" min="0" value="<?php echo (int)($_POST['pwds'] ?? 0); ?>">
-                        </label>
+                        <?php endforeach; ?>
                     </div>
 
                     <button type="submit" class="btn-submit">Record Arrival</button>

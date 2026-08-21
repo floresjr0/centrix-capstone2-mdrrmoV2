@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../pages/session.php';
 require_login('coordinator');
 require_once __DIR__ . '/../pages/center_helpers.php';
+require_once __DIR__ . '/../pages/demographic_helpers.php';
 
 $pdo  = db();
 $user = current_user();
@@ -28,11 +29,8 @@ $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'record_app_arrival') {
     $trackingId = (int)($_POST['tracking_id'] ?? 0);
     $navUserId  = (int)($_POST['nav_user_id']  ?? 0);
-    $adults     = max(0, (int)($_POST['adults']   ?? 0));
-    $children   = max(0, (int)($_POST['children'] ?? 0));
-    $seniors    = max(0, (int)($_POST['seniors']  ?? 0));
-    $pwds       = max(0, (int)($_POST['pwds']     ?? 0));
-    $total      = $adults + $children + $seniors + $pwds;
+    $demo  = demo_from_request($_POST);
+    $total = demo_sum_row($demo);
 
     $chk = $pdo->prepare("SELECT nt.id, u.full_name, u.barangay_id,
                                   u.contact_number, u.birthday, u.sex
@@ -43,19 +41,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'recor
     $trackRow = $chk->fetch();
 
     if ($trackRow && $total > 0) {
+        $demoCols = implode(', ', demo_field_keys());
+        $demoPh   = implode(', ', array_fill(0, count(demo_field_keys()), '?'));
         $ins = $pdo->prepare("INSERT INTO evac_registrations
             (center_id, family_head_name, contact_number, birthday, barangay_id,
-             adults, children, seniors, pwds, total_members, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $ins->execute([
+             $demoCols, total_members, created_by)
+            VALUES (?, ?, ?, ?, ?, $demoPh, ?, ?)");
+        $ins->execute(array_merge([
             $centerId,
             $trackRow['full_name'],
             $trackRow['contact_number'] ?? null,
             $trackRow['birthday']       ?? null,
             $trackRow['barangay_id'],
-            $adults, $children, $seniors, $pwds, $total,
-            $user['id']
-        ]);
+        ], array_values($demo), [$total, $user['id']]));
 
         $upd = $pdo->prepare("UPDATE evac_navigation_tracking
                               SET status = 'arrived', updated_at = NOW()
@@ -79,10 +77,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'decli
     $chk->execute([$trackingId, $centerId]);
 
     if ($chk->fetch()) {
-        $upd = $pdo->prepare("UPDATE evac_navigation_tracking
-                              SET status = 'declined', updated_at = NOW()
-                              WHERE id = ?");
-        $upd->execute([$trackingId]);
+        $upd = $pdo->prepare("DELETE FROM evac_navigation_tracking
+                              WHERE id = ? AND center_id = ? AND status = 'navigating'");
+        $upd->execute([$trackingId, $centerId]);
     }
 
     header('Location: center_app_arrivals.php?id=' . $centerId);
@@ -102,6 +99,9 @@ $appArrivalsStmt = $pdo->prepare("
         COALESCE(ch.children,      0) AS children,
         COALESCE(ch.seniors,       0) AS seniors,
         COALESCE(ch.pwds,          0) AS pwds,
+        COALESCE(ch.pregnant_women,    0) AS pregnant_women,
+        COALESCE(ch.lactating_mothers, 0) AS lactating_mothers,
+        COALESCE(ch.infants_toddlers,  0) AS infants_toddlers,
         COALESCE(ch.total_members, 1) AS total_members,
         nt.updated_at
     FROM evac_navigation_tracking nt
@@ -379,7 +379,7 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                                 <input type="hidden" name="nav_user_id" value="<?php echo (int)$a['user_id']; ?>">
 
                                 <div class="app-arrival-members">
-                                    <?php foreach (['adults'=>'Adults','children'=>'Children','seniors'=>'Seniors','pwds'=>'PWDs'] as $field=>$label):
+                                    <?php foreach (DEMO_FIELDS as $field => $label):
                                         $val = (int)$a[$field]; ?>
                                     <div class="app-member-row">
                                         <span class="app-member-label"><?php echo $label; ?></span>
@@ -430,10 +430,9 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                                 <input type="hidden"
                                        id="profile-total-<?php echo (int)$a['tracking_id']; ?>"
                                        value="<?php echo $profileTotal; ?>"
-                                       data-adults="<?php echo (int)$a['adults']; ?>"
-                                       data-children="<?php echo (int)$a['children']; ?>"
-                                       data-seniors="<?php echo (int)$a['seniors']; ?>"
-                                       data-pwds="<?php echo (int)$a['pwds']; ?>">
+                                       <?php foreach (demo_field_keys() as $dk): ?>
+                                       data-<?php echo str_replace('_', '-', $dk); ?>="<?php echo (int)$a[$dk]; ?>"
+                                       <?php endforeach; ?>>
                             </form>
                         </div>
                         <?php endforeach; ?>
@@ -446,6 +445,7 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
 </div>
 
 <script>
+const DEMO_FIELDS = <?php echo json_encode(demo_field_keys()); ?>;
 /* ── Sidebar ── */
 function openMenu()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('drawerOverlay').classList.add('open'); document.body.style.overflow = 'hidden'; }
 function closeMenu() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('drawerOverlay').classList.remove('open'); document.body.style.overflow = ''; }
@@ -465,7 +465,7 @@ function adjustVal(trackingId, field, delta) {
     valEl.textContent = next;
     hidEl.value = next;
 
-    let newTotal = ['adults','children','seniors','pwds']
+    let newTotal = DEMO_FIELDS
         .reduce((s, f) => s + (parseInt(document.getElementById('hid-' + trackingId + '-' + f)?.value, 10) || 0), 0);
     document.getElementById('total-' + trackingId).textContent = newTotal;
 
@@ -473,20 +473,23 @@ function adjustVal(trackingId, field, delta) {
     const matchEl   = document.getElementById('match-' + trackingId);
     if (!profileEl || !matchEl) return;
 
-    const pA = parseInt(profileEl.dataset.adults,   10);
-    const pC = parseInt(profileEl.dataset.children, 10);
-    const pS = parseInt(profileEl.dataset.seniors,  10);
-    const pP = parseInt(profileEl.dataset.pwds,     10);
-    const cA = parseInt(document.getElementById('hid-' + trackingId + '-adults').value,   10);
-    const cC = parseInt(document.getElementById('hid-' + trackingId + '-children').value, 10);
-    const cS = parseInt(document.getElementById('hid-' + trackingId + '-seniors').value,  10);
-    const cP = parseInt(document.getElementById('hid-' + trackingId + '-pwds').value,     10);
+    let allMatch = true;
+    DEMO_FIELDS.forEach(f => {
+        const attr = f.replace(/_/g, '-');
+        const expected = parseInt(profileEl.dataset[attr], 10) || 0;
+        const actual   = parseInt(document.getElementById('hid-' + trackingId + '-' + f)?.value, 10) || 0;
+        if (expected !== actual) allMatch = false;
+    });
+    const profileTotal = parseInt(profileEl.value, 10) || 0;
+    if (newTotal !== profileTotal) allMatch = false;
 
-    const isMatch = cA === pA && cC === pC && cS === pS && cP === pP;
-    matchEl.className = 'profile-match ' + (isMatch ? 'match-ok' : 'match-diff');
-    matchEl.innerHTML = isMatch
-        ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Matches profile'
-        : '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Count adjusted';
+    if (allMatch) {
+        matchEl.className = 'profile-match match-ok';
+        matchEl.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Matches profile';
+    } else {
+        matchEl.className = 'profile-match match-diff';
+        matchEl.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Count adjusted';
+    }
 }
 
 /* ── Confirm arrival ── */

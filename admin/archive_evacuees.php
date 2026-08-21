@@ -48,12 +48,12 @@ try {
     $stmt = $pdo->prepare("
         INSERT INTO evac_registrations_archive
             (original_id, center_id, family_head_name, contact_number, birthday, barangay_id,
-             adults, children, seniors, pwds, total_members,
+             adults, children, seniors, pwds, pregnant_women, lactating_mothers, infants_toddlers, total_members,
              created_by, created_at,
              archive_label, disaster_id, archived_by, archived_at)
         SELECT
             id, center_id, family_head_name, contact_number, birthday, barangay_id,
-            adults, children, seniors, pwds, total_members,
+            adults, children, seniors, pwds, pregnant_women, lactating_mothers, infants_toddlers, total_members,
             created_by, created_at,
             :label, :disaster_id, :archived_by, NOW()
         FROM evac_registrations

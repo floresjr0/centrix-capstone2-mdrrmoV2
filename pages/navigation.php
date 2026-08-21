@@ -340,17 +340,30 @@ function trackArrived() {
     try { window.opener.postMessage({ type:'evac_arrived' }, window.location.origin); } catch(e){}
   }
 }
-function trackCancel() {
+function trackCancel(useBeacon) {
   if (_trackedCenterId === null) return;
   _trackedCenterId = null;
-  fetch('citizen_track_navigation.php', {
-    method: 'POST', headers: { 'Content-Type':'application/json' }, credentials: 'same-origin',
-    body: JSON.stringify({ action:'cancel' }),
-  }).catch(()=>{});
+  const payload = JSON.stringify({ action: 'cancel' });
+  if (useBeacon && navigator.sendBeacon) {
+    const fd = new FormData();
+    fd.append('action', 'cancel');
+    navigator.sendBeacon('citizen_track_navigation.php', fd);
+  } else {
+    fetch('citizen_track_navigation.php', {
+      method: 'POST', headers: { 'Content-Type':'application/json' }, credentials: 'same-origin',
+      body: payload,
+    }).catch(()=>{});
+  }
   if (window.opener && !window.opener.closed) {
     try { window.opener.postMessage({ type:'evac_cancel' }, window.location.origin); } catch(e){}
   }
 }
+
+window.addEventListener('pagehide', () => {
+  if (_trackedCenterId !== null) {
+    trackCancel(true);
+  }
+});
 
 // ─── STATUS POLLING ───────────────────────────────────────────────────────
 function startStatusPolling() {
@@ -773,7 +786,7 @@ function chooseCenter(centerId, speakIt = true) {
   updateDestinationMarker();
   if (userLoc) updatePreview(userLoc.lat, userLoc.lon);
   if (speakIt) speak('Destination set to ' + center.name);
-  trackSelectCenter(center.id, center.name);
+  if (isNavigating) trackSelectCenter(center.id, center.name);
 }
 
 function updateDestinationMarker() {
@@ -845,6 +858,8 @@ function startNavigation() {
     enableHighAccuracy: true, maximumAge: 0, timeout: 8000
   });
   startStatusPolling();
+  const center = centers.find(c => c.id == selectedCenterId);
+  if (center) trackSelectCenter(center.id, center.name);
 }
 
 // ─── SLIDE-TO-END ─────────────────────────────────────────────────────────
@@ -915,7 +930,7 @@ function _confirmStop() {
   window._hideStopSlider && window._hideStopSlider();
   isNavigating = false;
   stopStatusPolling();
-  if (watchId) navigator.geolocation.clearWatch(watchId);
+  if (watchId) { navigator.geolocation.clearWatch(watchId); watchId = null; }
   if (routingControl) { map.removeControl(routingControl); routingControl = null; }
   clearLayers();
   document.querySelectorAll('.mode-btn').forEach(b => { b.style.opacity='1'; b.style.pointerEvents='auto'; });

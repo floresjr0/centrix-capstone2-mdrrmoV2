@@ -6,7 +6,7 @@
  * Returns expected evacuee counts (including full household sizes) for each
  * center assigned to the currently logged-in coordinator.
  *
- * Each navigating user contributes their citizen_household.total_members to
+ * Each navigating user contributes their family_profiles.total_members to
  * the count (falls back to 1 if no household record exists).
  *
  * Response:
@@ -32,7 +32,7 @@ $stmt = $pdo->prepare("
             nt.center_id,
             SUM(COALESCE(ch.total_members, 1)) AS expected_count
         FROM   evac_navigation_tracking nt
-        LEFT JOIN citizen_household ch ON ch.user_id = nt.user_id
+        LEFT JOIN family_profiles ch ON ch.user_id = nt.user_id
         WHERE  nt.status = 'navigating'
         GROUP  BY nt.center_id
     ) t ON t.center_id = c.id

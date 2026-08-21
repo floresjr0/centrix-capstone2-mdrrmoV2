@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../pages/session.php';
 require_login('coordinator');
 require_once __DIR__ . '/../pages/center_helpers.php';
+require_once __DIR__ . '/../pages/demographic_helpers.php';
 
 $pdo  = db();
 $user = current_user();
@@ -33,11 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'record_app_arrival') {
         $trackingId = (int)($_POST['tracking_id'] ?? 0);
         $navUserId  = (int)($_POST['nav_user_id']  ?? 0);
-        $adults     = max(0, (int)($_POST['adults']   ?? 0));
-        $children   = max(0, (int)($_POST['children'] ?? 0));
-        $seniors    = max(0, (int)($_POST['seniors']  ?? 0));
-        $pwds       = max(0, (int)($_POST['pwds']     ?? 0));
-        $total      = $adults + $children + $seniors + $pwds;
+        $demo  = demo_from_request($_POST);
+        $total = demo_sum_row($demo);
 
         $chk = $pdo->prepare("SELECT nt.id, u.full_name, u.barangay_id,
                               u.contact_number, u.birthday, u.sex
@@ -48,19 +46,19 @@ $chk->execute([$trackingId, $centerId]);
 $trackRow = $chk->fetch();
 
         if ($trackRow && $total > 0) {
+            $demoCols = implode(', ', demo_field_keys());
+            $demoPh   = implode(', ', array_fill(0, count(demo_field_keys()), '?'));
             $ins = $pdo->prepare("INSERT INTO evac_registrations
     (center_id, family_head_name, contact_number, birthday, barangay_id,
-     adults, children, seniors, pwds, total_members, created_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-$ins->execute([
-    $centerId,
-    $trackRow['full_name'],
-    $trackRow['contact_number'] ?? null,
-    $trackRow['birthday'] ?? null,
-    $trackRow['barangay_id'],
-    $adults, $children, $seniors, $pwds, $total,
-    $user['id']
-            ]);
+     $demoCols, total_members, created_by)
+    VALUES (?, ?, ?, ?, ?, $demoPh, ?, ?)");
+            $ins->execute(array_merge([
+                $centerId,
+                $trackRow['full_name'],
+                $trackRow['contact_number'] ?? null,
+                $trackRow['birthday'] ?? null,
+                $trackRow['barangay_id'],
+            ], array_values($demo), [$total, $user['id']]));
 
             $upd = $pdo->prepare("UPDATE evac_navigation_tracking
                                   SET status = 'arrived', updated_at = NOW()
@@ -79,11 +77,8 @@ $ins->execute([
         $contactNumber = trim($_POST['contact_number'] ?? '');
         $birthday      = $_POST['birthday'] ?? '';
         $barangayId    = (int)($_POST['barangay_id'] ?? 0);
-        $adults        = max(0, (int)($_POST['adults']   ?? 0));
-        $children      = max(0, (int)($_POST['children'] ?? 0));
-        $seniors       = max(0, (int)($_POST['seniors']  ?? 0));
-        $pwds          = max(0, (int)($_POST['pwds']     ?? 0));
-        $total         = $adults + $children + $seniors + $pwds;
+        $demo          = demo_from_request($_POST);
+        $total         = demo_sum_row($demo);
 
         if ($headName === '')      $errors[] = 'Head of family name is required.';
         if ($contactNumber === '') $errors[] = 'Contact number is required.';
@@ -93,13 +88,14 @@ $ins->execute([
         if ($total <= 0)           $errors[] = 'Please specify at least one member.';
 
         if (!$errors) {
+            $demoCols = implode(', ', demo_field_keys());
+            $demoPh   = implode(', ', array_fill(0, count(demo_field_keys()), '?'));
             $stmt = $pdo->prepare("INSERT INTO evac_registrations
-                (center_id, family_head_name, contact_number, birthday, barangay_id, adults, children, seniors, pwds, total_members, created_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([
+                (center_id, family_head_name, contact_number, birthday, barangay_id, $demoCols, total_members, created_by)
+                VALUES (?, ?, ?, ?, ?, $demoPh, ?, ?)");
+            $stmt->execute(array_merge([
                 $centerId, $headName, $contactNumber, $birthday, $barangayId,
-                $adults, $children, $seniors, $pwds, $total, $user['id']
-            ]);
+            ], array_values($demo), [$total, $user['id']]));
 
             refresh_center_status($centerId);
             header('Location: manage_center.php?id=' . $centerId);
@@ -111,24 +107,20 @@ $ins->execute([
         $field = $_POST['field'] ?? '';
         $delta = (int)($_POST['delta'] ?? 0);
 
-        if (!in_array($field, ['adults','children','seniors','pwds'], true) || !in_array($delta, [-1, 1], true)) {
+        if (!in_array($field, demo_field_keys(), true) || !in_array($delta, [-1, 1], true)) {
             $errors[] = 'Invalid adjustment.';
         } else {
             $stmt = $pdo->prepare("SELECT * FROM evac_registrations WHERE id = ? AND center_id = ?");
             $stmt->execute([$regId, $centerId]);
             $reg = $stmt->fetch();
             if ($reg) {
-                $newVal   = max(0, (int)$reg[$field] + $delta);
-                $adults   = $field === 'adults'   ? $newVal : (int)$reg['adults'];
-                $children = $field === 'children' ? $newVal : (int)$reg['children'];
-                $seniors  = $field === 'seniors'  ? $newVal : (int)$reg['seniors'];
-                $pwds     = $field === 'pwds'     ? $newVal : (int)$reg['pwds'];
-                $total    = $adults + $children + $seniors + $pwds;
+                $demo = demo_from_request($reg);
+                $demo[$field] = max(0, (int)$reg[$field] + $delta);
+                $total = demo_sum_row($demo);
+                $sets = implode(', ', array_map(fn($k) => "$k=?", demo_field_keys()));
 
-                $upd = $pdo->prepare("UPDATE evac_registrations
-                                      SET adults=?, children=?, seniors=?, pwds=?, total_members=?
-                                      WHERE id=?");
-                $upd->execute([$adults, $children, $seniors, $pwds, $total, $regId]);
+                $upd = $pdo->prepare("UPDATE evac_registrations SET $sets, total_members=? WHERE id=?");
+                $upd->execute([...array_values($demo), $total, $regId]);
 
                 refresh_center_status($centerId);
                 header('Location: manage_center.php?id=' . $centerId);
@@ -151,12 +143,15 @@ $appArrivalsStmt = $pdo->prepare("
         COALESCE(ch.children,      0) AS children,
         COALESCE(ch.seniors,       0) AS seniors,
         COALESCE(ch.pwds,          0) AS pwds,
+        COALESCE(ch.pregnant_women,    0) AS pregnant_women,
+        COALESCE(ch.lactating_mothers, 0) AS lactating_mothers,
+        COALESCE(ch.infants_toddlers,  0) AS infants_toddlers,
         COALESCE(ch.total_members, 1) AS total_members,
         nt.updated_at
     FROM evac_navigation_tracking nt
     JOIN users u        ON u.id  = nt.user_id
     JOIN barangays b    ON b.id  = u.barangay_id
-    LEFT JOIN citizen_household ch ON ch.user_id = nt.user_id
+    LEFT JOIN family_profiles ch ON ch.user_id = nt.user_id
     WHERE nt.center_id = ?
       AND nt.status    = 'navigating'
     ORDER BY nt.updated_at ASC
@@ -655,14 +650,7 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                                 <input type="hidden" name="nav_user_id" value="<?php echo (int)$a['user_id']; ?>">
 
                                 <div class="app-arrival-members">
-                                    <?php
-                                    $fields = [
-                                        'adults'   => 'Adults',
-                                        'children' => 'Children',
-                                        'seniors'  => 'Seniors',
-                                        'pwds'     => 'PWDs',
-                                    ];
-                                    foreach ($fields as $field => $label):
+                                    <?php foreach (DEMO_FIELDS as $field => $label):
                                         $val = (int)$a[$field];
                                     ?>
                                     <div class="app-member-row">
@@ -709,10 +697,9 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                                 <input type="hidden"
                                        id="profile-total-<?php echo (int)$a['tracking_id']; ?>"
                                        value="<?php echo $profileTotal; ?>"
-                                       data-adults="<?php echo (int)$a['adults']; ?>"
-                                       data-children="<?php echo (int)$a['children']; ?>"
-                                       data-seniors="<?php echo (int)$a['seniors']; ?>"
-                                       data-pwds="<?php echo (int)$a['pwds']; ?>">
+                                       <?php foreach (demo_field_keys() as $dk): ?>
+                                       data-<?php echo str_replace('_', '-', $dk); ?>="<?php echo (int)$a[$dk]; ?>"
+                                       <?php endforeach; ?>>
                             </form>
                         </div>
                         <?php endforeach; ?>
@@ -776,22 +763,12 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                     </label>
 
                     <div class="grid-2">
+                        <?php foreach (DEMO_FIELDS as $field => $label): ?>
                         <label class="form-label">
-                            Mga Matatanda (Adults)
-                            <input type="number" name="adults" min="0" value="<?php echo (int)($_POST['adults'] ?? 0); ?>">
+                            <?php echo htmlspecialchars($label); ?>
+                            <input type="number" name="<?php echo $field; ?>" min="0" value="<?php echo (int)($_POST[$field] ?? 0); ?>">
                         </label>
-                        <label class="form-label">
-                            Mga Bata (Children)
-                            <input type="number" name="children" min="0" value="<?php echo (int)($_POST['children'] ?? 0); ?>">
-                        </label>
-                        <label class="form-label">
-                            Seniors
-                            <input type="number" name="seniors" min="0" value="<?php echo (int)($_POST['seniors'] ?? 0); ?>">
-                        </label>
-                        <label class="form-label">
-                            PWDs
-                            <input type="number" name="pwds" min="0" value="<?php echo (int)($_POST['pwds'] ?? 0); ?>">
-                        </label>
+                        <?php endforeach; ?>
                     </div>
 
                     <button type="submit" class="btn-submit">
@@ -826,10 +803,9 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                                     <th>Contact</th>
                                     <th>Birthday</th>
                                     <th>Barangay</th>
-                                    <th>Adults</th>
-                                    <th>Children</th>
-                                    <th>Seniors</th>
-                                    <th>PWDs</th>
+                                    <?php foreach (DEMO_FIELDS as $field => $label): ?>
+                                    <th><?php echo htmlspecialchars($label); ?></th>
+                                    <?php endforeach; ?>
                                     <th>Total</th>
                                 </tr>
                             </thead>
@@ -841,7 +817,7 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                                     <td><?php echo !empty($r['birthday']) ? date('M d, Y', strtotime($r['birthday'])) : ''; ?></td>
                                     <td><?php echo htmlspecialchars($r['barangay_name']); ?></td>
 
-                                    <?php foreach (['adults','children','seniors','pwds'] as $field): ?>
+                                    <?php foreach (demo_field_keys() as $field): ?>
                                     <td>
                                         <div class="adjust-cell">
                                             <form method="post" class="inline-adjust">
@@ -887,7 +863,7 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                             </div>
 
                             <div class="reg-card-members">
-                                <?php foreach (['adults' => 'Adults', 'children' => 'Children', 'seniors' => 'Seniors', 'pwds' => 'PWDs'] as $field => $label): ?>
+                                <?php foreach (DEMO_FIELDS as $field => $label): ?>
                                 <div class="member-row">
                                     <span class="member-row-label"><?php echo $label; ?></span>
                                     <div class="member-row-controls">
@@ -932,6 +908,7 @@ function closeMenu() {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
 
+const DEMO_FIELDS = <?php echo json_encode(demo_field_keys()); ?>;
 function adjustVal(trackingId, field, delta) {
     const valEl = document.getElementById('val-' + trackingId + '-' + field);
     const hidEl = document.getElementById('hid-' + trackingId + '-' + field);
@@ -942,12 +919,10 @@ function adjustVal(trackingId, field, delta) {
     valEl.textContent = next;
     hidEl.value       = next;
 
-    const fields   = ['adults', 'children', 'seniors', 'pwds'];
-    let newTotal   = 0;
-    fields.forEach(f => {
+    let newTotal = DEMO_FIELDS.reduce((s, f) => {
         const el = document.getElementById('hid-' + trackingId + '-' + f);
-        if (el) newTotal += parseInt(el.value, 10) || 0;
-    });
+        return s + (parseInt(el?.value, 10) || 0);
+    }, 0);
 
     const totalEl = document.getElementById('total-' + trackingId);
     if (totalEl) totalEl.textContent = newTotal;
@@ -955,24 +930,17 @@ function adjustVal(trackingId, field, delta) {
     const profileEl = document.getElementById('profile-total-' + trackingId);
     const matchEl   = document.getElementById('match-'         + trackingId);
     if (profileEl && matchEl) {
-        const profileAdults   = parseInt(profileEl.dataset.adults,   10);
-        const profileChildren = parseInt(profileEl.dataset.children, 10);
-        const profileSeniors  = parseInt(profileEl.dataset.seniors,  10);
-        const profilePwds     = parseInt(profileEl.dataset.pwds,     10);
+        let allMatch = true;
+        DEMO_FIELDS.forEach(f => {
+            const attr = f.replace(/_/g, '-');
+            const expected = parseInt(profileEl.dataset[attr], 10) || 0;
+            const actual   = parseInt(document.getElementById('hid-' + trackingId + '-' + f)?.value, 10) || 0;
+            if (expected !== actual) allMatch = false;
+        });
+        const profileTotal = parseInt(profileEl.value, 10) || 0;
+        if (newTotal !== profileTotal) allMatch = false;
 
-        const currentAdults   = parseInt(document.getElementById('hid-' + trackingId + '-adults').value,   10);
-        const currentChildren = parseInt(document.getElementById('hid-' + trackingId + '-children').value, 10);
-        const currentSeniors  = parseInt(document.getElementById('hid-' + trackingId + '-seniors').value,  10);
-        const currentPwds     = parseInt(document.getElementById('hid-' + trackingId + '-pwds').value,     10);
-
-        const isMatch = (
-            currentAdults   === profileAdults   &&
-            currentChildren === profileChildren &&
-            currentSeniors  === profileSeniors  &&
-            currentPwds     === profilePwds
-        );
-
-        if (isMatch) {
+        if (allMatch) {
             matchEl.className = 'profile-match match-ok';
             matchEl.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Matches profile`;
         } else {

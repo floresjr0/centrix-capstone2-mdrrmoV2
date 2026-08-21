@@ -5,6 +5,7 @@
 
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/demographic_helpers.php';
 require_login();
 
 header('Content-Type: application/json; charset=utf-8');
@@ -55,19 +56,10 @@ if ($action === 'get') {
         'birthday'       => $freshUser['birthday']       ?? '',
         'sex'            => $freshUser['sex']            ?? '',
         'age'            => $age,
-        'household'      => $hh ? [
-            'adults'        => (int)$hh['adults'],
-            'children'      => (int)$hh['children'],
-            'seniors'       => (int)$hh['seniors'],
-            'pwds'          => (int)$hh['pwds'],
-            'total_members' => (int)$hh['total_members'],
-        ] : [
-            'adults'        => 1,
-            'children'      => 0,
-            'seniors'       => 0,
-            'pwds'          => 0,
-            'total_members' => 1,
-        ],
+        'household'      => $hh ? array_merge(
+            array_map('intval', array_intersect_key($hh, array_flip(demo_field_keys()))),
+            ['total_members' => (int)$hh['total_members']]
+        ) : demo_defaults(),
     ]);
     exit;
 }
@@ -136,12 +128,13 @@ $fullName = trim(implode(' ', array_filter([$firstName, $middleName, $lastName, 
         exit;
     }
 
-    // ── Household fields ─────────────────────────────────────────
-    $adults   = max(1, (int)($input['adults']   ?? 1));
-    $children = max(0, (int)($input['children'] ?? 0));
-    $seniors  = max(0, (int)($input['seniors']  ?? 0));
-    $pwds     = max(0, (int)($input['pwds']     ?? 0));
-    $total    = $adults + $children + $seniors + $pwds;
+    $household = [];
+    foreach (demo_field_keys() as $key) {
+        $household[$key] = $key === 'adults'
+            ? max(1, (int)($input[$key] ?? 1))
+            : max(0, (int)($input[$key] ?? 0));
+    }
+    $total = demo_sum_row($household);
 
     if ($total < 1) {
         echo json_encode(['ok' => false, 'error' => 'Ang sambahayan ay dapat may hindi bababa sa 1 miyembro.']);
@@ -174,27 +167,25 @@ $fullName = trim(implode(' ', array_filter([$firstName, $middleName, $lastName, 
             ':uid'         => $user['id'],
         ]);
 
-        // Upsert family_profiles (household)
+        $cols = demo_field_keys();
+        $colList = implode(', ', $cols);
+        $placeholders = implode(', ', array_map(fn($c) => ':' . $c, $cols));
+        $updates = implode(', ', array_map(fn($c) => "$c = VALUES($c)", $cols));
+
         $hhStmt = $pdo->prepare("
             INSERT INTO family_profiles
-                (user_id, adults, children, seniors, pwds, total_members)
-            VALUES (:uid, :adults, :children, :seniors, :pwds, :total)
+                (user_id, $colList, total_members)
+            VALUES (:uid, $placeholders, :total)
             ON DUPLICATE KEY UPDATE
-                adults        = VALUES(adults),
-                children      = VALUES(children),
-                seniors       = VALUES(seniors),
-                pwds          = VALUES(pwds),
+                $updates,
                 total_members = VALUES(total_members),
                 updated_at    = NOW()
         ");
-        $hhStmt->execute([
-            ':uid'      => $user['id'],
-            ':adults'   => $adults,
-            ':children' => $children,
-            ':seniors'  => $seniors,
-            ':pwds'     => $pwds,
-            ':total'    => $total,
-        ]);
+        $params = [':uid' => $user['id'], ':total' => $total];
+        foreach ($household as $key => $val) {
+            $params[':' . $key] = $val;
+        }
+        $hhStmt->execute($params);
 
         // Also update any active evacuation_intention so coordinator
         // sees updated household count immediately

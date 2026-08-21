@@ -3,6 +3,7 @@ require_once __DIR__ . '/../pages/session.php';
 require_login('admin');
 
 require_once __DIR__ . '/../pages/center_helpers.php';
+require_once __DIR__ . '/../pages/demographic_helpers.php';
 
 $user = current_user();
 $pdo  = db();
@@ -69,6 +70,9 @@ $evacSummaryStmt = $pdo->query("
         COALESCE(SUM(er.children), 0) AS total_children,
         COALESCE(SUM(er.seniors),  0) AS total_seniors,
         COALESCE(SUM(er.pwds),     0) AS total_pwds,
+        COALESCE(SUM(er.pregnant_women),    0) AS total_pregnant_women,
+        COALESCE(SUM(er.lactating_mothers), 0) AS total_lactating_mothers,
+        COALESCE(SUM(er.infants_toddlers),  0) AS total_infants_toddlers,
         COALESCE(SUM(er.total_members), 0) AS total_evacuees,
         COUNT(DISTINCT er.id) AS total_families
 
@@ -404,10 +408,13 @@ $uSummary = $pdo->query("
                                 <tr>
                                     <th>Center</th>
                                     <th>Coordinator</th>
-                                    <th>Children</th>
                                     <th>Adults</th>
+                                    <th>Children</th>
                                     <th>Seniors</th>
                                     <th>PWD</th>
+                                    <th>Pregnant</th>
+                                    <th>Lactating</th>
+                                    <th>Infants</th>
                                     <th>Families</th>
                                     <th>Total</th>
                                     <th>Capacity</th>
@@ -450,10 +457,13 @@ $uSummary = $pdo->query("
                                             <span class="es-no-coord">Unassigned</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td><span class="es-demo es-children"><?php echo number_format($row['total_children']); ?></span></td>
                                     <td><span class="es-demo es-adults"><?php echo number_format($row['total_adults']); ?></span></td>
+                                    <td><span class="es-demo es-children"><?php echo number_format($row['total_children']); ?></span></td>
                                     <td><span class="es-demo es-seniors"><?php echo number_format($row['total_seniors']); ?></span></td>
                                     <td><span class="es-demo es-pwd"><?php echo number_format($row['total_pwds']); ?></span></td>
+                                    <td><span class="es-demo"><?php echo number_format($row['total_pregnant_women']); ?></span></td>
+                                    <td><span class="es-demo"><?php echo number_format($row['total_lactating_mothers']); ?></span></td>
+                                    <td><span class="es-demo"><?php echo number_format($row['total_infants_toddlers']); ?></span></td>
                                     <td><span class="es-families"><?php echo number_format($row['total_families']); ?></span></td>
                                     <td><span class="es-total"><?php echo number_format($row['total_evacuees']); ?></span></td>
                                     <td>
@@ -473,10 +483,13 @@ $uSummary = $pdo->query("
                             </tbody>
 
                             <?php
-                                $grandChildren  = array_sum(array_column($evacSummary, 'total_children'));
                                 $grandAdults    = array_sum(array_column($evacSummary, 'total_adults'));
+                                $grandChildren  = array_sum(array_column($evacSummary, 'total_children'));
                                 $grandSeniors   = array_sum(array_column($evacSummary, 'total_seniors'));
                                 $grandPwds      = array_sum(array_column($evacSummary, 'total_pwds'));
+                                $grandPregnant  = array_sum(array_column($evacSummary, 'total_pregnant_women'));
+                                $grandLactating = array_sum(array_column($evacSummary, 'total_lactating_mothers'));
+                                $grandInfants   = array_sum(array_column($evacSummary, 'total_infants_toddlers'));
                                 $grandFamilies  = array_sum(array_column($evacSummary, 'total_families'));
                                 $grandTotal     = array_sum(array_column($evacSummary, 'total_evacuees'));
                                 $grandCap       = array_sum(array_column($evacSummary, 'max_capacity_people'));
@@ -484,10 +497,13 @@ $uSummary = $pdo->query("
                             <tfoot>
                                 <tr>
                                     <td colspan="2"><strong>TOTAL</strong></td>
-                                    <td><strong><?php echo number_format($grandChildren); ?></strong></td>
                                     <td><strong><?php echo number_format($grandAdults); ?></strong></td>
+                                    <td><strong><?php echo number_format($grandChildren); ?></strong></td>
                                     <td><strong><?php echo number_format($grandSeniors); ?></strong></td>
                                     <td><strong><?php echo number_format($grandPwds); ?></strong></td>
+                                    <td><strong><?php echo number_format($grandPregnant); ?></strong></td>
+                                    <td><strong><?php echo number_format($grandLactating); ?></strong></td>
+                                    <td><strong><?php echo number_format($grandInfants); ?></strong></td>
                                     <td><strong><?php echo number_format($grandFamilies); ?></strong></td>
                                     <td><strong><?php echo number_format($grandTotal); ?></strong></td>
                                     <td colspan="2">
