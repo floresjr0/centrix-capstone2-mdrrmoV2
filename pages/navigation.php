@@ -497,6 +497,43 @@ window.snapPanel = function(collapsed) {
   panel.style.bottom = '';
   requestAnimationFrame(() => setTimeout(syncToggleBtn, 520));
 };
+window.snapPanel = function(collapsed) {
+  panelCollapsed = collapsed;
+  const panel = document.getElementById('bottomPanel');
+  const hint  = document.getElementById('handleHint');
+  panel.classList.remove('no-transition');
+  if (collapsed) {
+    panel.classList.add('collapsed'); panel.classList.remove('show');
+    hint.textContent = 'tap to show';
+  } else {
+    panel.classList.remove('collapsed'); panel.classList.add('show');
+    hint.textContent = 'drag to hide';
+  }
+  panel.style.bottom = '';
+  requestAnimationFrame(() => setTimeout(syncToggleBtn, 520));
+};
+
+// ─── SIMPLE LOCATION TOAST (parehong pattern gaya ng sign up) ─────────────
+function showNavToast(message) {
+  let toast = document.getElementById('navGeoToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'navGeoToast';
+    toast.style.cssText = 'position:fixed;left:50%;bottom:110px;transform:translate(-50%,20px);' +
+      'background:rgba(20,20,20,.92);color:#fff;padding:10px 18px;border-radius:12px;' +
+      'font-size:.78rem;font-weight:500;max-width:82%;text-align:center;z-index:9999;' +
+      'opacity:0;transition:opacity .3s ease,transform .3s ease;pointer-events:none;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.style.opacity = '1';
+  toast.style.transform = 'translate(-50%,0)';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translate(-50%,20px)';
+  }, 5000);
+}
 
 // ─── INIT ─────────────────────────────────────────────────────────────────
 function initApp() {
@@ -512,6 +549,9 @@ function initApp() {
         loadCenters();
       },
       err => {
+        if (err.code === err.PERMISSION_DENIED) {
+          showNavToast('Naka-off ang Lokasyon. I-on ito sa Settings ng iyong phone para makita ang pinakamalapit na evacuation center.');
+        }
         document.getElementById('centerList').textContent = 'Unable to get your location: ' + err.message;
         loadCenters();
       },
@@ -522,7 +562,6 @@ function initApp() {
     loadCenters();
   }
 }
-
 function initMap() {
   const mapEl = document.getElementById('map');
 
@@ -1125,7 +1164,14 @@ function getBearing(lat1,lon1,lat2,lon2) {
   return (Math.atan2(y,x)*180/Math.PI+360)%360;
 }
 function onGeoError(err) {
-  document.getElementById('turnInstruction').textContent = '⚠ ' + err.message;
+  if (err.code === err.PERMISSION_DENIED) {
+    showNavToast('Naka-block ang Lokasyon. I-on ito sa Settings ng iyong phone.');
+    document.getElementById('turnInstruction').textContent = '⚠ Naka-block ang Lokasyon — pumunta sa Settings para i-on';
+    document.getElementById('stepDist').textContent = 'Kailangang i-allow ang location access';
+    document.getElementById('turnArrowBox').style.background = 'linear-gradient(145deg,#dc2626,#991b1b)';
+  } else {
+    document.getElementById('turnInstruction').textContent = '⚠ ' + err.message;
+  }
 }
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────

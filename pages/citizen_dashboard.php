@@ -303,7 +303,6 @@ $riskLabels = ['low'=>'LOW','medium'=>'MODERATE','high'=>'HIGH','extreme'=>'SEVE
 <?php endif; ?>
 </script>
 <style>
-
 </style>
 </head>
 <body>
@@ -556,7 +555,7 @@ $riskLabels = ['low'=>'LOW','medium'=>'MODERATE','high'=>'HIGH','extreme'=>'SEVE
     <div class="section-header anim-in"><h2>Evacuate</h2></div>
     <div class="evac-card anim-in">
       <p>Kapag available, hanapin ang pinakamalapit na evacuation center at mag-navigate mula sa iyong lokasyon.</p>
-      <div><a href="navigation.php" class="btn-nav">Open Navigation</a></div>
+      <a href="navigation.php" class="btn-nav" onclick="return requireProfileBeforeRoute(event)">Open Navigation</a>
     </div>
 
     <div class="section-header anim-in" id="announcements"><h2>Announcements</h2></div>
@@ -710,7 +709,7 @@ $riskLabels = ['low'=>'LOW','medium'=>'MODERATE','high'=>'HIGH','extreme'=>'SEVE
           <div class="desktop-card-header"><h2>Evacuate</h2></div>
           <div class="desktop-evac-body">
             <p style="font-size:.82rem;color:var(--text-2);margin-bottom:.9rem;line-height:1.65">Kapag available, hanapin ang pinakamalapit na evacuation center at mag-navigate mula sa iyong lokasyon.</p>
-            <a href="navigation.php" class="btn-nav">Open Navigation</a>
+            <a href="navigation.php" class="btn-nav" onclick="return requireProfileBeforeRoute(event)">Open Navigation</a>
           </div>
         </div>
       </div>
@@ -794,6 +793,20 @@ function showProfileToast(msg,type=''){
   const el=document.getElementById('profileToast'); if(!el) return;
   el.textContent=msg; el.className='profile-toast show '+type;
   setTimeout(()=>el.classList.remove('show'),2500);
+}
+function isProfileComplete(){
+  if(!profileCache) return false;
+  const required = ['first_name','last_name','contact_number','birthday','sex'];
+  return required.every(f => profileCache[f] && String(profileCache[f]).trim() !== '');
+}
+
+function requireProfileBeforeRoute(e){
+  if(isProfileComplete()) return true; // ok na, hayaan tumuloy
+  if(e) e.preventDefault();
+  showProfileToast('Kumpletuhin muna ang iyong personal details bago mag-navigate','error');
+  openProfileAndCloseSidebar ? openProfileModal() : null;
+  if('vibrate' in navigator) navigator.vibrate([40,30,40]);
+  return false;
 }
 function updateHHTotal(){
   const total=hhState.adults+hhState.children+hhState.seniors+hhState.pwds;
@@ -904,7 +917,26 @@ function closeReadyBagModal(e){
 }
 
 // ── DISASTER MODAL ──
-function openDisasterModal(){if(DISASTER_DATA){document.getElementById('dsModalBackdrop').classList.add('open');document.body.style.overflow='hidden'}}
+const LVL_LABEL={1:'Low',2:'Moderate',3:'High',4:'Severe'};
+function openDisasterModal(){
+  if(!DISASTER_DATA) return;
+  const lvl=parseInt(DISASTER_DATA.level,10)||0;
+  document.getElementById('dsModalTitle').textContent=DISASTER_DATA.title||'Alerto sa Sakuna';
+  document.getElementById('dsModalType').textContent=DISASTER_DATA.type?(DISASTER_DATA.type.charAt(0).toUpperCase()+DISASTER_DATA.type.slice(1)):'Uri';
+  document.getElementById('dsModalLevelText').textContent='Signal #'+lvl+' — '+(LVL_LABEL[lvl]||'Moderate');
+  const chips=document.getElementById('dsModalChips'); chips.innerHTML='';
+  function chip(txt){const c=document.createElement('div');c.className='dsmodal-chip';c.textContent=txt;chips.appendChild(c)}
+  if(DISASTER_DATA.status) chip(DISASTER_DATA.status.charAt(0).toUpperCase()+DISASTER_DATA.status.slice(1));
+  if(DISASTER_DATA.started_at){
+    let ds=DISASTER_DATA.started_at;
+    try{ds=new Date(DISASTER_DATA.started_at).toLocaleString('fil-PH',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){}
+    chip('Nagsimula: '+ds);
+  }
+  document.getElementById('dsModalDesc').textContent=DISASTER_DATA.description||'Walang karagdagang impormasyon na available.';
+  document.getElementById('dsModalBackdrop').classList.add('open');
+  document.body.style.overflow='hidden';
+  if('vibrate' in navigator) navigator.vibrate(28);
+}
 function closeDisasterModal(e){
   if(e&&e.target!==document.getElementById('dsModalBackdrop')) return;
   document.getElementById('dsModalBackdrop').classList.remove('open');
@@ -940,6 +972,14 @@ function closeDisasterModal(e){
 
   function startHold(e){
     e.preventDefault(); if(isCompleted) return;
+
+    if(!isProfileComplete()){
+      showProfileToast('Kumpletuhin muna ang personal details bago lumikas','error');
+      if('vibrate' in navigator) navigator.vibrate([40,30,40]);
+      openProfileModal();
+      return;
+    }
+
     isHolding=true; isCompleted=false; raw=0; fc=0;
     fab.classList.remove('done','shake'); fab.classList.add('pressing');
     setRing(0); measure();
@@ -992,7 +1032,6 @@ function closeDisasterModal(e){
   fab.addEventListener('contextmenu',e=>e.preventDefault());
   setTimeout(()=>{navItem.classList.add('hint-show');setTimeout(()=>navItem.classList.remove('hint-show'),2000)},1200);
 })();
-
 // ── INIT ──
 window.addEventListener('DOMContentLoaded',()=>{
   loadProfileData();
