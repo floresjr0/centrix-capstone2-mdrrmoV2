@@ -147,25 +147,130 @@ $user = current_user();
     <div class="mode-label">Evacuation Centers (nearest first)</div>
     <div id="centerList">Requesting your location…</div>
 
-    <div class="mode-label">Travel Mode</div>
-    <div id="modeSelector">
-      <button class="mode-btn active" data-mode="walk" onclick="selectMode('walk')">
-        <div class="mode-icon"><img src="../img/Walk.png" alt="Walking" loading="lazy"></div>
-        <span class="mode-name">Walk</span>
-      </button>
-      <button class="mode-btn" data-mode="bike" onclick="selectMode('bike')">
-        <div class="mode-icon"><img src="../img/Bike.png" alt="Bicycle" loading="lazy"></div>
-        <span class="mode-name">Bike</span>
-      </button>
-      <button class="mode-btn" data-mode="moto" onclick="selectMode('moto')">
-        <div class="mode-icon"><img src="../img/motor.png" alt="Motorcycle" loading="lazy"></div>
-        <span class="mode-name">Motorcycle</span>
-      </button>
-      <button class="mode-btn" data-mode="car" onclick="selectMode('car')">
-        <div class="mode-icon"><img src="../img/Moto.png" alt="Car" loading="lazy"></div>
-        <span class="mode-name">Car</span>
-      </button>
+    <style>
+  .mode-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #8a8a92;
+    margin-bottom: 12px;
+  }
+
+  #modeSelector {
+    display: flex;
+    gap: 8px;
+    background: #f4f4f6;
+    padding: 6px;
+    border-radius: 16px;
+  }
+
+  .mode-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 8px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    color: #6b6b74;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.25s ease, color 0.25s ease, transform 0.15s ease;
+  }
+
+  .mode-btn:hover {
+    background: #eaeaee;
+    color: #33333a;
+  }
+
+  .mode-btn:active {
+    transform: scale(0.96);
+  }
+
+ .mode-btn.active {
+  background: #7e7c7c;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(177, 177, 177, 0.12);
+}
+
+  .mode-icon {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mode-icon svg {
+    width: 100%;
+    height: 100%;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke 0.25s ease;
+  }
+
+  .mode-name {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+</style>
+
+<div class="mode-label">Travel Mode</div>
+<div id="modeSelector">
+  <button class="mode-btn active" data-mode="walk" onclick="selectMode('walk')">
+    <div class="mode-icon">
+      <svg viewBox="0 0 24 24">
+        <circle cx="13" cy="4" r="2"></circle>
+        <path d="M15 22l-2-8-3 2-2 6"></path>
+        <path d="M9 8l3-1 3 3 3-1"></path>
+        <path d="M6 22l3-6-2-5"></path>
+      </svg>
     </div>
+    <span class="mode-name">Walk</span>
+  </button>
+
+  <button class="mode-btn" data-mode="bike" onclick="selectMode('bike')">
+    <div class="mode-icon">
+      <svg viewBox="0 0 24 24">
+        <circle cx="5.5" cy="17.5" r="3.5"></circle>
+        <circle cx="18.5" cy="17.5" r="3.5"></circle>
+        <path d="M15 6a1 1 0 100-2 1 1 0 000 2z"></path>
+        <path d="M12 17.5V14l-3-3 4-3 2 3h3"></path>
+      </svg>
+    </div>
+    <span class="mode-name">Bike</span>
+  </button>
+
+  <button class="mode-btn" data-mode="moto" onclick="selectMode('moto')">
+    <div class="mode-icon">
+      <svg viewBox="0 0 24 24">
+        <circle cx="5" cy="17" r="3"></circle>
+        <circle cx="19" cy="17" r="3"></circle>
+        <path d="M5 17l2-7h5l3 4h4"></path>
+        <path d="M10 10L8 6H5"></path>
+      </svg>
+    </div>
+    <span class="mode-name">Motorcycle</span>
+  </button>
+
+  <button class="mode-btn" data-mode="car" onclick="selectMode('car')">
+    <div class="mode-icon">
+      <svg viewBox="0 0 24 24">
+        <path d="M5 17h14M5 17a2 2 0 100 4 2 2 0 000-4zM19 17a2 2 0 100 4 2 2 0 000-4z"></path>
+        <path d="M5 17l1.5-5.5A2 2 0 018.4 10h7.2a2 2 0 011.9 1.5L19 17"></path>
+        <path d="M3 13h18"></path>
+      </svg>
+    </div>
+    <span class="mode-name">Car</span>
+  </button>
+</div>
 
     <div class="mode-stats">
       <div class="stat-chip">

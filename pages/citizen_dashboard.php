@@ -559,7 +559,7 @@ $riskLabels = ['low'=>'LOW','medium'=>'MODERATE','high'=>'HIGH','extreme'=>'SEVE
 <div class="evac-card anim-in">
   <p>Kapag available, hanapin ang pinakamalapit na evacuation center at mag-navigate mula sa iyong lokasyon.</p>
   <a href="navigation.php" class="btn-nav" onclick="return requireProfileBeforeRoute(event)">Open Navigation</a>
-</div>>
+</div>
 
     <div class="section-header anim-in" id="announcements"><h2>Announcements</h2></div>
     <?php if (!$announcements): ?>
