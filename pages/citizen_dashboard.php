@@ -555,11 +555,11 @@ $riskLabels = ['low'=>'LOW','medium'=>'MODERATE','high'=>'HIGH','extreme'=>'SEVE
     <div class="weather-card anim-in"><div class="weather-banner" style="padding-bottom:1rem;background:linear-gradient(135deg,#F97316,#FBBF24);"><p style="font-size:.82rem;color:rgba(255,255,255,.8);text-align:center;padding:.5rem 0;">Walang available na datos ng panahon.</p></div></div>
     <?php endif; ?>
 
-    <div class="section-header anim-in"><h2>Evacuate</h2></div>
-    <div class="evac-card anim-in">
-      <p>Kapag available, hanapin ang pinakamalapit na evacuation center at mag-navigate mula sa iyong lokasyon.</p>
-      <a href="navigation.php" class="btn-nav" onclick="return requireProfileBeforeRoute(event)">Open Navigation</a>
-    </div>
+   <div class="section-header anim-in"><h2>Evacuate</h2></div>
+<div class="evac-card anim-in">
+  <p>Kapag available, hanapin ang pinakamalapit na evacuation center at mag-navigate mula sa iyong lokasyon.</p>
+  <a href="navigation.php" class="btn-nav" onclick="return requireProfileBeforeRoute(event)">Open Navigation</a>
+</div>>
 
     <div class="section-header anim-in" id="announcements"><h2>Announcements</h2></div>
     <?php if (!$announcements): ?>

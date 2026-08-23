@@ -161,11 +161,74 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .w-stat-pill .stat-label{font-size:.60rem;color:rgba(255,255,255,.72);font-weight:500}
 
 /* ── EVAC CARD ── */
-.evac-card{margin:0 .9rem .68rem;background:var(--surface-0);border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow-md);border:1px solid var(--border-light);contain:layout style}
-.evac-card p{font-size:.80rem;color:var(--text-2);padding:.92rem 1.05rem .45rem;line-height:1.68}
-.evac-card>div{padding:0 1.05rem 1.05rem}
-.btn-nav{display:inline-flex;align-items:center;gap:.50rem;padding:.65rem 1.4rem;background:linear-gradient(135deg,var(--red) 0%,var(--orange) 100%);color:#fff;border-radius:var(--radius-pill);font-size:.80rem;font-weight:700;text-decoration:none;font-family:var(--font);transition:opacity .16s;box-shadow:var(--shadow-red)}
-.btn-nav:active{opacity:.84}
+
+.evac-card {
+  margin: 0 .9rem .68rem;
+  background: var(--surface-0);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
+  padding: 0 0 1.15rem 0;
+  contain: layout style;
+}
+
+.evac-card p {
+  font-size: .80rem;
+  color: var(--text-2);
+  padding: .90rem 1.05rem .40rem;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.evac-card .btn-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: .50rem;
+  margin: 0 1.05rem;
+  padding: .60rem 1.35rem;
+  background: linear-gradient(135deg, var(--red) 0%, var(--orange) 100%);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  font-size: .78rem;
+  font-weight: 700;
+  text-decoration: none;
+  font-family: var(--font);
+  transition: opacity .16s;
+  box-shadow: var(--shadow-red);
+}
+
+.evac-card .btn-nav:active {
+  opacity: .84;
+}
+
+/* ── EVAC CARD (Desktop) ── */
+.desktop-evac-body {
+  padding: 0 1.2rem 1.3rem;
+}
+
+.desktop-evac-body p {
+  font-size: .82rem;
+  color: var(--text-2);
+  margin: 0 0 .75rem 0;
+  line-height: 1.65;
+}
+
+.desktop-evac-body .btn-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: .50rem;
+  padding: .60rem 1.35rem;
+  background: linear-gradient(135deg, var(--red) 0%, var(--orange) 100%);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  font-size: .78rem;
+  font-weight: 700;
+  text-decoration: none;
+  font-family: var(--font);
+  transition: opacity .16s;
+  box-shadow: var(--shadow-red);
+}
 
 /* ── ANNOUNCEMENTS ── */
 .ann-list{margin:0 .9rem .68rem;background:var(--surface-0);border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow-md);border:1px solid var(--border-light);contain:layout style}
