@@ -4,7 +4,16 @@ require_login('coordinator');
 
 $pdo  = db();
 $user = current_user();
-
+// ── Coordinator's own profile info (barangay name) ────────────────────────
+$profStmt = $pdo->prepare("
+    SELECT b.name AS barangay_name
+    FROM users u
+    JOIN barangays b ON b.id = u.barangay_id
+    WHERE u.id = ?
+");
+$profStmt->execute([$user['id']]);
+$profileInfo = $profStmt->fetch();
+$coordBarangay = $profileInfo['barangay_name'] ?? '—';
 // ── Assigned centers with expected-evacuee counts ─────────────────────────
 $stmt = $pdo->prepare("
     SELECT
@@ -72,6 +81,36 @@ $activeCenters  = count(array_filter($centers, fn($c) => $c['status'] !== 'close
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../asset/css/coordinator_index.css">
 </head>
+<style>
+.profile-banner{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:14px;
+    padding:16px 20px;
+    margin:16px 20px 0;
+}
+.profile-avatar-lg{
+    width:56px;height:56px;
+    border-radius:50%;
+    background:#0f766e;
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;font-weight:700;
+    flex-shrink:0;
+}
+.profile-name-row{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.profile-fullname{font-size:18px;font-weight:700;color:#111827;}
+.profile-role-badge{
+    background:#0f766e1a;color:#0f766e;
+    font-size:12px;font-weight:600;
+    padding:3px 10px;border-radius:999px;
+}
+</style>
 <body>
 
 <!-- Overlay for drawer -->
@@ -207,7 +246,25 @@ $activeCenters  = count(array_filter($centers, fn($c) => $c['status'] !== 'close
                 </button>
             </div>
         </header>
-
+       <!-- Coordinator Profile Section -->
+        <section class="profile-banner">
+            <div class="profile-avatar-lg">
+                <?php echo htmlspecialchars(mb_strtoupper(mb_substr($user['full_name'], 0, 1))); ?>
+            </div>
+            <div class="profile-details">
+                <div class="profile-name-row">
+                    <span class="profile-fullname"><?php echo htmlspecialchars($user['full_name']); ?></span>
+                    <span class="profile-role-badge">Coordinator</span>
+                </div>
+                <?php if (!empty($user['contact_number'])): ?>
+                <div class="profile-meta">
+                    <span class="profile-meta-item">
+                        📞 <?php echo htmlspecialchars($user['contact_number']); ?>
+                    </span>
+                </div>
+                <?php endif; ?>
+            </div>
+        </section>
         <!-- Page content -->
         <main class="page">
             <h1 class="page-heading">Your <span>Assigned Centers</span></h1>

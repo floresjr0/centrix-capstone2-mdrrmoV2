@@ -247,6 +247,19 @@ $user = current_user();
     </div>
     <span class="mode-name">Bike</span>
   </button>
+  
+  <button class="mode-btn" data-mode="tricycle" onclick="selectMode('tricycle')">
+    <div class="mode-icon">
+      <svg viewBox="0 0 24 24">
+        <circle cx="6" cy="18" r="2.5"></circle>
+        <circle cx="18" cy="18" r="2.5"></circle>
+        <path d="M6 18h9V9H9l-3 5"></path>
+        <path d="M9 9V5h3"></path>
+        <path d="M15 18h4l-1-6h-3"></path>
+      </svg>
+    </div>
+    <span class="mode-name">Tricycle</span>
+  </button>
 
   <button class="mode-btn" data-mode="moto" onclick="selectMode('moto')">
     <div class="mode-icon">
@@ -399,10 +412,11 @@ const REROUTE_COOLDOWN     = 15000;
 const STATUS_POLL_INTERVAL = 30000;
 
 const MODES = {
-  walk: { label:'Walking',    icon:'🚶', speed:5,  accentColor:'#d45f10', offRouteM:40 },
-  bike: { label:'Cycling',    icon:'🚲', speed:18, accentColor:'#d45f10', offRouteM:60 },
-  moto: { label:'Motorcycle', icon:'🏍️', speed:45, accentColor:'#d45f10', offRouteM:80 },
-  car:  { label:'Driving',    icon:'🚗', speed:60, accentColor:'#d45f10', offRouteM:80 },
+  walk:     { label:'Walking',    icon:'🚶', speed:5,  accentColor:'#d45f10', offRouteM:40 },
+  bike:     { label:'Cycling',    icon:'🚲', speed:18, accentColor:'#d45f10', offRouteM:60 },
+  tricycle: { label:'Tricycle',   icon:'🛺', speed:25, accentColor:'#d45f10', offRouteM:70 },
+  moto:     { label:'Motorcycle', icon:'🏍️', speed:45, accentColor:'#d45f10', offRouteM:80 },
+  car:      { label:'Driving',    icon:'🚗', speed:60, accentColor:'#d45f10', offRouteM:80 },
 };
 
 // ─── STATE ────────────────────────────────────────────────────────────────
