@@ -85,6 +85,80 @@ $evacSummaryStmt = $pdo->query("
 ");
 $evacSummary = $evacSummaryStmt->fetchAll();
 
+// Expected evacuees en route (same algorithm as coordinator dashboard)
+$expectedCentersStmt = $pdo->query("
+    SELECT
+        ec.id,
+        ec.name,
+        ec.status,
+        ec.max_capacity_people,
+        b.name AS barangay_name,
+        u.full_name AS coordinator_name,
+        COALESCE(t.expected_count, 0) AS expected_count
+    FROM evacuation_centers ec
+    LEFT JOIN barangays b ON b.id = ec.barangay_id
+    LEFT JOIN users u ON u.id = ec.coordinator_user_id
+    LEFT JOIN (
+        SELECT
+            nt.center_id,
+            SUM(COALESCE(ch.total_members, 1)) AS expected_count
+        FROM evac_navigation_tracking nt
+        LEFT JOIN family_profiles ch ON ch.user_id = nt.user_id
+        WHERE nt.status = 'navigating'
+        GROUP BY nt.center_id
+    ) t ON t.center_id = ec.id
+    WHERE ec.status != 'closed'
+    ORDER BY expected_count DESC, ec.name ASC
+");
+$expectedCenters = $expectedCentersStmt->fetchAll();
+
+$expectedByCenterId = [];
+$totalExpectedEnRoute = 0;
+foreach ($expectedCenters as $ec) {
+    $expectedByCenterId[(int)$ec['id']] = (int)$ec['expected_count'];
+    $totalExpectedEnRoute += (int)$ec['expected_count'];
+}
+
+$breakdownStmt = $pdo->query("
+    SELECT
+        nt.center_id,
+        b.name AS barangay_name,
+        SUM(COALESCE(ch.total_members, 1)) AS citizen_count
+    FROM evac_navigation_tracking nt
+    JOIN users u ON u.id = nt.user_id
+    JOIN barangays b ON b.id = u.barangay_id
+    LEFT JOIN family_profiles ch ON ch.user_id = nt.user_id
+    WHERE nt.status = 'navigating'
+      AND nt.center_id IN (SELECT id FROM evacuation_centers WHERE status != 'closed')
+    GROUP BY nt.center_id, u.barangay_id
+    ORDER BY citizen_count DESC
+");
+$expectedBreakdown = [];
+foreach ($breakdownStmt->fetchAll() as $row) {
+    $expectedBreakdown[(int)$row['center_id']][] = $row;
+}
+
+$arrivalsStmt = $pdo->query("
+    SELECT
+        nt.center_id,
+        nt.id AS tracking_id,
+        u.full_name,
+        ub.name AS origin_barangay,
+        COALESCE(ch.total_members, 1) AS total_members,
+        nt.updated_at
+    FROM evac_navigation_tracking nt
+    JOIN users u ON u.id = nt.user_id
+    JOIN barangays ub ON ub.id = u.barangay_id
+    LEFT JOIN family_profiles ch ON ch.user_id = nt.user_id
+    WHERE nt.status = 'navigating'
+      AND nt.center_id IN (SELECT id FROM evacuation_centers WHERE status != 'closed')
+    ORDER BY nt.center_id, nt.updated_at ASC
+");
+$arrivalsByCenter = [];
+foreach ($arrivalsStmt->fetchAll() as $row) {
+    $arrivalsByCenter[(int)$row['center_id']][] = $row;
+}
+
 // Latest weather + active disaster for quick admin view
 // Live weather for San Ildefonso (no cron)
 $lat = 15.0828;
@@ -155,6 +229,66 @@ $uSummary = $pdo->query("
         SUM(is_active = 0) AS total_inactive
     FROM users
 ")->fetch();
+
+// Chart datasets for dashboard analytics
+$chartDemographics = [
+    'Adults'    => (int)array_sum(array_column($evacSummary, 'total_adults')),
+    'Children'  => (int)array_sum(array_column($evacSummary, 'total_children')),
+    'Seniors'   => (int)array_sum(array_column($evacSummary, 'total_seniors')),
+    'PWD'       => (int)array_sum(array_column($evacSummary, 'total_pwds')),
+    'Pregnant'  => (int)array_sum(array_column($evacSummary, 'total_pregnant_women')),
+    'Lactating' => (int)array_sum(array_column($evacSummary, 'total_lactating_mothers')),
+    'Infants'   => (int)array_sum(array_column($evacSummary, 'total_infants_toddlers')),
+];
+
+$chartCenterStatus = [
+    'Available'     => $summary['status_available'],
+    'Near Capacity' => $summary['status_near'],
+    'Full'          => $summary['status_full'],
+    'Temp Shelter'  => $summary['status_temp'],
+    'Closed'        => $summary['status_closed'],
+];
+
+$chartUsers = [
+    'Admins'       => (int)$uSummary['total_admin'],
+    'Coordinators' => (int)$uSummary['total_coordinator'],
+    'Citizens'     => (int)$uSummary['total_citizen'],
+];
+
+$chartCapacityCenters = [];
+foreach (array_slice($evacSummary, 0, 6) as $row) {
+    $cid   = (int)$row['id'];
+    $label = $row['center_name'];
+    if (mb_strlen($label) > 22) {
+        $label = mb_substr($label, 0, 20) . '…';
+    }
+    $chartCapacityCenters[] = [
+        'id'         => $cid,
+        'label'      => $label,
+        'registered' => (int)$row['total_evacuees'],
+        'enRoute'    => $expectedByCenterId[$cid] ?? 0,
+        'max'        => (int)$row['max_capacity_people'],
+    ];
+}
+
+$trendDays = [];
+for ($i = 6; $i >= 0; $i--) {
+    $trendDays[] = date('Y-m-d', strtotime("-{$i} days"));
+}
+$trendMap = [];
+$trendStmt = $pdo->query("
+    SELECT DATE(created_at) AS day, COALESCE(SUM(total_members), 0) AS total
+    FROM evac_registrations
+    WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+    GROUP BY DATE(created_at)
+");
+foreach ($trendStmt->fetchAll() as $tr) {
+    $trendMap[$tr['day']] = (int)$tr['total'];
+}
+$chartTrend = [
+    'labels' => array_map(fn($d) => date('M j', strtotime($d)), $trendDays),
+    'values' => array_map(fn($d) => $trendMap[$d] ?? 0, $trendDays),
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -307,8 +441,65 @@ $uSummary = $pdo->query("
                             <div class="stat-label-small">Full</div>
                         </div>
                     </div>
+                    <div class="stat-card stat-card-enroute">
+                        <div class="stat-icon-small"><i class="fas fa-route"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-value-small" id="total-expected"><?php echo number_format($totalExpectedEnRoute); ?></div>
+                            <div class="stat-label-small">En Route</div>
+                        </div>
+                    </div>
 
                 </div>
+
+                <!-- Analytics Charts -->
+                <section class="charts-section">
+                    <div class="charts-section-header">
+                        <h3><i class="fas fa-chart-line"></i> Analytics Overview</h3>
+                        <p>Visual summary of evacuation operations and system activity</p>
+                    </div>
+
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <h4>Center Status</h4>
+                                <span>Availability distribution</span>
+                            </div>
+                            <div class="chart-wrap chart-wrap-donut"><canvas id="chartCenterStatus"></canvas></div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <h4>Evacuee Demographics</h4>
+                                <span>Registered population breakdown</span>
+                            </div>
+                            <div class="chart-wrap"><canvas id="chartDemographics"></canvas></div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <h4>Platform Users</h4>
+                                <span>Accounts by role</span>
+                            </div>
+                            <div class="chart-wrap chart-wrap-donut"><canvas id="chartUsers"></canvas></div>
+                        </div>
+
+                        <div class="chart-card chart-card-wide">
+                            <div class="chart-card-header">
+                                <h4>Center Occupancy</h4>
+                                <span>Registered + en route vs capacity (top centers)</span>
+                            </div>
+                            <div class="chart-wrap chart-wrap-bar"><canvas id="chartCapacity"></canvas></div>
+                        </div>
+
+                        <div class="chart-card chart-card-full">
+                            <div class="chart-card-header">
+                                <h4>Evacuee Registrations</h4>
+                                <span>People registered over the last 7 days</span>
+                            </div>
+                            <div class="chart-wrap chart-wrap-line"><canvas id="chartTrend"></canvas></div>
+                        </div>
+                    </div>
+                </section>
 
                 <!-- Main Two Column Layout -->
                 <div class="main-grid">
@@ -396,6 +587,109 @@ $uSummary = $pdo->query("
 
 </div>
 
+                <!-- App Arrivals — Expected Evacuees (en route via citizen navigation) -->
+                <div class="card app-arrivals-card">
+                    <div class="card-header app-arrivals-header">
+                        <h3><i class="fas fa-location-arrow"></i> App Arrivals — Expected Evacuees</h3>
+                        <div class="app-arrivals-meta">
+                            <span class="badge badge-enroute" id="arrivals-badge"><?php echo number_format($totalExpectedEnRoute); ?> en route</span>
+                            <button type="button" class="btn-refresh-expected" id="refreshExpectedBtn" title="Refresh counts">
+                                <i class="fas fa-sync-alt" id="spinIcon"></i>
+                            </button>
+                            <span class="last-expected-updated" id="last-expected-updated">Auto-refreshes every 30s</span>
+                        </div>
+                    </div>
+
+                    <?php if (empty($expectedCenters)): ?>
+                        <div class="app-arrivals-empty">No active evacuation centers.</div>
+                    <?php elseif ($totalExpectedEnRoute === 0): ?>
+                        <div class="app-arrivals-empty">
+                            <i class="fas fa-check-circle"></i>
+                            No citizens are currently navigating to an evacuation center via the app.
+                        </div>
+                        <p class="app-arrivals-note">Counts update when citizens start navigation from the citizen app.</p>
+                    <?php else: ?>
+                        <ul class="admin-arrivals-list" id="adminArrivalsList">
+                            <?php foreach ($expectedCenters as $ec):
+                                $centerId    = (int)$ec['id'];
+                                $expected    = (int)$ec['expected_count'];
+                                if ($expected <= 0) continue;
+                                $maxCap      = (int)$ec['max_capacity_people'];
+                                $capPct      = $maxCap > 0 ? min(100, round($expected / $maxCap * 100)) : 0;
+                                $capClass    = $capPct >= 85 ? 'danger' : ($capPct >= 60 ? 'warning' : 'safe');
+                                $bdown       = $expectedBreakdown[$centerId] ?? [];
+                                $maxBdown    = !empty($bdown) ? max(array_column($bdown, 'citizen_count')) : 1;
+                                $arrivals    = $arrivalsByCenter[$centerId] ?? [];
+                                $statusClass = 'es-' . str_replace('_', '-', $ec['status']);
+                            ?>
+                            <li class="admin-arrival-center" data-center-id="<?php echo $centerId; ?>">
+                                <div class="admin-arrival-center-header">
+                                    <div>
+                                        <div class="admin-arrival-name"><?php echo htmlspecialchars($ec['name']); ?></div>
+                                        <div class="admin-arrival-sub">
+                                            <?php echo htmlspecialchars($ec['barangay_name'] ?? '—'); ?>
+                                            <?php if ($ec['coordinator_name']): ?>
+                                                &bull; Coord: <?php echo htmlspecialchars($ec['coordinator_name']); ?>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <span class="es-status-badge <?php echo $statusClass; ?>"><?php echo ucfirst(str_replace('_', ' ', $ec['status'])); ?></span>
+                                    <span class="expected-pill has-evacuees" id="pill-<?php echo $centerId; ?>">
+                                        <i class="fas fa-walking"></i>
+                                        <span class="pill-val"><?php echo $expected; ?></span> expected
+                                    </span>
+                                </div>
+
+                                <?php if ($maxCap > 0): ?>
+                                <div class="admin-arrival-capacity">
+                                    <span class="capacity-label">Incoming vs capacity</span>
+                                    <div class="cap-bar-track"><div class="cap-bar <?php echo $capClass; ?>" id="capbar-<?php echo $centerId; ?>" style="width:<?php echo $capPct; ?>%"></div></div>
+                                    <span class="capacity-pct" id="cappct-<?php echo $centerId; ?>"><?php echo $expected; ?> / <?php echo $maxCap; ?> (<?php echo $capPct; ?>%)</span>
+                                </div>
+                                <?php endif; ?>
+
+                                <?php if (!empty($bdown)): ?>
+                                <div class="admin-arrival-breakdown" id="breakdown-<?php echo $centerId; ?>">
+                                    <div class="breakdown-label">By barangay of origin</div>
+                                    <table class="breakdown-table">
+                                        <thead><tr><th>Barangay</th><th>People</th><th></th></tr></thead>
+                                        <tbody>
+                                            <?php foreach ($bdown as $brow):
+                                                $bpct = $maxBdown > 0 ? round((int)$brow['citizen_count'] / $maxBdown * 100) : 0;
+                                            ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($brow['barangay_name']); ?></td>
+                                                <td class="count-cell"><?php echo (int)$brow['citizen_count']; ?></td>
+                                                <td><div class="bar-wrap"><div class="bar-fill" style="width:<?php echo $bpct; ?>%"></div></div></td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <?php endif; ?>
+
+                                <?php if ($arrivals): ?>
+                                <div class="admin-arrival-people">
+                                    <div class="breakdown-label">Citizens navigating here</div>
+                                    <ul class="arrival-people-list">
+                                        <?php foreach ($arrivals as $a): ?>
+                                        <li>
+                                            <span class="arrival-person-name"><?php echo htmlspecialchars($a['full_name']); ?></span>
+                                            <span class="arrival-person-meta">
+                                                <?php echo htmlspecialchars($a['origin_barangay']); ?>
+                                                &bull; <?php echo (int)$a['total_members']; ?> person<?php echo (int)$a['total_members'] !== 1 ? 's' : ''; ?>
+                                            </span>
+                                        </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                </div>
+                                <?php endif; ?>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </div>
+
                 <!-- Evacuation Centers Summary - FULLY RESTORED with all columns -->
                 <?php if (!empty($evacSummary)): ?>
                 <div class="evac-summary-card card">
@@ -418,12 +712,14 @@ $uSummary = $pdo->query("
                                     <th>Infants</th>
                                     <th>Families</th>
                                     <th>Total</th>
+                                    <th>En Route</th>
                                     <th>Capacity</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($evacSummary as $row):
+                                    $enRoute = $expectedByCenterId[(int)$row['id']] ?? 0;
                                     $pct = $row['max_capacity_people'] > 0
                                         ? min(round(($row['total_evacuees'] / $row['max_capacity_people']) * 100), 100)
                                         : 0;
@@ -468,6 +764,11 @@ $uSummary = $pdo->query("
                                     <td><span class="es-families"><?php echo number_format($row['total_families']); ?></span></td>
                                     <td><span class="es-total"><?php echo number_format($row['total_evacuees']); ?></span></td>
                                     <td>
+                                        <span class="es-enroute <?php echo $enRoute > 0 ? 'has-enroute' : ''; ?>" id="enroute-<?php echo (int)$row['id']; ?>">
+                                            <?php echo number_format($enRoute); ?>
+                                        </span>
+                                    </td>
+                                    <td>
                                         <div class="es-cap-wrap">
                                             <div class="es-cap-bar">
                                                 <div class="es-cap-fill" style="width:<?php echo $pct; ?>%; background:<?php echo $barColor; ?>;"></div>
@@ -494,6 +795,7 @@ $uSummary = $pdo->query("
                                 $grandFamilies  = array_sum(array_column($evacSummary, 'total_families'));
                                 $grandTotal     = array_sum(array_column($evacSummary, 'total_evacuees'));
                                 $grandCap       = array_sum(array_column($evacSummary, 'max_capacity_people'));
+                                $grandEnRoute   = $totalExpectedEnRoute;
                             ?>
                             <tfoot>
                                 <tr>
@@ -507,6 +809,7 @@ $uSummary = $pdo->query("
                                     <td><strong><?php echo number_format($grandInfants); ?></strong></td>
                                     <td><strong><?php echo number_format($grandFamilies); ?></strong></td>
                                     <td><strong><?php echo number_format($grandTotal); ?></strong></td>
+                                    <td><strong id="enroute-total"><?php echo number_format($grandEnRoute); ?></strong></td>
                                     <td colspan="2">
                                         <strong><?php echo number_format($grandTotal); ?> / <?php echo number_format($grandCap); ?></strong>
                                         (<?php echo $grandCap > 0 ? round(($grandTotal/$grandCap)*100) : 0; ?>% overall)
@@ -549,6 +852,16 @@ $uSummary = $pdo->query("
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
     <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        const DASHBOARD_CHARTS = <?php echo json_encode([
+            'centerStatus'   => $chartCenterStatus,
+            'demographics'   => $chartDemographics,
+            'users'          => $chartUsers,
+            'capacityCenters'=> $chartCapacityCenters,
+            'trend'          => $chartTrend,
+        ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+    </script>
     <script>
         // Sidebar Toggle with external button - Smooth Animation
         const sidebar = document.getElementById('sidebar');
@@ -702,6 +1015,300 @@ $uSummary = $pdo->query("
         } else {
             document.getElementById('adminMap').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #95A5A6;">No evacuation centers defined yet.</div>';
         }
+
+        // Auto-refresh expected evacuee counts (same interval as coordinator dashboard)
+        const AUTO_REFRESH_INTERVAL = 30000;
+        let expectedRefreshTimer = null;
+
+        function refreshExpectedCounts() {
+            const btn = document.getElementById('refreshExpectedBtn');
+            if (!btn) return;
+            btn.disabled = true;
+            btn.classList.add('spinning');
+
+            fetch('expected_counts.php', { cache: 'no-store', credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.ok) return;
+
+                    data.centers.forEach(c => {
+                        const pill = document.getElementById('pill-' + c.id);
+                        if (pill) {
+                            const val = pill.querySelector('.pill-val');
+                            if (val) val.textContent = c.expected_count;
+                            pill.className = 'expected-pill ' + (c.expected_count > 0 ? 'has-evacuees' : 'no-evacuees');
+                        }
+
+                        const capBar = document.getElementById('capbar-' + c.id);
+                        const capPct = document.getElementById('cappct-' + c.id);
+                        if (capBar && c.max_capacity_people > 0) {
+                            const pct = Math.min(100, Math.round(c.expected_count / c.max_capacity_people * 100));
+                            capBar.style.width = pct + '%';
+                            capBar.className = 'cap-bar ' + (pct >= 85 ? 'danger' : (pct >= 60 ? 'warning' : 'safe'));
+                            if (capPct) capPct.textContent = c.expected_count + ' / ' + c.max_capacity_people + ' (' + pct + '%)';
+                        }
+
+                        const enRouteCell = document.getElementById('enroute-' + c.id);
+                        if (enRouteCell) {
+                            enRouteCell.textContent = c.expected_count.toLocaleString();
+                            enRouteCell.classList.toggle('has-enroute', c.expected_count > 0);
+                        }
+                    });
+
+                    const total = data.total_expected ?? data.centers.reduce((s, c) => s + c.expected_count, 0);
+                    const totalEl = document.getElementById('total-expected');
+                    const badgeEl = document.getElementById('arrivals-badge');
+                    const footEl  = document.getElementById('enroute-total');
+                    if (totalEl) totalEl.textContent = total.toLocaleString();
+                    if (badgeEl) badgeEl.textContent = total.toLocaleString() + ' en route';
+                    if (footEl)  footEl.textContent  = total.toLocaleString();
+
+                    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    const updatedEl = document.getElementById('last-expected-updated');
+                    if (updatedEl) updatedEl.textContent = 'Last updated: ' + ts;
+
+                    if (capacityChart && window.chartCapacityMeta) {
+                        const enRouteMap = {};
+                        data.centers.forEach(c => { enRouteMap[c.id] = c.expected_count; });
+                        window.chartCapacityMeta.forEach((id, idx) => {
+                            capacityChart.data.datasets[1].data[idx] = enRouteMap[id] || 0;
+                        });
+                        capacityChart.update('none');
+                    }
+                })
+                .catch(() => {
+                    const updatedEl = document.getElementById('last-expected-updated');
+                    if (updatedEl) updatedEl.textContent = 'Refresh failed — retrying…';
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.classList.remove('spinning');
+                });
+        }
+
+        const refreshExpectedBtn = document.getElementById('refreshExpectedBtn');
+        if (refreshExpectedBtn) {
+            refreshExpectedBtn.addEventListener('click', refreshExpectedCounts);
+            expectedRefreshTimer = setInterval(refreshExpectedCounts, AUTO_REFRESH_INTERVAL);
+        }
+
+        // ── Dashboard Charts (Chart.js) ─────────────────────────────────────
+        let capacityChart = null;
+
+        (function initDashboardCharts() {
+            if (typeof Chart === 'undefined') return;
+
+            Chart.defaults.font.family = "'Segoe UI', system-ui, -apple-system, sans-serif";
+            Chart.defaults.color = '#5D6D7E';
+            Chart.defaults.plugins.legend.labels.usePointStyle = true;
+            Chart.defaults.plugins.legend.labels.boxWidth = 8;
+
+            const tooltipDefaults = {
+                backgroundColor: 'rgba(44, 62, 80, 0.92)',
+                titleFont: { size: 13, weight: '600' },
+                bodyFont: { size: 12 },
+                padding: 12,
+                cornerRadius: 10,
+                displayColors: true,
+            };
+
+            function filterNonZero(labels, values) {
+                const outL = [], outV = [];
+                labels.forEach((l, i) => {
+                    if (values[i] > 0) { outL.push(l); outV.push(values[i]); }
+                });
+                return { labels: outL.length ? outL : labels, values: outV.length ? outV : values };
+            }
+
+            const data = DASHBOARD_CHARTS;
+
+            // 1. Center Status — doughnut
+            const statusLabels = Object.keys(data.centerStatus);
+            const statusValues = Object.values(data.centerStatus);
+            const statusFiltered = filterNonZero(statusLabels, statusValues);
+            new Chart(document.getElementById('chartCenterStatus'), {
+                type: 'doughnut',
+                data: {
+                    labels: statusFiltered.labels,
+                    datasets: [{
+                        data: statusFiltered.values,
+                        backgroundColor: ['#2E7D32', '#FFC107', '#D32F2F', '#3498DB', '#95A5A6'],
+                        borderWidth: 3,
+                        borderColor: '#fff',
+                        hoverOffset: 8,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '68%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 14 } },
+                        tooltip: tooltipDefaults,
+                    },
+                },
+            });
+
+            // 2. Demographics — horizontal bar
+            const demoLabels = Object.keys(data.demographics);
+            const demoValues = Object.values(data.demographics);
+            new Chart(document.getElementById('chartDemographics'), {
+                type: 'bar',
+                data: {
+                    labels: demoLabels,
+                    datasets: [{
+                        label: 'People',
+                        data: demoValues,
+                        backgroundColor: [
+                            '#D32F2F', '#FF7043', '#FFC107', '#7E57C2',
+                            '#EC407A', '#26A69A', '#42A5F5',
+                        ],
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }],
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: tooltipDefaults,
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            ticks: { precision: 0 },
+                        },
+                        y: { grid: { display: false } },
+                    },
+                },
+            });
+
+            // 3. Platform Users — doughnut
+            const userLabels = Object.keys(data.users);
+            const userValues = Object.values(data.users);
+            new Chart(document.getElementById('chartUsers'), {
+                type: 'doughnut',
+                data: {
+                    labels: userLabels,
+                    datasets: [{
+                        data: userValues,
+                        backgroundColor: ['#3498DB', '#FFC107', '#2E7D32'],
+                        borderWidth: 3,
+                        borderColor: '#fff',
+                        hoverOffset: 8,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '68%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 14 } },
+                        tooltip: tooltipDefaults,
+                    },
+                },
+            });
+
+            // 4. Center Occupancy — stacked horizontal bar
+            const capLabels = data.capacityCenters.map(c => c.label);
+            const capRegistered = data.capacityCenters.map(c => c.registered);
+            const capEnRoute = data.capacityCenters.map(c => c.enRoute);
+            window.chartCapacityMeta = data.capacityCenters.map(c => c.id);
+
+            capacityChart = new Chart(document.getElementById('chartCapacity'), {
+                type: 'bar',
+                data: {
+                    labels: capLabels,
+                    datasets: [
+                        {
+                            label: 'Registered',
+                            data: capRegistered,
+                            backgroundColor: 'rgba(46, 125, 50, 0.85)',
+                            borderRadius: 6,
+                            borderSkipped: false,
+                        },
+                        {
+                            label: 'En Route',
+                            data: capEnRoute,
+                            backgroundColor: 'rgba(230, 81, 0, 0.85)',
+                            borderRadius: 6,
+                            borderSkipped: false,
+                        },
+                    ],
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 14 } },
+                        tooltip: {
+                            ...tooltipDefaults,
+                            callbacks: {
+                                footer(items) {
+                                    const idx = items[0]?.dataIndex;
+                                    if (idx == null) return '';
+                                    const max = data.capacityCenters[idx]?.max || 0;
+                                    const reg = capRegistered[idx] || 0;
+                                    const en  = capEnRoute[idx] || 0;
+                                    return 'Total incoming: ' + (reg + en) + ' / ' + max + ' capacity';
+                                },
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            ticks: { precision: 0 },
+                        },
+                        y: { stacked: true, grid: { display: false } },
+                    },
+                },
+            });
+
+            // 5. Registration trend — line with area fill
+            new Chart(document.getElementById('chartTrend'), {
+                type: 'line',
+                data: {
+                    labels: data.trend.labels,
+                    datasets: [{
+                        label: 'People registered',
+                        data: data.trend.values,
+                        borderColor: '#D32F2F',
+                        backgroundColor: 'rgba(211, 47, 47, 0.12)',
+                        borderWidth: 2.5,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#D32F2F',
+                        pointBorderWidth: 2,
+                        fill: true,
+                        tension: 0.35,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: tooltipDefaults,
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            ticks: { precision: 0 },
+                        },
+                    },
+                },
+            });
+        })();
     </script>
 </body>
 </html>

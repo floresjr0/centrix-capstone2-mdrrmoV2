@@ -9,8 +9,7 @@ $user = current_user();
 <meta charset="UTF-8">
 <!--
   iOS FIX #1: Added viewport-fit=cover
-  This tells Safari to extend the viewport into the safe areas (notch, home indicator)
-  so we can then manually pad with env(safe-area-inset-*) where needed.
+  
 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>MDRRMO Navigation</title>
@@ -369,7 +368,7 @@ $user = current_user();
 <script>
 // ═══════════════════════════════════════════════════════════════════
 //  iOS FIX — VIEWPORT HEIGHT MANAGEMENT
-//  Must run BEFORE initApp() so --vh is correct when the map inits.
+
 // ═══════════════════════════════════════════════════════════════════
 (function() {
   /**

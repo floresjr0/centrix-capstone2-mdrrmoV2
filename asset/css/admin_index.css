@@ -351,9 +351,14 @@
         /* Minimized Stat Cards */
         .stats-row {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 12px;
             margin-bottom: 24px;
+        }
+
+        .stat-card-enroute .stat-icon-small {
+            background: #FFF3E0;
+            color: #E65100;
         }
 
         .stat-card {
@@ -402,6 +407,95 @@
             color: #95A5A6;
             text-transform: uppercase;
             letter-spacing: 0.3px;
+        }
+
+        /* Analytics Charts */
+        .charts-section {
+            margin-bottom: 24px;
+        }
+
+        .charts-section-header {
+            margin-bottom: 16px;
+        }
+
+        .charts-section-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2C3E50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 4px;
+        }
+
+        .charts-section-header h3 i {
+            color: var(--primary-red);
+        }
+
+        .charts-section-header p {
+            margin: 0;
+            font-size: 13px;
+            color: #95A5A6;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .chart-card {
+            background: white;
+            border: 1px solid #EDE7E7;
+            border-radius: 16px;
+            padding: 18px 18px 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .chart-card:hover {
+            box-shadow: 0 8px 24px rgba(211, 47, 47, 0.08);
+        }
+
+        .chart-card-wide {
+            grid-column: span 2;
+        }
+
+        .chart-card-full {
+            grid-column: 1 / -1;
+        }
+
+        .chart-card-header {
+            margin-bottom: 12px;
+        }
+
+        .chart-card-header h4 {
+            margin: 0 0 2px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #2C3E50;
+        }
+
+        .chart-card-header span {
+            font-size: 11px;
+            color: #95A5A6;
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: 240px;
+        }
+
+        .chart-wrap-donut {
+            height: 260px;
+        }
+
+        .chart-wrap-bar {
+            height: 280px;
+        }
+
+        .chart-wrap-line {
+            height: 220px;
         }
 
         .main-grid {
@@ -578,6 +672,232 @@
         .dot-blue { background: var(--map-blue); }
         .dot-gray { background: #95A5A6; }
 
+        /* App Arrivals — Expected Evacuees (admin dashboard) */
+        .app-arrivals-card {
+            margin-top: 24px;
+        }
+
+        .app-arrivals-header {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .app-arrivals-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .badge-enroute {
+            background: #FFF3E0;
+            color: #E65100;
+            font-weight: 700;
+        }
+
+        .btn-refresh-expected {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #EDE7E7;
+            border-radius: 8px;
+            background: white;
+            color: var(--primary-red);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .2s;
+        }
+
+        .btn-refresh-expected:hover { background: var(--light-red); }
+        .btn-refresh-expected:disabled { opacity: .55; cursor: not-allowed; }
+        .btn-refresh-expected.spinning i { animation: adminSpin .8s linear infinite; }
+
+        @keyframes adminSpin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        .last-expected-updated {
+            font-size: 11px;
+            color: #95A5A6;
+        }
+
+        .app-arrivals-empty {
+            padding: 28px 20px;
+            text-align: center;
+            color: #95A5A6;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .app-arrivals-note {
+            text-align: center;
+            font-size: 12px;
+            color: #B0BEC5;
+            margin: 0 0 16px;
+        }
+
+        .admin-arrivals-list {
+            list-style: none;
+            margin: 0;
+            padding: 0 16px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .admin-arrival-center {
+            border: 1px solid #EDE7E7;
+            border-radius: 14px;
+            padding: 14px 16px;
+            background: #FAFAFA;
+        }
+
+        .admin-arrival-center-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .admin-arrival-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #2C3E50;
+        }
+
+        .admin-arrival-sub {
+            font-size: 12px;
+            color: #95A5A6;
+            margin-top: 2px;
+        }
+
+        .expected-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-left: auto;
+        }
+
+        .expected-pill.has-evacuees {
+            background: #FFF3E0;
+            color: #E65100;
+            border: 1px solid #FFCC80;
+        }
+
+        .expected-pill.no-evacuees {
+            background: #F5F5F5;
+            color: #95A5A6;
+            border: 1px solid #E0E0E0;
+        }
+
+        .admin-arrival-capacity {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            font-size: 11px;
+            color: #5D6D7E;
+        }
+
+        .admin-arrival-capacity .capacity-label { white-space: nowrap; }
+
+        .cap-bar-track {
+            flex: 1;
+            height: 8px;
+            background: #EDE7E7;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .cap-bar {
+            height: 100%;
+            border-radius: 999px;
+            transition: width .35s ease;
+        }
+
+        .cap-bar.safe    { background: #2E7D32; }
+        .cap-bar.warning { background: #FFC107; }
+        .cap-bar.danger  { background: #D32F2F; }
+
+        .admin-arrival-breakdown,
+        .admin-arrival-people {
+            margin-top: 12px;
+        }
+
+        .breakdown-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: #95A5A6;
+            margin-bottom: 8px;
+        }
+
+        .breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .breakdown-table th,
+        .breakdown-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #EDE7E7;
+            text-align: left;
+        }
+
+        .breakdown-table .count-cell {
+            text-align: center;
+            font-weight: 700;
+            color: #E65100;
+        }
+
+        .bar-wrap {
+            height: 6px;
+            background: #EDE7E7;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: #FF9800;
+            border-radius: 999px;
+        }
+
+        .arrival-people-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .arrival-people-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            background: white;
+            border: 1px solid #EDE7E7;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .arrival-person-name { font-weight: 600; color: #2C3E50; }
+        .arrival-person-meta { color: #95A5A6; white-space: nowrap; }
+
         /* Evacuation Summary Table - FULLY RESTORED */
         .evac-summary-card {
             margin-top: 24px;
@@ -651,6 +971,8 @@
         .es-pwd { color: #9B59B6; }
         .es-families { color: #16A085; }
         .es-total { font-weight: 700; color: #2C3E50; }
+        .es-enroute { font-weight: 600; color: #95A5A6; }
+        .es-enroute.has-enroute { color: #E65100; font-weight: 700; }
 
         .es-cap-wrap {
             min-width: 120px;
@@ -972,6 +1294,13 @@
         @media (max-width: 1200px) {
             .stats-row {
                 grid-template-columns: repeat(3, 1fr);
+            }
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .chart-card-wide,
+            .chart-card-full {
+                grid-column: span 1;
             }
             .forecast-grid {
                 grid-template-columns: repeat(3, 1fr);
