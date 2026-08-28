@@ -17,6 +17,7 @@ $user = current_user();
 <link rel="stylesheet" href="../asset/css/usernavigation.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css"/>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -362,6 +363,8 @@ $user = current_user();
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js"></script>
 
 <script>
 // ═══════════════════════════════════════════════════════════════════
@@ -713,28 +716,22 @@ function initMap() {
 
   map = L.map('map', { zoomControl: false, maxZoom: 20 }).setView([destLat, destLon], 15);
 
-  const NOLABEL_TILE_URL  = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
-  const NOLABEL_TILE_ATTR = '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://osm.org/">OpenStreetMap</a> contributors';
-  const LIGHT_MODE_FILTER = 'invert(1) hue-rotate(180deg) brightness(1.05) contrast(0.92)';
+  const BASEMAP_STYLES = {
+    light: 'https://tiles.openfreemap.org/styles/liberty',
+    dark:  'https://tiles.openfreemap.org/styles/dark',
+  };
+  const BASEMAP_ATTR = '&copy; <a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
   let currentTileMode = 'light';
-  L.tileLayer(NOLABEL_TILE_URL, {
-    attribution: NOLABEL_TILE_ATTR,
-    subdomains: 'abcd',
-    maxZoom: 20,
-    className: 'base-tiles',
+  const basemapLayer = L.maplibreGL({
+    style: BASEMAP_STYLES[currentTileMode],
+    attribution: BASEMAP_ATTR,
   }).addTo(map);
-
-  function applyTileFilter(mode) {
-    const pane = map.getPane('tilePane');
-    if (!pane) return;
-    pane.style.filter = (mode === 'light') ? LIGHT_MODE_FILTER : 'none';
-  }
-  applyTileFilter(currentTileMode);
 
   window.toggleMapMode = function() {
     currentTileMode = currentTileMode === 'light' ? 'dark' : 'light';
-    applyTileFilter(currentTileMode);
+    const mlMap = basemapLayer.getMaplibreMap();
+    if (mlMap) mlMap.setStyle(BASEMAP_STYLES[currentTileMode]);
     const btn = document.getElementById('mapModeBtn');
     const lbl = document.getElementById('mapModeLabel');
     if (currentTileMode === 'dark') { btn.classList.add('is-dark'); lbl.textContent = 'DARK'; }

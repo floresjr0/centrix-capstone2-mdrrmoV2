@@ -76,9 +76,12 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
     <link rel="stylesheet" href="../asset/css/admin_center_edit.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js"></script>
     <style>
-
+        .map-layer-switcher { flex-wrap: wrap; max-width: calc(100% - 28px); }
     </style>
 </head>
 <body>
@@ -240,7 +243,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                         </div>
                         <div class="form-hint" style="margin-top:-8px">
                             <i class="fas fa-info-circle"></i>
-                            Click on the map to pin the exact location, or drag the marker to adjust
+                            Click the map to pin the exact location, drag the marker to fine-tune, or use <strong>Find address</strong> / <strong>My location</strong> on the map
                         </div>
 
                         <div class="form-row">
@@ -293,15 +296,17 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
             <div class="map-panel">
                 <div id="map"></div>
 
-                <!-- Layer switcher -->
+                <!-- Layer switcher + pinning tools -->
                 <div class="map-layer-switcher">
-                    <button class="layer-btn active" id="layerStreet" onclick="switchLayer('street')"><i class="fas fa-road"></i> Street</button>
-                    <button class="layer-btn"        id="layerLight"  onclick="switchLayer('light')"> <i class="fas fa-sun"></i>  Light</button>
+                    <button type="button" class="layer-btn active" id="layerDetailed" onclick="switchLayer('detailed')"><i class="fas fa-building"></i> Detailed</button>
+                    <button type="button" class="layer-btn"        id="layerDark"     onclick="switchLayer('dark')">    <i class="fas fa-moon"></i>     Dark</button>
+                    <button type="button" class="layer-btn"        id="geocodeBtn">   <i class="fas fa-search-location"></i> Find address</button>
+                    <button type="button" class="layer-btn"        id="locateMeBtn">  <i class="fas fa-location-crosshairs"></i> My location</button>
                 </div>
 
                 <!-- Hint -->
                 <div class="map-hint">
-                    <i class="fas fa-mouse-pointer"></i> Click to place marker &bull; Drag to adjust
+                    <i class="fas fa-mouse-pointer"></i> Zoom in to building level for best accuracy &bull; Click to pin &bull; Drag to adjust
                 </div>
 
                 <!-- Live coordinates badge -->
@@ -327,53 +332,67 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
         toggleBtn.classList.toggle('collapsed');
         toggleBtn.querySelector('i').className =
             sidebar.classList.contains('collapsed') ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+        if (centerMap) setTimeout(() => centerMap.invalidateSize(true), 320);
     });
     mobileToggle.addEventListener('click', () => sidebar.classList.toggle('show'));
 
     /* ── Map Init ── */
     const defaultLat = parseFloat('<?= $center['lat'] ?? '15.0828' ?>') || 15.0828;
     const defaultLng = parseFloat('<?= $center['lng'] ?? '120.9417' ?>') || 120.9417;
+    const PIN_ZOOM = 19;
 
-    const map = L.map('map').setView([defaultLat, defaultLng], 17);
+    const centerMap = L.map('map', { zoomControl: true, maxZoom: 20 }).setView([defaultLat, defaultLng], PIN_ZOOM);
 
-    /* ── Tile Layers ── */
-    const tileLayers = {
-        street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    { attribution: '© OpenStreetMap contributors', maxZoom: 19 }),
-        light:  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                    { attribution: '© OpenStreetMap, © CartoDB', subdomains: 'abcd', maxZoom: 20 })
+    const BASEMAP_STYLES = {
+        detailed: 'https://tiles.openfreemap.org/styles/liberty',
+        dark:     'https://tiles.openfreemap.org/styles/dark',
     };
+    const BASEMAP_ATTR = '&copy; <a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
-    /* Default: Street */
-    tileLayers.street.addTo(map);
-    let currentLayer = tileLayers.street;
+    const basemapLayer = L.maplibreGL({
+        style: BASEMAP_STYLES.detailed,
+        attribution: BASEMAP_ATTR,
+    }).addTo(centerMap);
 
     function switchLayer(type) {
-        map.removeLayer(currentLayer);
-        currentLayer = tileLayers[type];
-        currentLayer.addTo(map);
-        const ids = { street: 'layerStreet', light: 'layerLight' };
+        const mlMap = basemapLayer.getMaplibreMap();
+        if (mlMap) mlMap.setStyle(BASEMAP_STYLES[type]);
+        const ids = { detailed: 'layerDetailed', dark: 'layerDark' };
         Object.values(ids).forEach(id => document.getElementById(id).classList.remove('active'));
         document.getElementById(ids[type]).classList.add('active');
     }
 
-    /* ── Custom marker icon ── */
+    /* ── Custom marker icon — tip anchors to exact coordinates ── */
     const redIcon = L.divIcon({
         className: '',
         html: `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38">
                  <path d="M15 0 C6.7 0 0 6.7 0 15 C0 23.5 15 38 15 38 C15 38 30 23.5 30 15 C30 6.7 23.3 0 15 0Z"
                        fill="#D32F2F" stroke="white" stroke-width="2.5"/>
-                 <circle cx="15" cy="15" r="6" fill="white" fill-opacity="0.95"/>
+                 <circle cx="15" cy="15" r="5" fill="white" fill-opacity="0.95"/>
+                 <circle cx="15" cy="37" r="2.2" fill="#D32F2F" stroke="white" stroke-width="1.2"/>
                </svg>`,
         iconSize: [30, 38],
-        iconAnchor: [15, 38],
-        popupAnchor: [0, -42]
+        iconAnchor: [15, 37],
+        popupAnchor: [0, -40]
     });
 
     let marker = L.marker([defaultLat, defaultLng], {
         draggable: true,
         icon: redIcon
-    }).addTo(map);
+    }).addTo(centerMap);
+
+    function setMarkerPosition(lat, lng, zoomToPin) {
+        marker.setLatLng([lat, lng]);
+        inputLat.value = lat.toFixed(6);
+        inputLng.value = lng.toFixed(6);
+        updateCoordsBadge(lat, lng);
+        flashInput(inputLat);
+        flashInput(inputLng);
+        if (zoomToPin !== false) {
+            const targetZoom = Math.max(centerMap.getZoom(), PIN_ZOOM);
+            centerMap.setView([lat, lng], targetZoom);
+        }
+    }
 
     /* Update coords badge */
     function updateCoordsBadge(lat, lng) {
@@ -390,25 +409,18 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
 
     const inputLat = document.getElementById('inputLat');
     const inputLng = document.getElementById('inputLng');
+    const addressInput = document.querySelector('input[name="address"]');
+    const barangaySelect = document.querySelector('select[name="barangay_id"]');
 
     /* Drag marker → update inputs */
     marker.on('dragend', () => {
         const pos = marker.getLatLng();
-        inputLat.value = pos.lat.toFixed(6);
-        inputLng.value = pos.lng.toFixed(6);
-        updateCoordsBadge(pos.lat, pos.lng);
-        flashInput(inputLat);
-        flashInput(inputLng);
+        setMarkerPosition(pos.lat, pos.lng, false);
     });
 
     /* Click map → move marker + update inputs */
-    map.on('click', (e) => {
-        marker.setLatLng(e.latlng);
-        inputLat.value = e.latlng.lat.toFixed(6);
-        inputLng.value = e.latlng.lng.toFixed(6);
-        updateCoordsBadge(e.latlng.lat, e.latlng.lng);
-        flashInput(inputLat);
-        flashInput(inputLng);
+    centerMap.on('click', (e) => {
+        setMarkerPosition(e.latlng.lat, e.latlng.lng, true);
     });
 
     /* Manual input → move marker */
@@ -416,13 +428,71 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
         const lat = parseFloat(inputLat.value);
         const lng = parseFloat(inputLng.value);
         if (!isNaN(lat) && !isNaN(lng)) {
-            marker.setLatLng([lat, lng]);
-            map.setView([lat, lng], map.getZoom());
-            updateCoordsBadge(lat, lng);
+            setMarkerPosition(lat, lng, true);
         }
     }
     inputLat.addEventListener('change', updateMarkerFromInputs);
     inputLng.addEventListener('change', updateMarkerFromInputs);
+
+    /* Geocode address → pin on map (OpenStreetMap Nominatim, no API key) */
+    document.getElementById('geocodeBtn').addEventListener('click', async () => {
+        const address = addressInput.value.trim();
+        if (!address) {
+            alert('Enter the street address first, then click Find address.');
+            addressInput.focus();
+            return;
+        }
+        const barangay = barangaySelect.selectedIndex > 0
+            ? barangaySelect.options[barangaySelect.selectedIndex].text.trim()
+            : '';
+        const query = [address, barangay, 'San Ildefonso', 'Bulacan', 'Philippines'].filter(Boolean).join(', ');
+        const btn = document.getElementById('geocodeBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching…';
+        try {
+            const res = await fetch(
+                'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ph&q='
+                + encodeURIComponent(query)
+            );
+            const data = await res.json();
+            if (!data.length) {
+                alert('Address not found. Zoom in on the map and click the exact building entrance.');
+                return;
+            }
+            setMarkerPosition(parseFloat(data[0].lat), parseFloat(data[0].lon), true);
+        } catch (err) {
+            alert('Could not look up the address. Pin the location manually on the map.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-search-location"></i> Find address';
+        }
+    });
+
+    /* Use device GPS for on-site pinning */
+    document.getElementById('locateMeBtn').addEventListener('click', () => {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported on this device.');
+            return;
+        }
+        const btn = document.getElementById('locateMeBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Locating…';
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                setMarkerPosition(pos.coords.latitude, pos.coords.longitude, true);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> My location';
+            },
+            err => {
+                alert('Could not get your location: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> My location';
+            },
+            { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+        );
+    });
+
+    setTimeout(() => centerMap.invalidateSize(true), 200);
 </script>
 </body>
 </html>

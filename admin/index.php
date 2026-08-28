@@ -164,6 +164,7 @@ $uSummary = $pdo->query("
     <link rel="stylesheet" href="../asset/css/admin_index.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <style>
     </style>
@@ -546,12 +547,15 @@ $uSummary = $pdo->query("
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js"></script>
     <script>
         // Sidebar Toggle with external button - Smooth Animation
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggleBtn');
         const mobileToggle = document.getElementById('mobileToggle');
+        let adminMap = null;
 
         toggleBtn.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
@@ -564,6 +568,10 @@ $uSummary = $pdo->query("
                 icon.className = 'fas fa-chevron-right';
             } else {
                 icon.className = 'fas fa-chevron-left';
+            }
+
+            if (adminMap) {
+                setTimeout(() => adminMap.invalidateSize(true), 320);
             }
         });
 
@@ -586,15 +594,15 @@ $uSummary = $pdo->query("
         }, $centers)); ?>;
 
         if (centers.length > 0) {
-            const map = L.map('adminMap', {zoomControl: true});
-            const first = centers[0];
-            map.setView([first.lat, first.lng], 12);
-            
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-                attribution: '© OpenStreetMap, © CartoDB',
-                subdomains: 'abcd',
-                maxZoom: 20
-            }).addTo(map);
+            adminMap = L.map('adminMap', { zoomControl: true, maxZoom: 20 });
+            adminMap.setView([centers[0].lat, centers[0].lng], 13);
+
+            L.maplibreGL({
+                style: 'https://tiles.openfreemap.org/styles/liberty',
+                attribution: '&copy; <a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            }).addTo(adminMap);
+
+            const markerGroup = L.featureGroup();
 
             // Create custom icon for each center
             centers.forEach((c) => {
@@ -619,7 +627,8 @@ $uSummary = $pdo->query("
 
                 const marker = L.marker([c.lat, c.lng], {
                     icon: customIcon
-                }).addTo(map);
+                }).addTo(adminMap);
+                markerGroup.addLayer(marker);
                 
                 // Calculate capacity percentage
                 const capacityPercent = Math.min((c.current_occupancy / c.max_capacity_people) * 100, 100);
@@ -682,6 +691,14 @@ $uSummary = $pdo->query("
                     maxWidth: 200
                 });
             });
+
+            if (markerGroup.getLayers().length === 1) {
+                adminMap.setView([centers[0].lat, centers[0].lng], 14);
+            } else {
+                adminMap.fitBounds(markerGroup.getBounds().pad(0.12), { maxZoom: 15 });
+            }
+
+            setTimeout(() => adminMap.invalidateSize(true), 200);
         } else {
             document.getElementById('adminMap').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #95A5A6;">No evacuation centers defined yet.</div>';
         }
