@@ -295,13 +295,11 @@ $chartTrend = [
 <head>
     <meta charset="UTF-8">
     <title>MDRRMO Dashboard | San Ildefonso, Bulacan</title>
-    <link rel="stylesheet" href="../asset/css/admin_index.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../asset/css/admin_index.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <style>
-    </style>
 </head>
 <body>
     <div class="app-wrapper">
@@ -315,7 +313,6 @@ $chartTrend = [
             <div class="sidebar-header">
                 <div class="sidebar-logo">
                     <div class="logo-image">
-                        <!-- MDRRMO Logo - Ready for image -->
                         <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRqukasrXgrajWG753eZaSE0F17M3XFWroASQ&s" alt="MDRRMO Logo" onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=logo-icon-fallback></span>';">
                     </div>
                     <div class="logo-text">
@@ -341,8 +338,6 @@ $chartTrend = [
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Operations</div>
                     <ul class="sidebar-menu">
-                        <!-- <li><a href="assistance.php" class="sidebar-link"><i class="fas fa-hand-holding-heart"></i> <span>Assistance</span></a></li> -->
-                        <!-- <li><a href="reports.php" class="sidebar-link"><i class="fas fa-file-alt"></i> <span>Reports</span></a></li> -->
                         <li><a href="announcements.php" class="sidebar-link "><i class="fas fa-bullhorn"></i> <span>Announcements</span> <?php if($_badgeAnnouncements > 0): ?><span class="sidebar-badge"><?php echo $_badgeAnnouncements; ?></span><?php endif; ?></a></li>
                     </ul>
                 </div>
@@ -350,7 +345,6 @@ $chartTrend = [
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Monitoring</div>
                     <ul class="sidebar-menu">
-                        <!-- <li><a href="weather.php" class="sidebar-link"><i class="fas fa-cloud-sun"></i> <span>Weather</span></a></li> -->
                         <li><a href="maps.php" class="sidebar-link"><i class="fas fa-map"></i> <span>Maps</span></a></li>
                         <li><a href="evacuees.php" class="sidebar-link"><i class="fas fa-people-arrows"></i> <span>Evacuees</span><?php if($_badgeEvacuees > 0): ?><span class="sidebar-badge"><?php echo number_format($_badgeEvacuees); ?></span><?php endif; ?></a></li>
                     </ul>
@@ -359,8 +353,6 @@ $chartTrend = [
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Settings</div>
                     <ul class="sidebar-menu">
-                        <!-- <li><a href="profile.php" class="sidebar-link"><i class="fas fa-user-cog"></i> <span>Profile</span></a></li> -->
-                        <!-- <li><a href="settings.php" class="sidebar-link"><i class="fas fa-cog"></i> <span>Settings</span></a></li> -->
                         <li><a href="../pages/logout.php" class="sidebar-link"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a></li>
                     </ul>
                 </div>
@@ -448,146 +440,160 @@ $chartTrend = [
                             <div class="stat-label-small">En Route</div>
                         </div>
                     </div>
-
                 </div>
 
-                <!-- Analytics Charts -->
+                <!-- ==========================================================
+                     REDESIGNED ANALYTICS CHARTS SECTION
+                     ========================================================== -->
                 <section class="charts-section">
                     <div class="charts-section-header">
-                        <h3><i class="fas fa-chart-line"></i> Analytics Overview</h3>
+                        <h3></i> Analytics Overview</h3>
                         <p>Visual summary of evacuation operations and system activity</p>
                     </div>
 
                     <div class="charts-grid">
+                        <!-- 1. Center Status (doughnut) -->
                         <div class="chart-card">
                             <div class="chart-card-header">
                                 <h4>Center Status</h4>
                                 <span>Availability distribution</span>
                             </div>
-                            <div class="chart-wrap chart-wrap-donut"><canvas id="chartCenterStatus"></canvas></div>
-                        </div>
-
-                        <div class="chart-card">
-                            <div class="chart-card-header">
-                                <h4>Evacuee Demographics</h4>
-                                <span>Registered population breakdown</span>
+                            <div class="chart-wrap chart-wrap-donut">
+                                <canvas id="chartCenterStatus"></canvas>
                             </div>
-                            <div class="chart-wrap"><canvas id="chartDemographics"></canvas></div>
                         </div>
 
+                        <!-- 2. Platform Users (doughnut) -->
                         <div class="chart-card">
                             <div class="chart-card-header">
                                 <h4>Platform Users</h4>
                                 <span>Accounts by role</span>
                             </div>
-                            <div class="chart-wrap chart-wrap-donut"><canvas id="chartUsers"></canvas></div>
+                            <div class="chart-wrap chart-wrap-donut">
+                                <canvas id="chartUsers"></canvas>
+                            </div>
                         </div>
 
-                        <div class="chart-card chart-card-wide">
+                        <!-- 3. Evacuee Demographics (horizontal bar) -->
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <h4>Evacuee Demographics</h4>
+                                <span>Registered population breakdown</span>
+                            </div>
+                            <div class="chart-wrap chart-wrap-bar">
+                                <canvas id="chartDemographics"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- 4. Center Occupancy (stacked horizontal bar) -->
+                        <div class="chart-card">
                             <div class="chart-card-header">
                                 <h4>Center Occupancy</h4>
                                 <span>Registered + en route vs capacity (top centers)</span>
                             </div>
-                            <div class="chart-wrap chart-wrap-bar"><canvas id="chartCapacity"></canvas></div>
+                            <div class="chart-wrap chart-wrap-bar">
+                                <canvas id="chartCapacity"></canvas>
+                            </div>
                         </div>
 
+                        <!-- 5. Evacuee Registrations (line, full width) -->
                         <div class="chart-card chart-card-full">
                             <div class="chart-card-header">
                                 <h4>Evacuee Registrations</h4>
                                 <span>People registered over the last 7 days</span>
                             </div>
-                            <div class="chart-wrap chart-wrap-line"><canvas id="chartTrend"></canvas></div>
+                            <div class="chart-wrap chart-wrap-line">
+                                <canvas id="chartTrend"></canvas>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <!-- Main Two Column Layout -->
+                <!-- Main Two Column Layout (unchanged) -->
                 <div class="main-grid">
-
-   <!-- Quick Stats Mini Cards — User Summary -->
-<div class="stats-mini-grid">
-    <div class="stat-mini-card">
-        <div class="stat-mini-label">All Users</div>
-        <div class="stat-mini-value"><?php echo number_format((int)$uSummary['total_all']); ?></div>
-    </div>
-    <div class="stat-mini-card">
-        <div class="stat-mini-label">Admins</div>
-        <div class="stat-mini-value" style="color: #3498DB;"><?php echo number_format((int)$uSummary['total_admin']); ?></div>
-    </div>
-    <div class="stat-mini-card">
-        <div class="stat-mini-label">Coordinators</div>
-        <div class="stat-mini-value" style="color: #FFC107;"><?php echo number_format((int)$uSummary['total_coordinator']); ?></div>
-    </div>
-    <div class="stat-mini-card">
-        <div class="stat-mini-label">Citizens</div>
-        <div class="stat-mini-value" style="color: var(--map-green);"><?php echo number_format((int)$uSummary['total_citizen']); ?></div>
-    </div>
-    <div class="stat-mini-card">
-        <div class="stat-mini-label">Active</div>
-        <div class="stat-mini-value" style="color: #2E7D32;"><?php echo number_format((int)$uSummary['total_active']); ?></div>
-    </div>
-    <div class="stat-mini-card">
-        <div class="stat-mini-label">Inactive</div>
-        <div class="stat-mini-value" style="color: var(--map-red);"><?php echo number_format((int)$uSummary['total_inactive']); ?></div>
-    </div>
-</div>
-
-    <!-- Evacuation Centers -->
-    <div class="card">
-        <div class="card-header">
-            <h3><i class="fas fa-map-pin"></i> Evacuation Centers</h3>
-            <span class="badge"><?php echo count($centers); ?> Active</span>
-        </div>
-
-        <div class="centers-list">
-            <?php 
-            $displayCenters = array_slice($centers, 0, 4);
-            foreach ($displayCenters as $center): 
-                $dotClass = 'dot-gray';
-                $fillClass = '';
-                $capacityPercent = ($center['max_capacity_people'] > 0) 
-                    ? ($center['current_occupancy'] / $center['max_capacity_people']) * 100 
-                    : 0;
-
-                if ($center['status'] === 'available') {
-                    $dotClass = 'dot-green';
-                    $fillClass = 'green';
-                } else if ($center['status'] === 'near_capacity') {
-                    $dotClass = 'dot-yellow';
-                    $fillClass = 'yellow';
-                } else if ($center['status'] === 'full') {
-                    $dotClass = 'dot-red';
-                } else if ($center['status'] === 'temp_shelter') {
-                    $dotClass = 'dot-blue';
-                }
-            ?>
-            <div class="center-item">
-                <div class="center-info">
-                    <h4><?php echo htmlspecialchars($center['name']); ?></h4>
-                    <p><?php echo htmlspecialchars($center['barangay_name']); ?></p>
-                </div>
-                <div class="capacity-indicator">
-                    <div class="capacity-bar">
-                        <div class="capacity-fill <?php echo $fillClass; ?>" 
-                             style="width: <?php echo min($capacityPercent, 100); ?>%;">
+                    <!-- Quick Stats Mini Cards — User Summary -->
+                    <div class="stats-mini-grid">
+                        <div class="stat-mini-card">
+                            <div class="stat-mini-label">All Users</div>
+                            <div class="stat-mini-value"><?php echo number_format((int)$uSummary['total_all']); ?></div>
+                        </div>
+                        <div class="stat-mini-card">
+                            <div class="stat-mini-label">Admins</div>
+                            <div class="stat-mini-value" style="color: #3498DB;"><?php echo number_format((int)$uSummary['total_admin']); ?></div>
+                        </div>
+                        <div class="stat-mini-card">
+                            <div class="stat-mini-label">Coordinators</div>
+                            <div class="stat-mini-value" style="color: #FFC107;"><?php echo number_format((int)$uSummary['total_coordinator']); ?></div>
+                        </div>
+                        <div class="stat-mini-card">
+                            <div class="stat-mini-label">Citizens</div>
+                            <div class="stat-mini-value" style="color: var(--map-green);"><?php echo number_format((int)$uSummary['total_citizen']); ?></div>
+                        </div>
+                        <div class="stat-mini-card">
+                            <div class="stat-mini-label">Active</div>
+                            <div class="stat-mini-value" style="color: #2E7D32;"><?php echo number_format((int)$uSummary['total_active']); ?></div>
+                        </div>
+                        <div class="stat-mini-card">
+                            <div class="stat-mini-label">Inactive</div>
+                            <div class="stat-mini-value" style="color: var(--map-red);"><?php echo number_format((int)$uSummary['total_inactive']); ?></div>
                         </div>
                     </div>
-                    <span class="capacity-dot <?php echo $dotClass; ?>"></span>
+
+                    <!-- Evacuation Centers -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-map-pin"></i> Evacuation Centers</h3>
+                            <span class="badge"><?php echo count($centers); ?> Active</span>
+                        </div>
+
+                        <div class="centers-list">
+                            <?php 
+                            $displayCenters = array_slice($centers, 0, 4);
+                            foreach ($displayCenters as $center): 
+                                $dotClass = 'dot-gray';
+                                $fillClass = '';
+                                $capacityPercent = ($center['max_capacity_people'] > 0) 
+                                    ? ($center['current_occupancy'] / $center['max_capacity_people']) * 100 
+                                    : 0;
+
+                                if ($center['status'] === 'available') {
+                                    $dotClass = 'dot-green';
+                                    $fillClass = 'green';
+                                } else if ($center['status'] === 'near_capacity') {
+                                    $dotClass = 'dot-yellow';
+                                    $fillClass = 'yellow';
+                                } else if ($center['status'] === 'full') {
+                                    $dotClass = 'dot-red';
+                                } else if ($center['status'] === 'temp_shelter') {
+                                    $dotClass = 'dot-blue';
+                                }
+                            ?>
+                            <div class="center-item">
+                                <div class="center-info">
+                                    <h4><?php echo htmlspecialchars($center['name']); ?></h4>
+                                    <p><?php echo htmlspecialchars($center['barangay_name']); ?></p>
+                                </div>
+                                <div class="capacity-indicator">
+                                    <div class="capacity-bar">
+                                        <div class="capacity-fill <?php echo $fillClass; ?>" 
+                                             style="width: <?php echo min($capacityPercent, 100); ?>%;">
+                                        </div>
+                                    </div>
+                                    <span class="capacity-dot <?php echo $dotClass; ?>"></span>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <div style="margin-top: 15px; text-align: center;">
+                            <a href="centers.php" style="color: var(--primary-red); text-decoration: none; font-size: 13px; font-weight: 500;">
+                                View All Centers <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
 
-        <div style="margin-top: 15px; text-align: center;">
-            <a href="centers.php" style="color: var(--primary-red); text-decoration: none; font-size: 13px; font-weight: 500;">
-                View All Centers <i class="fas fa-arrow-right"></i>
-            </a>
-        </div>
-    </div>
-
-</div>
-
-                <!-- App Arrivals — Expected Evacuees (en route via citizen navigation) -->
+                <!-- App Arrivals — Expected Evacuees (with pagination for citizen lists) -->
                 <div class="card app-arrivals-card">
                     <div class="card-header app-arrivals-header">
                         <h3><i class="fas fa-location-arrow"></i> App Arrivals — Expected Evacuees</h3>
@@ -621,6 +627,7 @@ $chartTrend = [
                                 $maxBdown    = !empty($bdown) ? max(array_column($bdown, 'citizen_count')) : 1;
                                 $arrivals    = $arrivalsByCenter[$centerId] ?? [];
                                 $statusClass = 'es-' . str_replace('_', '-', $ec['status']);
+                                $totalArrivals = count($arrivals);
                             ?>
                             <li class="admin-arrival-center" data-center-id="<?php echo $centerId; ?>">
                                 <div class="admin-arrival-center-header">
@@ -652,7 +659,7 @@ $chartTrend = [
                                 <div class="admin-arrival-breakdown" id="breakdown-<?php echo $centerId; ?>">
                                     <div class="breakdown-label">By barangay of origin</div>
                                     <table class="breakdown-table">
-                                        <thead><tr><th>Barangay</th><th>People</th><th></th></tr></thead>
+                                        <thead><tr><th>Barangay</th><th style="text-align: right; margin-left: 10px;">People</th><th></th></tr></thead>
                                         <tbody>
                                             <?php foreach ($bdown as $brow):
                                                 $bpct = $maxBdown > 0 ? round((int)$brow['citizen_count'] / $maxBdown * 100) : 0;
@@ -671,17 +678,26 @@ $chartTrend = [
                                 <?php if ($arrivals): ?>
                                 <div class="admin-arrival-people">
                                     <div class="breakdown-label">Citizens navigating here</div>
-                                    <ul class="arrival-people-list">
-                                        <?php foreach ($arrivals as $a): ?>
-                                        <li>
-                                            <span class="arrival-person-name"><?php echo htmlspecialchars($a['full_name']); ?></span>
-                                            <span class="arrival-person-meta">
-                                                <?php echo htmlspecialchars($a['origin_barangay']); ?>
-                                                &bull; <?php echo (int)$a['total_members']; ?> person<?php echo (int)$a['total_members'] !== 1 ? 's' : ''; ?>
-                                            </span>
-                                        </li>
-                                        <?php endforeach; ?>
-                                    </ul>
+                                    <div class="arrival-people-wrapper" id="arrival-wrapper-<?php echo $centerId; ?>">
+                                        <ul class="arrival-people-list" id="arrival-list-<?php echo $centerId; ?>">
+                                            <?php foreach ($arrivals as $a): ?>
+                                            <li>
+                                                <span class="arrival-person-name"><?php echo htmlspecialchars($a['full_name']); ?></span>
+                                                <span class="arrival-person-meta">
+                                                    <?php echo htmlspecialchars($a['origin_barangay']); ?>
+                                                    &bull; <?php echo (int)$a['total_members']; ?> person<?php echo (int)$a['total_members'] !== 1 ? 's' : ''; ?>
+                                                </span>
+                                            </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                        <?php if ($totalArrivals > 10): ?>
+                                        <div class="pagination-controls" id="pagination-controls-<?php echo $centerId; ?>">
+                                            <button class="pagination-btn prev-btn" data-center="<?php echo $centerId; ?>">Previous</button>
+                                            <span class="page-indicator" id="page-indicator-<?php echo $centerId; ?>">Page 1 of <span class="total-pages"></span></span>
+                                            <button class="pagination-btn next-btn" data-center="<?php echo $centerId; ?>">Next</button>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                                 <?php endif; ?>
                             </li>
@@ -690,7 +706,7 @@ $chartTrend = [
                     <?php endif; ?>
                 </div>
 
-                <!-- Evacuation Centers Summary - FULLY RESTORED with all columns -->
+                <!-- Evacuation Centers Summary (unchanged) -->
                 <?php if (!empty($evacSummary)): ?>
                 <div class="evac-summary-card card">
                     <div class="card-header">
@@ -821,11 +837,9 @@ $chartTrend = [
                 </div>
                 <?php endif; ?>
 
-                <!-- Map Card with Legend at Top Right -->
+                <!-- Map Card -->
                 <div class="map-container">
                     <div id="adminMap"></div>
-                    
-                    <!-- Map Legend - Top Right -->
                     <div class="map-legend">
                         <div class="legend-item">
                             <span class="legend-color green"></span>
@@ -849,6 +863,7 @@ $chartTrend = [
         </main>
     </div>
 
+    <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
     <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js"></script>
@@ -861,9 +876,8 @@ $chartTrend = [
             'capacityCenters'=> $chartCapacityCenters,
             'trend'          => $chartTrend,
         ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-    </script>
-    <script>
-        // Sidebar Toggle with external button - Smooth Animation
+
+        // Sidebar Toggle with external button
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggleBtn');
@@ -874,15 +888,8 @@ $chartTrend = [
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('expanded');
             toggleBtn.classList.toggle('collapsed');
-            
-            // Change icon with smooth transition
             const icon = toggleBtn.querySelector('i');
-            if (sidebar.classList.contains('collapsed')) {
-                icon.className = 'fas fa-chevron-right';
-            } else {
-                icon.className = 'fas fa-chevron-left';
-            }
-
+            icon.className = sidebar.classList.contains('collapsed') ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
             if (adminMap) {
                 setTimeout(() => adminMap.invalidateSize(true), 320);
             }
@@ -892,7 +899,7 @@ $chartTrend = [
             sidebar.classList.toggle('show');
         });
 
-        // Map with Custom Location Pin + Shelter Icon Markers - Perfectly Centered
+        // Map with Custom Location Pin + Shelter Icon Markers
         const centers = <?php echo json_encode(array_map(function ($c) {
             return [
                 'id' => (int)$c['id'],
@@ -917,15 +924,12 @@ $chartTrend = [
 
             const markerGroup = L.featureGroup();
 
-            // Create custom icon for each center
             centers.forEach((c) => {
-                // Determine color based on status
-                let pinColor = '#2E7D32'; // green - available
-                if (c.status === 'near_capacity') pinColor = '#FFC107'; // yellow
-                else if (c.status === 'full') pinColor = '#D32F2F'; // red
-                else if (c.status === 'temp_shelter') pinColor = '#3498DB'; // blue
+                let pinColor = '#2E7D32';
+                if (c.status === 'near_capacity') pinColor = '#FFC107';
+                else if (c.status === 'full') pinColor = '#D32F2F';
+                else if (c.status === 'temp_shelter') pinColor = '#3498DB';
 
-                // Create custom div icon with perfectly centered elements
                 const customIcon = L.divIcon({
                     className: 'custom-marker',
                     html: `
@@ -938,29 +942,19 @@ $chartTrend = [
                     popupAnchor: [0, -42]
                 });
 
-                const marker = L.marker([c.lat, c.lng], {
-                    icon: customIcon
-                }).addTo(adminMap);
+                const marker = L.marker([c.lat, c.lng], { icon: customIcon }).addTo(adminMap);
                 markerGroup.addLayer(marker);
-                
-                // Calculate capacity percentage
+
                 const capacityPercent = Math.min((c.current_occupancy / c.max_capacity_people) * 100, 100);
-                
-                // Format status for CSS class
                 const statusClass = c.status.replace('_', '-');
 
-                // Create ultra minimal popup content (200px wide)
                 const popupContent = `
                     <div class="mini-modal">
                         <div class="mini-header">
                             <h3 class="mini-title">${c.name}</h3>
                             <span class="mini-status ${statusClass}">${c.status === 'available' ? 'A' : c.status === 'near_capacity' ? 'N' : c.status === 'full' ? 'F' : 'T'}</span>
                         </div>
-                        
-                        <div class="mini-location">
-                            ${c.barangay}
-                        </div>
-                        
+                        <div class="mini-location">${c.barangay}</div>
                         <div class="mini-stats">
                             <div class="mini-stat">
                                 <div class="mini-stat-value">${c.max_capacity_people}</div>
@@ -975,7 +969,6 @@ $chartTrend = [
                                 <div class="mini-stat-label">AVL</div>
                             </div>
                         </div>
-                        
                         <div class="mini-capacity">
                             <div class="mini-capacity-header">
                                 <span>Fill</span>
@@ -985,19 +978,13 @@ $chartTrend = [
                                 <div class="mini-capacity-fill" style="width: ${capacityPercent}%; background: ${pinColor};"></div>
                             </div>
                         </div>
-                        
                         <div class="mini-footer">
-                            <a href="centers.php?id=${c.id}" class="mini-btn mini-btn-primary">
-                                View
-                            </a>
-                            <button class="mini-btn mini-btn-secondary" onclick="alert('Directions coming soon!')">
-                                Directions
-                            </button>
+                            <a href="centers.php?id=${c.id}" class="mini-btn mini-btn-primary">View</a>
+                            <button class="mini-btn mini-btn-secondary" onclick="alert('Directions coming soon!')">Directions</button>
                         </div>
                     </div>
                 `;
 
-                // Bind popup with custom class
                 marker.bindPopup(popupContent, {
                     className: 'custom-popup',
                     minWidth: 200,
@@ -1016,7 +1003,7 @@ $chartTrend = [
             document.getElementById('adminMap').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #95A5A6;">No evacuation centers defined yet.</div>';
         }
 
-        // Auto-refresh expected evacuee counts (same interval as coordinator dashboard)
+        // Auto-refresh expected evacuee counts
         const AUTO_REFRESH_INTERVAL = 30000;
         let expectedRefreshTimer = null;
 
@@ -1149,7 +1136,33 @@ $chartTrend = [
                 },
             });
 
-            // 2. Demographics — horizontal bar
+            // 2. Platform Users — doughnut
+            const userLabels = Object.keys(data.users);
+            const userValues = Object.values(data.users);
+            new Chart(document.getElementById('chartUsers'), {
+                type: 'doughnut',
+                data: {
+                    labels: userLabels,
+                    datasets: [{
+                        data: userValues,
+                        backgroundColor: ['#3498DB', '#FFC107', '#2E7D32'],
+                        borderWidth: 3,
+                        borderColor: '#fff',
+                        hoverOffset: 8,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '68%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 14 } },
+                        tooltip: tooltipDefaults,
+                    },
+                },
+            });
+
+            // 3. Evacuee Demographics — horizontal bar
             const demoLabels = Object.keys(data.demographics);
             const demoValues = Object.values(data.demographics);
             new Chart(document.getElementById('chartDemographics'), {
@@ -1182,32 +1195,6 @@ $chartTrend = [
                             ticks: { precision: 0 },
                         },
                         y: { grid: { display: false } },
-                    },
-                },
-            });
-
-            // 3. Platform Users — doughnut
-            const userLabels = Object.keys(data.users);
-            const userValues = Object.values(data.users);
-            new Chart(document.getElementById('chartUsers'), {
-                type: 'doughnut',
-                data: {
-                    labels: userLabels,
-                    datasets: [{
-                        data: userValues,
-                        backgroundColor: ['#3498DB', '#FFC107', '#2E7D32'],
-                        borderWidth: 3,
-                        borderColor: '#fff',
-                        hoverOffset: 8,
-                    }],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '68%',
-                    plugins: {
-                        legend: { position: 'bottom', labels: { padding: 14 } },
-                        tooltip: tooltipDefaults,
                     },
                 },
             });
@@ -1271,7 +1258,7 @@ $chartTrend = [
                 },
             });
 
-            // 5. Registration trend — line with area fill
+            // 5. Evacuee Registrations — line with area fill
             new Chart(document.getElementById('chartTrend'), {
                 type: 'line',
                 data: {
@@ -1309,6 +1296,52 @@ $chartTrend = [
                 },
             });
         })();
+
+        // ── Pagination for citizen lists ─────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', function() {
+            const PAGE_SIZE = 10;
+
+            // Find all arrival lists
+            document.querySelectorAll('.arrival-people-wrapper').forEach(function(wrapper) {
+                const list = wrapper.querySelector('.arrival-people-list');
+                if (!list) return;
+                const items = list.querySelectorAll('li');
+                const total = items.length;
+                if (total <= PAGE_SIZE) return; // no pagination needed
+
+                const controls = wrapper.querySelector('.pagination-controls');
+                if (!controls) return;
+                const prevBtn = controls.querySelector('.prev-btn');
+                const nextBtn = controls.querySelector('.next-btn');
+                const indicator = controls.querySelector('.page-indicator');
+                const totalSpan = indicator.querySelector('.total-pages');
+
+                let currentPage = 1;
+                const totalPages = Math.ceil(total / PAGE_SIZE);
+                totalSpan.textContent = totalPages;
+
+                function showPage(page) {
+                    currentPage = page;
+                    const start = (page - 1) * PAGE_SIZE;
+                    const end = start + PAGE_SIZE;
+                    items.forEach((li, index) => {
+                        li.style.display = (index >= start && index < end) ? 'flex' : 'none';
+                    });
+                    indicator.textContent = 'Page ' + page + ' of ' + totalPages;
+                    prevBtn.disabled = (page === 1);
+                    nextBtn.disabled = (page === totalPages);
+                }
+
+                prevBtn.addEventListener('click', function() {
+                    if (currentPage > 1) showPage(currentPage - 1);
+                });
+                nextBtn.addEventListener('click', function() {
+                    if (currentPage < totalPages) showPage(currentPage + 1);
+                });
+
+                showPage(1); // initial display
+            });
+        });
     </script>
 </body>
 </html>

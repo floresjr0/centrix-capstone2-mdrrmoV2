@@ -199,7 +199,7 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                             <i class="fas fa-exclamation-triangle"></i>
                             <p>No disasters have been recorded yet.</p>
                             <a href="disaster_edit.php" class="btn-primary">
-                                <i class="fas fa-plus"></i> Record First Disaster
+                                <i class="fas fa-plus"></i> Record Disaster
                             </a>
                         </div>
                     <?php else: ?>
