@@ -46,6 +46,19 @@ $chk->execute([$trackingId, $centerId]);
 $trackRow = $chk->fetch();
 
         if ($trackRow && $total > 0) {
+            $headName      = $trackRow['full_name'];
+            $contactNumber = $trackRow['contact_number'] ?? null;
+            $birthday      = $trackRow['birthday'] ?? null;
+
+            if (family_head_already_registered($pdo, $centerId, $headName, $contactNumber, $birthday)) {
+                $upd = $pdo->prepare("UPDATE evac_navigation_tracking
+                                      SET status = 'arrived', updated_at = NOW()
+                                      WHERE id = ?");
+                $upd->execute([$trackingId]);
+                header('Location: manage_center.php?id=' . $centerId . '&duplicate=1');
+                exit;
+            }
+
             $demoCols = implode(', ', demo_field_keys());
             $demoPh   = implode(', ', array_fill(0, count(demo_field_keys()), '?'));
             $ins = $pdo->prepare("INSERT INTO evac_registrations
@@ -86,6 +99,12 @@ $trackRow = $chk->fetch();
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthday)) $errors[] = 'Invalid birthday format (YYYY-MM-DD).';
         if (!$barangayId)          $errors[] = 'Barangay is required.';
         if ($total <= 0)           $errors[] = 'Please specify at least one member.';
+
+        if (!$errors) {
+            if (family_head_already_registered($pdo, $centerId, $headName, $contactNumber, $birthday)) {
+                $errors[] = 'This family head is already registered at this center.';
+            }
+        }
 
         if (!$errors) {
             $demoCols = implode(', ', demo_field_keys());

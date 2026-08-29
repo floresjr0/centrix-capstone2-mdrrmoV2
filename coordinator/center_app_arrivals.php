@@ -41,6 +41,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'recor
     $trackRow = $chk->fetch();
 
     if ($trackRow && $total > 0) {
+        $headName      = $trackRow['full_name'];
+        $contactNumber = $trackRow['contact_number'] ?? null;
+        $birthday      = $trackRow['birthday'] ?? null;
+
+        if (family_head_already_registered($pdo, $centerId, $headName, $contactNumber, $birthday)) {
+            $upd = $pdo->prepare("UPDATE evac_navigation_tracking
+                                  SET status = 'arrived', updated_at = NOW()
+                                  WHERE id = ?");
+            $upd->execute([$trackingId]);
+            header('Location: center_app_arrivals.php?id=' . $centerId . '&duplicate=1');
+            exit;
+        }
+
         $demoCols = implode(', ', demo_field_keys());
         $demoPh   = implode(', ', array_fill(0, count(demo_field_keys()), '?'));
         $ins = $pdo->prepare("INSERT INTO evac_registrations
@@ -92,6 +105,8 @@ $appArrivalsStmt = $pdo->prepare("
         nt.id          AS tracking_id,
         nt.user_id,
         u.full_name,
+        u.contact_number,
+        u.birthday,
         b.name         AS barangay_name,
         u.barangay_id,
         u.house_number,
@@ -114,11 +129,21 @@ $appArrivalsStmt = $pdo->prepare("
 ");
 $appArrivalsStmt->execute([$centerId]);
 $appArrivals = $appArrivalsStmt->fetchAll();
+foreach ($appArrivals as $i => $a) {
+    $appArrivals[$i]['already_registered'] = family_head_already_registered(
+        $pdo,
+        $centerId,
+        $a['full_name'],
+        $a['contact_number'] ?? null,
+        $a['birthday'] ?? null
+    );
+}
 
 $occ      = get_center_occupancy($centerId);
 $pct      = round($occ['percent']);
 $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
 $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
+$justDuplicate = isset($_GET['duplicate']) && $_GET['duplicate'] == '1';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -339,6 +364,13 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                     </div>
                     <?php endif; ?>
 
+                    <?php if ($justDuplicate): ?>
+                    <div class="checkin-toast duplicate-toast">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Already registered at this center — duplicate entry blocked. Navigation cleared.
+                    </div>
+                    <?php endif; ?>
+
                     <?php if (!$appArrivals): ?>
                     <div class="arrival-queue-empty">
                         <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
@@ -349,8 +381,9 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                         <?php foreach ($appArrivals as $a):
                             $initial      = mb_strtoupper(mb_substr($a['full_name'], 0, 1));
                             $profileTotal = (int)$a['total_members'];
+                            $isRegistered = !empty($a['already_registered']);
                         ?>
-                        <div class="app-arrival-card" id="arrival-card-<?php echo (int)$a['tracking_id']; ?>">
+                        <div class="app-arrival-card<?php echo $isRegistered ? ' is-registered' : ''; ?>" id="arrival-card-<?php echo (int)$a['tracking_id']; ?>">
 
                             <div class="app-arrival-card-header">
                                 <div class="app-arrival-person">
@@ -365,15 +398,25 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                                         </div>
                                     </div>
                                 </div>
+                                <?php if ($isRegistered): ?>
+                                <span class="app-badge-registered">Already Registered</span>
+                                <?php else: ?>
                                 <span class="app-badge-nav">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
                                     En Route
                                 </span>
+                                <?php endif; ?>
                             </div>
+
+                            <?php if ($isRegistered): ?>
+                            <div class="already-registered-note">
+                                This family head is already registered at this center. Use Decline to clear navigation tracking.
+                            </div>
+                            <?php endif; ?>
 
                             <form method="post"
                                   id="form-arrival-<?php echo (int)$a['tracking_id']; ?>"
-                                  onsubmit="return confirmArrival(this)">
+                                  onsubmit="return <?php echo $isRegistered ? 'false' : 'confirmArrival(this)'; ?>">
                                 <input type="hidden" name="action"      value="record_app_arrival">
                                 <input type="hidden" name="tracking_id" value="<?php echo (int)$a['tracking_id']; ?>">
                                 <input type="hidden" name="nav_user_id" value="<?php echo (int)$a['user_id']; ?>">
@@ -384,9 +427,9 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                                     <div class="app-member-row">
                                         <span class="app-member-label"><?php echo $label; ?></span>
                                         <div class="app-member-controls">
-                                            <button type="button" onclick="adjustVal(<?php echo (int)$a['tracking_id']; ?>, '<?php echo $field; ?>', -1)">−</button>
+                                            <button type="button" <?php echo $isRegistered ? 'disabled' : ''; ?> onclick="adjustVal(<?php echo (int)$a['tracking_id']; ?>, '<?php echo $field; ?>', -1)">−</button>
                                             <span class="app-member-val" id="val-<?php echo (int)$a['tracking_id']; ?>-<?php echo $field; ?>"><?php echo $val; ?></span>
-                                            <button type="button" onclick="adjustVal(<?php echo (int)$a['tracking_id']; ?>, '<?php echo $field; ?>', 1)">+</button>
+                                            <button type="button" <?php echo $isRegistered ? 'disabled' : ''; ?> onclick="adjustVal(<?php echo (int)$a['tracking_id']; ?>, '<?php echo $field; ?>', 1)">+</button>
                                         </div>
                                         <input type="hidden"
                                                name="<?php echo $field; ?>"
@@ -419,7 +462,7 @@ $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
                                             <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                             Decline
                                         </button>
-                                        <button type="submit" class="btn-record-arrival">
+                                        <button type="submit" class="btn-record-arrival" <?php echo $isRegistered ? 'disabled' : ''; ?>>
                                             <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
                                             Record Arrived
                                         </button>

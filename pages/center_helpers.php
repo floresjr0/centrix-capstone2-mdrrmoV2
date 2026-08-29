@@ -86,3 +86,57 @@ function refresh_center_status(int $centerId): void
     }
 }
 
+function normalize_contact_number(?string $contact): string
+{
+    $digits = preg_replace('/\D+/', '', (string)$contact);
+    if (strlen($digits) >= 10) {
+        return substr($digits, -10);
+    }
+    return $digits;
+}
+
+function find_existing_family_registration(
+    PDO $pdo,
+    int $centerId,
+    string $headName,
+    ?string $contactNumber,
+    ?string $birthday = null
+): ?array {
+    $stmt = $pdo->prepare(
+        'SELECT id, family_head_name, contact_number, birthday
+         FROM evac_registrations
+         WHERE center_id = ?'
+    );
+    $stmt->execute([$centerId]);
+
+    $normContact = normalize_contact_number($contactNumber);
+    $normName    = mb_strtolower(trim($headName));
+    $birthday    = $birthday ?: null;
+
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        if ($normContact !== '') {
+            $existingContact = normalize_contact_number($row['contact_number'] ?? '');
+            if ($existingContact !== '' && $existingContact === $normContact) {
+                return $row;
+            }
+        }
+        if ($normName !== '' && mb_strtolower(trim($row['family_head_name'])) === $normName) {
+            if ($birthday && !empty($row['birthday']) && $row['birthday'] === $birthday) {
+                return $row;
+            }
+        }
+    }
+
+    return null;
+}
+
+function family_head_already_registered(
+    PDO $pdo,
+    int $centerId,
+    string $headName,
+    ?string $contactNumber,
+    ?string $birthday = null
+): bool {
+    return find_existing_family_registration($pdo, $centerId, $headName, $contactNumber, $birthday) !== null;
+}
+

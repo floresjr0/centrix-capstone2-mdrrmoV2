@@ -922,12 +922,36 @@ function updateDestinationMarker() {
 }
 
 // ─── MODE SELECTOR ────────────────────────────────────────────────────────
+function buildUserIconHtml(mode) {
+  const svgs = {
+    walk: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="M15 22l-2-8-3 2-2 6"/><path d="M9 8l3-1 3 3 3-1"/><path d="M6 22l3-6-2-5"/></svg>',
+    bike: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 100-2 1 1 0 000 2z"/><path d="M12 17.5V14l-3-3 4-3 2 3h3"/></svg>',
+    tricycle: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 18h9V9H9l-3 5"/><path d="M9 9V5h3"/><path d="M15 18h4l-1-6h-3"/></svg>',
+    moto: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="M5 17l2-7h5l3 4h4"/><path d="M10 10L8 6H5"/></svg>',
+    car: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 100 4 2 2 0 000-4zM19 17a2 2 0 100 4 2 2 0 000-4z"/><path d="M5 17l1.5-5.5A2 2 0 018.4 10h7.2a2 2 0 011.9 1.5L19 17"/><path d="M3 13h18"/></svg>',
+  };
+  const svg = svgs[mode] || svgs.walk;
+  return `<div class="user-dot-wrap">
+            <div class="user-halo"></div>
+            <div class="user-dot" style="display:flex;align-items:center;justify-content:center;">${svg}</div>
+            <div class="user-pip"></div>
+          </div>`;
+}
+
 function selectMode(mode) {
   if (isNavigating) return;
   selectedMode = mode;
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
   document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
   document.documentElement.style.setProperty('--accent', MODES[mode].accentColor);
+  if (userMarker) {
+    userMarker.setIcon(L.divIcon({
+      className: '',
+      html: buildUserIconHtml(selectedMode),
+      iconSize: [40, 40],
+      iconAnchor: [20, 20]
+    }));
+  }
   if (lastPosition) updatePreview(lastPosition.lat, lastPosition.lon);
 }
 
@@ -1076,11 +1100,7 @@ function onPosition(pos) {
   } else {
     const icon = L.divIcon({
       className:'',
-      html:`<div class="user-dot-wrap">
-              <div class="user-halo"></div>
-              <div class="user-dot"></div>
-              <div class="user-pip"></div>
-            </div>`,
+      html: buildUserIconHtml(selectedMode),
       iconSize:[40,40], iconAnchor:[20,20]
     });
     userMarker = L.marker([lat,lon],{icon,zIndexOffset:1000}).addTo(map);

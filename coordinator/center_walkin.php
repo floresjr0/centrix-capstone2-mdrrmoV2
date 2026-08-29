@@ -42,6 +42,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_f
     if ($total <= 0)           $errors[] = 'Please specify at least one member.';
 
     if (!$errors) {
+        if (family_head_already_registered($pdo, $centerId, $headName, $contactNumber, $birthday)) {
+            $errors[] = 'This family head is already registered at this center.';
+        }
+    }
+
+    if (!$errors) {
         $demoCols = implode(', ', demo_field_keys());
         $demoPh   = implode(', ', array_fill(0, count(demo_field_keys()), '?'));
         $ins = $pdo->prepare("INSERT INTO evac_registrations
