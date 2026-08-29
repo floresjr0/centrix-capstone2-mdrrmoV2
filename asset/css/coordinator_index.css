@@ -586,13 +586,6 @@ body {
   transition: box-shadow 0.25s var(--ease), border-color 0.25s var(--ease), transform 0.25s var(--ease), background 0.25s var(--ease);
   position: relative; overflow: hidden;
 }
-.stat-card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--orange-dark), var(--orange-light));
-  opacity: 0; transition: opacity 0.2s;
-}
 .stat-card::after {
   /* faint glass sheen along the top edge */
   content: '';
@@ -605,7 +598,6 @@ body {
   border-color: var(--glass-border-2);
   transform: translateY(-3px);
 }
-.stat-card:hover::before { opacity: 1; }
 .stat-icon {
   width: 48px; height: 48px;
   border-radius: 13px;
@@ -844,6 +836,8 @@ body {
   .center-card-header { padding: 1rem 1.15rem; }
   .capacity-row { padding: 0.65rem 1.15rem; }
   .breakdown-section { padding: 0.9rem 1.15rem 1rem; }
+  .profile-banner { padding: 0.85rem 1.05rem; }
+  .profile-avatar-lg { width: 38px; height: 38px; font-size: 14px; }
 }
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr; }
@@ -857,3 +851,81 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--orange); }
+
+
+/* ── Coordinator profile banner — orange gradient with blended white splash ── */
+.profile-banner{
+  display:flex;
+  align-items:center;
+  gap:.75rem;
+  background: linear-gradient(135deg, var(--orange-light) 0%, var(--orange) 55%, var(--orange-dark) 100%);
+  border-radius: var(--radius-lg);
+  padding: 1.05rem 1.3rem;
+  box-shadow: var(--shadow-orange);
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow .25s var(--ease), transform .2s var(--ease);
+}
+.profile-banner::before{
+  /* white splash blend, top-right */
+  content:'';
+  position:absolute;
+  top:-55%; right:-12%;
+  width:180px; height:180px;
+  background: radial-gradient(circle, rgba(255,255,255,0.38), transparent 70%);
+  pointer-events:none;
+}
+.profile-banner::after{
+  /* softer secondary splash, bottom-left */
+  content:'';
+  position:absolute;
+  bottom:-60%; left:-8%;
+  width:150px; height:150px;
+  background: radial-gradient(circle, rgba(255,255,255,0.16), transparent 70%);
+  pointer-events:none;
+}
+.profile-banner:hover{
+  box-shadow: 0 8px 22px rgba(124,45,18,0.4);
+}
+.profile-avatar-lg{
+  width:44px;height:44px;
+  border-radius:50%;
+  background: rgba(255,255,255,0.94);
+  color: var(--orange-dark);
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;font-weight:800;
+  flex-shrink:0;
+  box-shadow: 0 2px 8px rgba(28,23,18,0.18);
+  position:relative; z-index:1;
+}
+.profile-details{ min-width:0; flex:1; position:relative; z-index:1; }
+.profile-name-row{
+  display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+}
+.profile-fullname{
+  font-size:.92rem;font-weight:700;color:#fff;
+  letter-spacing:-0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.profile-role-badge{
+  background: rgba(255,255,255,0.22);
+  color:#fff;
+  font-size:.62rem;font-weight:700;
+  padding:.18rem .55rem;border-radius:999px;
+  text-transform:uppercase; letter-spacing:.05em;
+  border: 1px solid rgba(255,255,255,0.35);
+  white-space: nowrap;
+}
+.profile-meta{
+  margin-top:.25rem;
+  display:flex; align-items:center; gap:.3rem;
+}
+.profile-meta-item{
+  display:flex; align-items:center; gap:.35rem;
+  font-size:.78rem; color: rgba(255,255,255,0.85); font-weight:500;
+}
+.profile-meta-item svg{
+  width:12px; height:12px; stroke: rgba(255,255,255,0.9);
+  fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
+  flex-shrink:0;
+}
