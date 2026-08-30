@@ -82,34 +82,7 @@ $activeCenters  = count(array_filter($centers, fn($c) => $c['status'] !== 'close
     <link rel="stylesheet" href="../asset/css/coordinator_index.css">
 </head>
 <style>
-.profile-banner{
-    display:flex;
-    align-items:center;
-    gap:16px;
-    background:#fff;
-    border:1px solid #e5e7eb;
-    border-radius:14px;
-    padding:16px 20px;
-    margin:16px 20px 0;
-}
-.profile-avatar-lg{
-    width:56px;height:56px;
-    border-radius:50%;
-    background:#0f766e;
-    color:#fff;
-    display:flex;align-items:center;justify-content:center;
-    font-size:22px;font-weight:700;
-    flex-shrink:0;
-}
-.profile-name-row{
-    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-}
-.profile-fullname{font-size:18px;font-weight:700;color:#111827;}
-.profile-role-badge{
-    background:#0f766e1a;color:#0f766e;
-    font-size:12px;font-weight:600;
-    padding:3px 10px;border-radius:999px;
-}
+
 </style>
 <body>
 
@@ -246,28 +219,30 @@ $activeCenters  = count(array_filter($centers, fn($c) => $c['status'] !== 'close
                 </button>
             </div>
         </header>
-       <!-- Coordinator Profile Section -->
-        <section class="profile-banner">
-            <div class="profile-avatar-lg">
-                <?php echo htmlspecialchars(mb_strtoupper(mb_substr($user['full_name'], 0, 1))); ?>
-            </div>
-            <div class="profile-details">
-                <div class="profile-name-row">
-                    <span class="profile-fullname"><?php echo htmlspecialchars($user['full_name']); ?></span>
-                    <span class="profile-role-badge">Coordinator</span>
-                </div>
-                <?php if (!empty($user['contact_number'])): ?>
-                <div class="profile-meta">
-                    <span class="profile-meta-item">
-                        📞 <?php echo htmlspecialchars($user['contact_number']); ?>
-                    </span>
-                </div>
-                <?php endif; ?>
-            </div>
-        </section>
         <!-- Page content -->
         <main class="page">
             <h1 class="page-heading">Your <span>Assigned Centers</span></h1>
+
+            <!-- Coordinator Profile Section -->
+            <section class="profile-banner">
+                <div class="profile-avatar-lg">
+                    <?php echo htmlspecialchars(mb_strtoupper(mb_substr($user['full_name'], 0, 1))); ?>
+                </div>
+                <div class="profile-details">
+                    <div class="profile-name-row">
+                        <span class="profile-fullname"><?php echo htmlspecialchars($user['full_name']); ?></span>
+                        <span class="profile-role-badge">Coordinator</span>
+                    </div>
+                    <?php if (!empty($user['contact_number'])): ?>
+                    <div class="profile-meta">
+                        <span class="profile-meta-item">
+                            <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.902.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.908.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+                            <?php echo htmlspecialchars($user['contact_number']); ?>
+                        </span>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </section>
 
             <!-- SUMMARY STATS -->
             <div class="stats-grid">
