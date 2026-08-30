@@ -1339,7 +1339,7 @@ $chartTrend = [
                     if (currentPage < totalPages) showPage(currentPage + 1);
                 });
 
-                showPage(1); // initial display
+                showPage(1); // initial displaypogiako
             });
         });
     </script>
