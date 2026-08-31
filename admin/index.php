@@ -300,6 +300,10 @@ $chartTrend = [
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        #adminMap .maplibregl-map,
+        #adminMap .maplibregl-canvas-container { z-index: 0 !important; }
+    </style>
 </head>
 <body>
     <div class="app-wrapper">
@@ -839,23 +843,47 @@ $chartTrend = [
 
                 <!-- Map Card -->
                 <div class="map-container">
-                    <div id="adminMap"></div>
-                    <div class="map-legend">
-                        <div class="legend-item">
-                            <span class="legend-color green"></span>
-                            <span>A</span>
+                    <div class="map-view-toggle" role="tablist" aria-label="Map view">
+                        <button type="button" class="map-view-btn active" data-map-view="evacuation" role="tab" aria-selected="true" aria-controls="adminMap">
+                            <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
+                            <span>Evacuation Centers</span>
+                        </button>
+                        <button type="button" class="map-view-btn" data-map-view="weather" role="tab" aria-selected="false" aria-controls="windyMap">
+                            <i class="fas fa-wind" aria-hidden="true"></i>
+                            <span>Weather</span>
+                        </button>
+                    </div>
+                    <div class="map-view-body">
+                        <div id="adminMap"></div>
+                        <div id="windyMap" hidden>
+                            <iframe
+                                id="windyIframe"
+                                title="Windy Weather Map — San Ildefonso, Bulacan"
+                                width="1000"
+                                height="350"
+                                loading="lazy"
+                                data-src="https://embed.windy.com/embed2.html?lat=15.0828&amp;lon=120.9417&amp;detailLat=15.0828&amp;detailLon=120.9417&amp;zoom=11&amp;level=surface&amp;overlay=wind&amp;product=ecmwf&amp;menu=&amp;message=true&amp;marker=true&amp;calendar=now&amp;pressure=true&amp;type=map&amp;location=coordinates&amp;detail=true&amp;metricWind=default&amp;metricTemp=%C2%B0C&amp;radarRange=-1"
+                                src=""
+                                referrerpolicy="no-referrer-when-downgrade"
+                                allowfullscreen></iframe>
                         </div>
-                        <div class="legend-item">
-                            <span class="legend-color yellow"></span>
-                            <span>N</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-color red"></span>
-                            <span>F</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-color blue"></span>
-                            <span>T</span>
+                        <div class="map-legend">
+                            <div class="legend-item">
+                                <span class="legend-color green"></span>
+                                <span>A</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color yellow"></span>
+                                <span>N</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color red"></span>
+                                <span>F</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color blue"></span>
+                                <span>T</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -890,7 +918,7 @@ $chartTrend = [
             toggleBtn.classList.toggle('collapsed');
             const icon = toggleBtn.querySelector('i');
             icon.className = sidebar.classList.contains('collapsed') ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
-            if (adminMap) {
+            if (adminMap && document.getElementById('adminMap') && !document.getElementById('windyMap')?.hidden) {
                 setTimeout(() => adminMap.invalidateSize(true), 320);
             }
         });
@@ -913,7 +941,12 @@ $chartTrend = [
             ];
         }, $centers)); ?>;
 
-        if (centers.length > 0) {
+        function initAdminEvacuationMap() {
+            if (centers.length === 0) {
+                document.getElementById('adminMap').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #95A5A6;">No evacuation centers defined yet.</div>';
+                return;
+            }
+
             adminMap = L.map('adminMap', { zoomControl: true, maxZoom: 20 });
             adminMap.setView([centers[0].lat, centers[0].lng], 13);
 
@@ -998,10 +1031,69 @@ $chartTrend = [
                 adminMap.fitBounds(markerGroup.getBounds().pad(0.12), { maxZoom: 15 });
             }
 
-            setTimeout(() => adminMap.invalidateSize(true), 200);
-        } else {
-            document.getElementById('adminMap').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #95A5A6;">No evacuation centers defined yet.</div>';
+            adminMap.whenReady(() => {
+                setTimeout(() => adminMap.invalidateSize(true), 100);
+            });
         }
+
+        requestAnimationFrame(() => {
+            initAdminEvacuationMap();
+            window.addEventListener('load', () => {
+                if (adminMap) adminMap.invalidateSize(true);
+            });
+        });
+
+        (function initMapViewToggle() {
+            const mapViewButtons = document.querySelectorAll('.map-view-btn');
+            const windyMapEl = document.getElementById('windyMap');
+            const windyIframe = document.getElementById('windyIframe');
+            const legend = document.querySelector('.map-legend');
+            if (!windyMapEl) return;
+
+            function refreshEvacuationMap() {
+                if (!adminMap) return;
+                requestAnimationFrame(() => {
+                    adminMap.invalidateSize(true);
+                    setTimeout(() => adminMap.invalidateSize(true), 250);
+                });
+            }
+
+            function setToggleActive(view) {
+                mapViewButtons.forEach(btn => {
+                    const active = btn.dataset.mapView === view;
+                    btn.classList.toggle('active', active);
+                    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+                });
+            }
+
+            function showEvacuation() {
+                windyMapEl.hidden = true;
+                if (legend) legend.style.display = '';
+                setToggleActive('evacuation');
+                refreshEvacuationMap();
+            }
+
+            function showWeather() {
+                windyMapEl.hidden = false;
+                if (legend) legend.style.display = 'none';
+                setToggleActive('weather');
+                if (windyIframe && windyIframe.dataset.src && !windyIframe.dataset.loaded) {
+                    windyIframe.src = windyIframe.dataset.src;
+                    windyIframe.dataset.loaded = '1';
+                }
+            }
+
+            mapViewButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const selectedView = button.dataset.mapView;
+                    if (selectedView === 'evacuation') {
+                        showEvacuation();
+                    } else if (selectedView === 'weather') {
+                        showWeather();
+                    }
+                });
+            });
+        })();
 
         // Auto-refresh expected evacuee counts
         const AUTO_REFRESH_INTERVAL = 30000;
@@ -1339,7 +1431,7 @@ $chartTrend = [
                     if (currentPage < totalPages) showPage(currentPage + 1);
                 });
 
-                showPage(1); // initial displaypogiako
+                showPage(1); // initial display
             });
         });
     </script>
