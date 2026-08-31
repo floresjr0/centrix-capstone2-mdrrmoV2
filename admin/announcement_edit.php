@@ -48,6 +48,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                    VALUES (?,?,?,?,?,NOW(),?)");
             $stmt->execute([$title, $body, $type, $disasterId, $isPinned, $user['id']]);
             $id = (int)$pdo->lastInsertId();
+
+            require_once __DIR__ . '/../pages/notify.php';
+
+            $notifTitle = ($isPinned ? "📌 " : "📢 ") . "MDRRMO Announcement: " . $title;
+            $notifBody  = mb_substr($body, 0, 100);
+
+            sendOneSignalNotification($notifTitle, $notifBody, [
+                'type'              => 'announcement',
+                'announcement_id'   => $id,
+                'announcement_type' => $type,
+                'disaster_id'       => $disasterId,
+            ]);
         }
 
         header('Location: announcements.php');
