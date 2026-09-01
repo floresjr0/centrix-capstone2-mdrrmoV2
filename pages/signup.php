@@ -791,7 +791,7 @@ function old(string $key, string $default = ''): string {
 <!-- ── GEOLOCATION WARNING TOAST ── -->
 <div class="geo-toast" id="geoToast" aria-live="polite"></div>
 
-
+<script src="../asset/js/geolocation_bridge.js"></script>
 <script>
 
   /* ================================================

@@ -307,6 +307,8 @@ $user = current_user();
 <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js"></script>
+<script src="../asset/js/geolocation_bridge.js"></script>
+<script src="../asset/js/offline_cache_sync.js"></script>
 
 <script>
 // ═══════════════════════════════════════════════════════════════════

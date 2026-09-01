@@ -10,7 +10,7 @@ function app_base_path(): string
     $script = (string)($_SERVER['SCRIPT_NAME'] ?? '');
     $script = str_replace('\\', '/', $script);
 
-    foreach (['/admin/', '/coordinator/', '/pages/'] as $seg) {
+    foreach (['/admin/', '/coordinator/', '/pages/', '/api/'] as $seg) {
         $pos = strpos($script, $seg);
         if ($pos !== false) {
             return rtrim(substr($script, 0, $pos), '/');
