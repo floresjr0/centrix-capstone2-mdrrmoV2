@@ -1119,57 +1119,71 @@ attachPasswordValidation('dt-password', 'dt-pwRequirements');
   }
 
   function detectLocation() {
+    var geo = window.MDRRMOGeolocationBridge;
+    var request = geo && geo.requestAccess ? geo.requestAccess.bind(geo) : null;
 
-    if (!navigator.geolocation) {
-      return;
+    function onSuccess(position) {
+      (async function () {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        document.getElementById("lat").value = lat;
+        document.getElementById("lng").value = lon;
+        document.getElementById("dt-lat").value = lat;
+        document.getElementById("dt-lng").value = lon;
+
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const addr = data.address || {};
+
+        let municipality = addr.town || addr.city || addr.municipality || "";
+        let province = addr.state || "";
+        const fullAddress = data.display_name || "";
+
+        document.getElementById("address").value = fullAddress;
+        document.getElementById("dt-address").value = fullAddress;
+
+        const isOutside =
+          !municipality.toLowerCase().includes("san ildefonso") ||
+          !province.toLowerCase().includes("bulacan");
+
+        const warningText = isOutside
+          ? "Note: Your detected location appears to be outside San Ildefonso, Bulacan."
+          : "";
+
+        document.getElementById("locationWarning").textContent = warningText;
+        document.getElementById("dt-locationWarning").textContent = warningText;
+
+        if (isOutside) showGeoToast(warningText);
+      })();
     }
 
-    navigator.geolocation.getCurrentPosition(async function (position) {
-
-      const lat = position.coords.latitude;
-      const lon = position.coords.longitude;
-
-      document.getElementById("lat").value = lat;
-      document.getElementById("lng").value = lon;
-      document.getElementById("dt-lat").value = lat;
-      document.getElementById("dt-lng").value = lon;
-
-      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
-
-      const res = await fetch(url);
-      const data = await res.json();
-
-      const addr = data.address;
-
-      let municipality = addr.town || addr.city || addr.municipality || "";
-      let province = addr.state || "";
-
-      const fullAddress = data.display_name;
-
-      document.getElementById("address").value = fullAddress;
-      document.getElementById("dt-address").value = fullAddress;
-
-      const isOutside =
-        !municipality.toLowerCase().includes("san ildefonso") ||
-        !province.toLowerCase().includes("bulacan");
-
-      const warningText = isOutside
-        ? "Note: Your detected location appears to be outside San Ildefonso, Bulacan."
-        : "";
-
-      document.getElementById("locationWarning").textContent = warningText;
-      document.getElementById("dt-locationWarning").textContent = warningText;
-
-      if (isOutside) {
-        showGeoToast(warningText);
+    function onError(err) {
+      if (err && err.code === 1) {
+        showGeoToast('Location access was denied. You can still sign up manually.');
       }
+    }
 
-    }, function () {
-      // silently ignore — location is optional
-    });
+    var opts = {
+      title: 'Allow location access?',
+      message: 'MDRRMO would like to use your location to auto-detect your address in San Ildefonso, Bulacan.',
+      success: onSuccess,
+      error: onError
+    };
+
+    if (request) {
+      request(opts);
+    } else if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(onSuccess, onError, { enableHighAccuracy: true });
+    }
   }
 
-  detectLocation();
+  if (window.MDRRMOGeolocationBridge && window.MDRRMOGeolocationBridge.runWhenReady) {
+    window.MDRRMOGeolocationBridge.runWhenReady(detectLocation);
+  } else {
+    detectLocation();
+  }
 
 </script>
 </body>

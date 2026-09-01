@@ -1,3 +1,5 @@
+
+
 /**
  * Biometric login UI for Median Android WebView (median_biometric bridge).
  */
@@ -201,7 +203,9 @@
 
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'mdrrmo-biometric-login-btn btn-biometric-login';
+      btn.className = formId === 'dt-form'
+        ? 'mdrrmo-biometric-login-btn dt-btn-biometric'
+        : 'mdrrmo-biometric-login-btn btn-biometric-login';
       btn.textContent = 'Login with Fingerprint';
       btn.addEventListener('click', function () {
         btn.disabled = true;
@@ -224,7 +228,6 @@
         form.appendChild(btn);
       }
       btn.hidden = false;
-      btn.style.display = '';
     });
   }
 
