@@ -15,6 +15,8 @@
   var MAX_POLL_ATTEMPTS = 40;
   var uiInitialized = false;
   var enableInProgress = false;
+  var autoBiometricPromptAttempted = false;
+  var autoBiometricInProgress = false;
 
   function bridgeReady() {
     return typeof median_biometric !== 'undefined' && median_biometric !== null;
@@ -191,44 +193,37 @@
     return BASE_URL + '/' + String(url).replace(/^\//, '');
   }
 
-  function mountLoginButton() {
+  function removeBiometricLoginButtons() {
+    document.querySelectorAll('.mdrrmo-biometric-login-btn, .btn-biometric-login, .dt-btn-biometric')
+      .forEach(function (el) {
+        el.remove();
+      });
+  }
+
+  function handleAutoBiometricLoginResult(result) {
+    autoBiometricInProgress = false;
+    if (result && result.success) {
+      window.location.href = resolveRedirect(result.redirect);
+      return;
+    }
+    if (result && result.error === 'authentication_error') {
+      return;
+    }
+  }
+
+  function tryAutoBiometricLogin() {
     if (!isLoginPage() || !bridgeReady()) return;
+    if (autoBiometricPromptAttempted || autoBiometricInProgress) return;
+
     applyServerConfig();
     var status = getStatus();
     if (!status.available || !status.enabled || status.trustedOrigin === false) return;
 
-    ['mob-form', 'dt-form'].forEach(function (formId) {
-      var form = document.getElementById(formId);
-      if (!form || form.querySelector('.mdrrmo-biometric-login-btn')) return;
+    removeBiometricLoginButtons();
 
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = formId === 'dt-form'
-        ? 'mdrrmo-biometric-login-btn dt-btn-biometric'
-        : 'mdrrmo-biometric-login-btn btn-biometric-login';
-      btn.textContent = 'Login with Fingerprint';
-      btn.addEventListener('click', function () {
-        btn.disabled = true;
-        setStatusText && setStatusText('Confirm fingerprint to sign in…');
-        promptLogin(function (result) {
-          btn.disabled = false;
-          if (result && result.success) {
-            window.location.href = resolveRedirect(result.redirect);
-            return;
-          }
-          if (result && result.error === 'authentication_error') return;
-          alert(formatError(result) || 'Fingerprint login failed. Please use your password.');
-        });
-      });
-
-      var submit = form.querySelector('button[type="submit"]');
-      if (submit && submit.parentNode) {
-        submit.parentNode.insertBefore(btn, submit.nextSibling);
-      } else {
-        form.appendChild(btn);
-      }
-      btn.hidden = false;
-    });
+    autoBiometricPromptAttempted = true;
+    autoBiometricInProgress = true;
+    promptLogin(handleAutoBiometricLoginResult);
   }
 
   function runEnable(email) {
@@ -241,7 +236,6 @@
       if (result && result.success) {
         setStatusText('Fingerprint login is enabled for this device.');
         mountDashboardSettings();
-        mountLoginButton();
         alert('Fingerprint login enabled.');
         return;
       }
@@ -348,7 +342,7 @@
   function tick() {
     pollAttempts += 1;
     rememberLoginEmail();
-    mountLoginButton();
+    tryAutoBiometricLogin();
     mountDashboardSettings();
 
     if (bridgeReady() || pollAttempts >= MAX_POLL_ATTEMPTS) {

@@ -974,7 +974,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 </script>
 <script src="./asset/js/offline_cache_sync.js"></script>
-<script src="./asset/js/biometric_median.js"></script>
+<script src="./asset/js/biometric_median.js?v=<?= (int)@filemtime(__DIR__ . '/asset/js/biometric_median.js') ?>"></script>
 
 </body>
 </html>
