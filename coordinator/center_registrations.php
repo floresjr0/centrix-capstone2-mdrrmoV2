@@ -192,6 +192,7 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
         </header>
 
         <main class="dashboard">
+            <?php include __DIR__ . '/_offline_bootstrap.php'; ?>
             <div>
                 <h1 class="page-heading">Registered <span>Families</span></h1>
                 <div class="page-subnav">

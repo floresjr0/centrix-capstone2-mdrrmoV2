@@ -3,6 +3,7 @@ require_once __DIR__ . '/../pages/session.php';
 require_login('coordinator');
 require_once __DIR__ . '/../pages/center_helpers.php';
 require_once __DIR__ . '/../pages/demographic_helpers.php';
+require_once __DIR__ . '/../pages/walkin_registration.php';
 
 $pdo  = db();
 $user = current_user();
@@ -27,40 +28,12 @@ $errors = [];
 $successAdded = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_family') {
-    $headName      = trim($_POST['family_head_name'] ?? '');
-    $contactNumber = trim($_POST['contact_number'] ?? '');
-    $birthday      = $_POST['birthday'] ?? '';
-    $barangayId    = (int)($_POST['barangay_id'] ?? 0);
-    $demo          = demo_from_request($_POST);
-    $total         = demo_sum_row($demo);
-
-    if ($headName === '')      $errors[] = 'Head of family name is required.';
-    if ($contactNumber === '') $errors[] = 'Contact number is required.';
-    if (empty($birthday))      $errors[] = 'Birthday is required.';
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthday)) $errors[] = 'Invalid birthday format (YYYY-MM-DD).';
-    if (!$barangayId)          $errors[] = 'Barangay is required.';
-    if ($total <= 0)           $errors[] = 'Please specify at least one member.';
-
-    if (!$errors) {
-        if (family_head_already_registered($pdo, $centerId, $headName, $contactNumber, $birthday)) {
-            $errors[] = 'This family head is already registered at this center.';
-        }
-    }
-
-    if (!$errors) {
-        $demoCols = implode(', ', demo_field_keys());
-        $demoPh   = implode(', ', array_fill(0, count(demo_field_keys()), '?'));
-        $ins = $pdo->prepare("INSERT INTO evac_registrations
-            (center_id, family_head_name, contact_number, birthday, barangay_id,
-             $demoCols, total_members, created_by)
-            VALUES (?, ?, ?, ?, ?, $demoPh, ?, ?)");
-        $ins->execute(array_merge([
-            $centerId, $headName, $contactNumber, $birthday, $barangayId,
-        ], array_values($demo), [$total, $user['id']]));
-        refresh_center_status($centerId);
+    $result = register_walkin_family($pdo, $centerId, (int)$user['id'], $_POST);
+    if ($result['success']) {
         header('Location: center_walkin.php?id=' . $centerId . '&added=1');
         exit;
     }
+    $errors = $result['errors'] ?? ['Registration failed.'];
 }
 
 $successAdded = isset($_GET['added']) && $_GET['added'] == '1';
@@ -241,6 +214,7 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
         </header>
 
         <main class="dashboard">
+            <?php include __DIR__ . '/_offline_bootstrap.php'; ?>
             <div>
                 <h1 class="page-heading">Walk-in <span>Family</span></h1>
                 <div class="page-subnav">
@@ -300,7 +274,12 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                 </ul>
                 <?php endif; ?>
 
-                <form method="post" class="form-body">
+                <section class="coord-pending-section" id="coordPendingSection" hidden>
+                    <h3>Locally Saved Registrations</h3>
+                    <div class="coord-pending-list" id="coordPendingList"></div>
+                </section>
+
+                <form method="post" class="form-body" id="walkinFamilyForm">
                     <input type="hidden" name="action" value="add_family">
 
                     <label class="form-label">Family Head Name

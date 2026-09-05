@@ -1,0 +1,111 @@
+/* Coordinator-only offline walk-in registration UI + sync manager */
+.coord-offline-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid #e8dfd0;
+  background: #fffdf8;
+  font-family: 'Geist', sans-serif;
+  font-size: 0.78rem;
+  color: #5c564a;
+}
+.coord-offline-bar strong { color: #1c1712; font-weight: 700; }
+.coord-offline-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.coord-offline-dot.online { background: #16a34a; }
+.coord-offline-dot.offline { background: #d97706; }
+.coord-offline-dot.syncing { background: #2563eb; animation: coordPulse 1s infinite; }
+.coord-offline-dot.error { background: #dc2626; }
+@keyframes coordPulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+.coord-offline-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.coord-offline-msg { line-height: 1.35; }
+
+.coord-pending-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #9a3412;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.coord-pending-badge.error {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.coord-offline-toast {
+  margin: 0 1.4rem 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #86efac;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  display: none;
+}
+.coord-offline-toast.show { display: block; }
+.coord-offline-toast.offline-save {
+  border-color: #fdba74;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.coord-pending-section {
+  margin: 0 1.4rem 1.2rem;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px dashed #fdba74;
+  background: #fffaf5;
+}
+.coord-pending-section h3 {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #9a3412;
+  font-family: 'Geist', sans-serif;
+}
+.coord-pending-list { display: grid; gap: 8px; }
+.coord-pending-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #f3e8d8;
+}
+.coord-pending-item-main { min-width: 0; }
+.coord-pending-item-name {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #1c1712;
+}
+.coord-pending-item-meta {
+  font-size: 0.72rem;
+  color: #78716c;
+  margin-top: 2px;
+}
+
+.reg-row.coord-pending-row .cell-head,
+.reg-card.coord-pending-row .reg-card-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}

@@ -245,7 +245,8 @@ CREATE TABLE `evac_registrations` (
   `total_members` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `created_by` int(10) UNSIGNED NOT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `client_local_uuid` varchar(36) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -477,6 +478,7 @@ ALTER TABLE `evac_navigation_tracking`
 --
 ALTER TABLE `evac_registrations`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_evac_client_local_uuid` (`client_local_uuid`),
   ADD KEY `fk_evac_center` (`center_id`),
   ADD KEY `fk_evac_barangay` (`barangay_id`),
   ADD KEY `fk_evac_creator` (`created_by`);

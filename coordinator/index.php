@@ -221,6 +221,7 @@ $activeCenters  = count(array_filter($centers, fn($c) => $c['status'] !== 'close
         </header>
         <!-- Page content -->
         <main class="page">
+            <?php $centerId = 0; include __DIR__ . '/_offline_bootstrap.php'; ?>
             <h1 class="page-heading">Your <span>Assigned Centers</span></h1>
 
             <!-- Coordinator Profile Section -->
