@@ -8,6 +8,7 @@ var SHELL_ASSETS = [
   '../asset/css/coordinator_index.css',
   '../asset/js/coordinator/coordinator_offline_db.js',
   '../asset/js/coordinator/coordinator_walkin_offline.js',
+  '../asset/js/coordinator/coordinator_registrations_offline.js',
   '../img/mdrrmo.png'
 ];
 

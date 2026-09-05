@@ -3,6 +3,7 @@ require_once __DIR__ . '/../pages/session.php';
 require_login('coordinator');
 require_once __DIR__ . '/../pages/center_helpers.php';
 require_once __DIR__ . '/../pages/demographic_helpers.php';
+require_once __DIR__ . '/../pages/family_adjustment.php';
 
 $pdo  = db();
 $user = current_user();
@@ -23,26 +24,12 @@ if (!$center) {
     exit;
 }
 
-// Handle adjustments
+// Handle adjustments (legacy form POST — online fallback)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'adjust') {
     $regId = (int)($_POST['reg_id'] ?? 0);
     $field = $_POST['field'] ?? '';
     $delta = (int)($_POST['delta'] ?? 0);
-
-    if (in_array($field, demo_field_keys(), true) && in_array($delta, [-1, 1], true)) {
-        $check = $pdo->prepare("SELECT * FROM evac_registrations WHERE id = ? AND center_id = ?");
-        $check->execute([$regId, $centerId]);
-        $reg = $check->fetch();
-        if ($reg) {
-            $demo = demo_from_request($reg);
-            $demo[$field] = max(0, (int)$reg[$field] + $delta);
-            $total = demo_sum_row($demo);
-            $sets = implode(', ', array_map(fn($k) => "$k=?", demo_field_keys()));
-            $upd = $pdo->prepare("UPDATE evac_registrations SET $sets, total_members=? WHERE id=?");
-            $upd->execute([...array_values($demo), $total, $regId]);
-            refresh_center_status($centerId);
-        }
-    }
+    apply_family_adjustment($pdo, $centerId, $regId, $field, $delta, null);
     header('Location: center_registrations.php?id=' . $centerId);
     exit;
 }
@@ -55,6 +42,8 @@ $regsStmt = $pdo->prepare("SELECT r.*, b.name AS barangay_name
                            ORDER BY r.created_at DESC");
 $regsStmt->execute([$centerId]);
 $registrations = $regsStmt->fetchAll();
+
+$rosterJson = array_map('registration_to_roster_item', $registrations);
 
 // Unique barangays present in this list, for the filter dropdown
 $usedBarangays = [];
@@ -192,7 +181,8 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
         </header>
 
         <main class="dashboard">
-            <?php include __DIR__ . '/_offline_bootstrap.php'; ?>
+            <?php $coordOfflinePage = 'registrations'; include __DIR__ . '/_offline_bootstrap.php'; ?>
+            <script>window.MDRRMO_REGISTRATIONS_ROSTER = <?php echo json_encode($rosterJson, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
             <div>
                 <h1 class="page-heading">Registered <span>Families</span></h1>
                 <div class="page-subnav">
@@ -265,6 +255,7 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                             <tbody>
                             <?php foreach ($registrations as $r): ?>
                                 <tr class="reg-row"
+                                    data-reg-id="<?php echo (int)$r['id']; ?>"
                                     data-name="<?php echo htmlspecialchars(mb_strtolower($r['family_head_name'] . ' ' . ($r['contact_number'] ?? ''))); ?>"
                                     data-barangay="<?php echo htmlspecialchars(mb_strtolower($r['barangay_name'])); ?>">
                                     <td class="cell-head"><?php echo htmlspecialchars($r['family_head_name']); ?></td>
@@ -304,6 +295,7 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                     <div class="reg-cards" id="regCards">
                         <?php foreach ($registrations as $r): ?>
                         <div class="reg-card reg-row"
+                             data-reg-id="<?php echo (int)$r['id']; ?>"
                              data-name="<?php echo htmlspecialchars(mb_strtolower($r['family_head_name'] . ' ' . ($r['contact_number'] ?? ''))); ?>"
                              data-barangay="<?php echo htmlspecialchars(mb_strtolower($r['barangay_name'])); ?>">
                             <div class="reg-card-head">

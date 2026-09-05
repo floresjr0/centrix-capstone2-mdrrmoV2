@@ -156,14 +156,22 @@
   function updateStatusBar() {
     if (!window.CoordinatorOfflineDB) return Promise.resolve();
 
-    return window.CoordinatorOfflineDB.getPendingRecords(centerId || null).then(function (pending) {
-      var errorCount = pending.filter(function (p) { return !!p.sync_error; }).length;
-      var pendingCount = pending.length;
+    var walkinPending = window.CoordinatorOfflineDB.getPendingRecords(centerId || null);
+    var adjPending = window.CoordinatorOfflineDB.getPendingAdjustments
+      ? window.CoordinatorOfflineDB.getPendingAdjustments(centerId || null)
+      : Promise.resolve([]);
+
+    return Promise.all([walkinPending, adjPending]).then(function (results) {
+      var pending = results[0];
+      var adjustments = results[1];
+      var pendingCount = pending.length + adjustments.length;
+      var errorCount = pending.filter(function (p) { return !!p.sync_error; }).length
+        + adjustments.filter(function (p) { return !!p.sync_error; }).length;
 
       if (syncInProgress) {
         renderStatusBar({
           kind: 'syncing',
-          message: '<strong>Syncing</strong> ' + pendingCount + ' pending record' + (pendingCount === 1 ? '' : 's') + '…'
+          message: '<strong>Syncing</strong> ' + pendingCount + ' pending item' + (pendingCount === 1 ? '' : 's') + '…'
         });
         return;
       }
@@ -174,7 +182,7 @@
             kind: 'offline',
             message: pendingCount
               ? '<strong>Offline</strong> — ' + pendingCount + ' pending sync'
-              : '<strong>Offline</strong> — walk-in registrations will be saved on this device'
+              : '<strong>Offline</strong> — changes will be saved on this device'
           });
           return;
         }
@@ -285,6 +293,47 @@
     if (noData) noData.style.display = 'none';
   }
 
+  function syncPendingAdjustments() {
+    if (!window.CoordinatorOfflineDB.getPendingAdjustments) return Promise.resolve();
+    return window.CoordinatorOfflineDB.getPendingAdjustments(centerId || null).then(function (pending) {
+      var chain = Promise.resolve();
+      pending.forEach(function (adj) {
+        chain = chain.then(function () {
+          return fetchWithTimeout(API_BASE + 'family_adjust.php', {
+            method: 'POST',
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({
+              center_id: centerId,
+              reg_id: adj.reg_id,
+              field: adj.field,
+              delta: adj.delta,
+              client_adjustment_uuid: adj.local_uuid
+            })
+          }, 15000).then(function (res) {
+            return res.json().catch(function () { return {}; }).then(function (body) {
+              if (res.ok && body && body.success) {
+                var tasks = [];
+                if (body.registration) {
+                  tasks.push(window.CoordinatorOfflineDB.putCachedFamily(body.registration));
+                }
+                tasks.push(window.CoordinatorOfflineDB.markAdjustmentSynced(adj.seq));
+                return Promise.all(tasks);
+              }
+              var errMsg = (body && body.errors && body.errors.join(' '))
+                || (body && body.message) || ('HTTP ' + res.status);
+              return window.CoordinatorOfflineDB.markAdjustmentSyncFailed(adj.seq, errMsg);
+            });
+          }).catch(function (err) {
+            return window.CoordinatorOfflineDB.markAdjustmentSyncFailed(adj.seq, String(err.message || err));
+          });
+        });
+      });
+      return chain;
+    });
+  }
+
   function syncPendingRecords() {
     if (syncInProgress || !window.CoordinatorOfflineDB) return Promise.resolve();
     syncInProgress = true;
@@ -313,10 +362,15 @@
           });
         });
         return chain;
+      }).then(function () {
+        return syncPendingAdjustments();
       });
     }).finally(function () {
       syncInProgress = false;
       renderPendingSection();
+      if (window.CoordinatorRegistrationsOffline && window.CoordinatorRegistrationsOffline.refreshPendingBadges) {
+        window.CoordinatorRegistrationsOffline.refreshPendingBadges();
+      }
       return updateStatusBar();
     });
   }
