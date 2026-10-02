@@ -238,6 +238,27 @@ body {
 .logout-modal-btn-confirm:hover  { filter: brightness(1.08); }
 .logout-modal-btn-confirm:active { transform: scale(.97); }
 
+/* member panels / roster tables — coordinator_components.css */
+
+.reg-card-members-toolbar {
+    margin-top: 0.5rem;
+    padding-top: 0.65rem;
+    border-top: 1px dashed var(--border, #eae6dc);
+}
+
+.reg-card-readonly-count {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--glass-soft);
+    border: 1px solid var(--glass-border-2);
+    border-radius: 10px;
+    padding: 0.45rem 0.65rem;
+}
+
+.reg-card-readonly-count .member-row-label { font-size: 0.65rem; }
+.reg-card-readonly-count .adjust-val { font-size: 0.9rem; font-weight: 700; color: var(--orange-dark); }
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
     .hamburger-btn { display: none; }

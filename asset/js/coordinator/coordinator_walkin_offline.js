@@ -33,27 +33,109 @@
     ];
   }
 
+  function categoryFromBirthday(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return 'adults';
+    var birth = new Date(iso + 'T00:00:00');
+    if (isNaN(birth.getTime())) return 'adults';
+    var age = Math.floor((Date.now() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    if (age <= 2) return 'infants_toddlers';
+    if (age <= 17) return 'children';
+    if (age >= 60) return 'seniors';
+    return 'adults';
+  }
+
+  function deriveDemoFromMembers(members) {
+    var demo = {};
+    demoKeys().forEach(function (key) { demo[key] = 0; });
+    members.forEach(function (m) {
+      var cat = m.primary_category || 'adults';
+      if (demo[cat] !== undefined) demo[cat] += 1;
+      if (m.is_pwd) demo.pwds += 1;
+      if (m.is_pregnant) demo.pregnant_women += 1;
+      if (m.is_lactating) demo.lactating_mothers += 1;
+    });
+    return demo;
+  }
+
+  function collectWalkinMembers(form) {
+    var fd = new FormData(form);
+    var headName = String(fd.get('family_head_name') || '').trim();
+    var birthday = String(fd.get('birthday') || '').trim();
+    var headCategory = String(fd.get('head_primary_category') || '').trim();
+    if (!headCategory) headCategory = categoryFromBirthday(birthday);
+
+    var members = [{
+      full_name: headName,
+      sex: String(fd.get('head_sex') || '').trim(),
+      birthday: birthday,
+      primary_category: headCategory,
+      is_household_head: 1,
+      is_pwd: fd.get('head_is_pwd') ? 1 : 0,
+      is_pregnant: fd.get('head_is_pregnant') ? 1 : 0,
+      is_lactating: fd.get('head_is_lactating') ? 1 : 0
+    }];
+
+    var additional = (window.WalkinMemberUI && window.WalkinMemberUI.collectAdditionalMembers)
+      ? window.WalkinMemberUI.collectAdditionalMembers()
+      : [];
+    additional.forEach(function (m) { members.push(m); });
+    return members;
+  }
+
   function readFormData(form) {
     var fd = new FormData(form);
     var data = {
       family_head_name: String(fd.get('family_head_name') || '').trim(),
       contact_number: String(fd.get('contact_number') || '').trim(),
       birthday: String(fd.get('birthday') || '').trim(),
-      barangay_id: Number(fd.get('barangay_id') || 0)
+      barangay_id: Number(fd.get('barangay_id') || 0),
+      head_sex: String(fd.get('head_sex') || '').trim(),
+      head_primary_category: String(fd.get('head_primary_category') || '').trim(),
+      head_is_pwd: fd.get('head_is_pwd') ? 1 : 0,
+      head_is_pregnant: fd.get('head_is_pregnant') ? 1 : 0,
+      head_is_lactating: fd.get('head_is_lactating') ? 1 : 0
     };
+
+    var members = collectWalkinMembers(form);
+    data.members = members;
+    data.members_json = JSON.stringify(members.filter(function (m) { return !m.is_household_head; }));
+
+    var demo = deriveDemoFromMembers(members);
     demoKeys().forEach(function (key) {
-      data[key] = Math.max(0, parseInt(fd.get(key) || '0', 10) || 0);
+      data[key] = demo[key] || 0;
     });
+    data.total_members = members.length;
+
     var barangaySelect = form.querySelector('select[name="barangay_id"]');
     if (barangaySelect && barangaySelect.selectedOptions[0]) {
       data.barangay_name = barangaySelect.selectedOptions[0].textContent.trim();
     } else {
       data.barangay_name = '';
     }
-    data.total_members = demoKeys().reduce(function (sum, key) {
-      return sum + (data[key] || 0);
-    }, 0);
     return data;
+  }
+
+  function extractServerErrors(result) {
+    var body = result.body || {};
+    if (Array.isArray(body.errors) && body.errors.length) {
+      return body.errors;
+    }
+    if (body.message) {
+      return [String(body.message)];
+    }
+    if (body.error) {
+      return [String(body.error)];
+    }
+    if (result.status === 401) {
+      return ['Session expired. Please log in again as coordinator.'];
+    }
+    if (result.status === 403) {
+      return ['You do not have permission to register families at this center.'];
+    }
+    if (result.status >= 500) {
+      return ['Server error while saving. Please try again.'];
+    }
+    return ['Registration failed (HTTP ' + result.status + '). Please try again.'];
   }
 
   function validateFormData(data) {
@@ -63,7 +145,14 @@
     if (!data.birthday) errors.push('Birthday is required.');
     else if (!/^\d{4}-\d{2}-\d{2}$/.test(data.birthday)) errors.push('Invalid birthday format (YYYY-MM-DD).');
     if (!data.barangay_id) errors.push('Barangay is required.');
-    if (data.total_members <= 0) errors.push('Please specify at least one member.');
+    if (!data.total_members || data.total_members < 1) errors.push('Family head is required.');
+    if (data.members) {
+      data.members.forEach(function (m, idx) {
+        if (m.is_household_head) return;
+        if (!m.full_name) errors.push('Each household member needs a name.');
+        if (!m.primary_category) errors.push('Each household member needs a category.');
+      });
+    }
     return errors;
   }
 
@@ -400,14 +489,20 @@
             return submitOnline(formData, localUuid).then(function (result) {
             if (result.ok && result.body && result.body.success) {
               form.reset();
+              if (window.WalkinMemberUI && window.WalkinMemberUI.resetRows) {
+                window.WalkinMemberUI.resetRows();
+              }
               window.location.href = window.location.pathname + '?id=' + centerId + '&added=1';
               return;
             }
-            var serverErrors = (result.body && result.body.errors) || ['Registration failed. Please try again.'];
+            var serverErrors = extractServerErrors(result);
             showFormErrors(form, serverErrors);
           }).catch(function () {
             return saveOffline(formData, localUuid).then(function () {
               form.reset();
+              if (window.WalkinMemberUI && window.WalkinMemberUI.resetRows) {
+                window.WalkinMemberUI.resetRows();
+              }
               showToast(
                 '✓ <strong>Saved Offline</strong><br>This family has been saved on this device. '
                 + 'It will be synchronized automatically when the connection is restored.',
@@ -421,6 +516,9 @@
 
         return saveOffline(formData, localUuid).then(function () {
           form.reset();
+          if (window.WalkinMemberUI && window.WalkinMemberUI.resetRows) {
+            window.WalkinMemberUI.resetRows();
+          }
           showToast(
             '✓ <strong>Saved Offline</strong><br>This family has been saved on this device. '
             + 'It will be synchronized automatically when the connection is restored.',

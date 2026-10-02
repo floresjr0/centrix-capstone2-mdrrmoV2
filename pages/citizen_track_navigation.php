@@ -17,6 +17,7 @@
  */
 
 require_once __DIR__ . '/session.php';   // pages/session.php  ← same folder
+require_once __DIR__ . '/profile_completion_helpers.php';
 require_login();
 
 header('Content-Type: application/json');
@@ -48,6 +49,8 @@ $disasterId = $disasterRow ? (int) $disasterRow['id'] : null;
 // ── Handle each action ─────────────────────────────────────────
 try {
     if ($action === 'select') {
+        pc_require_complete_profile_for_navigation($pdo, $userId, 'json');
+
         $centerId = isset($body['center_id']) ? (int) $body['center_id'] : 0;
         if ($centerId <= 0) {
             http_response_code(400);

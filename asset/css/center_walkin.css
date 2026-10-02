@@ -221,9 +221,14 @@ body {
     .page-subnav { gap: 0.4rem; }
     .page-subnav a { font-size: 0.76rem; padding: 0.35rem 0.6rem; }
 }
+@media (max-width: 640px) {
+    .walkin-members-section { padding: 0.85rem; }
+}
+
 @media (max-width: 480px) {
     .btn-submit { display: inline-flex; width: auto; align-self: center; padding: 0.6rem 1.3rem; min-width: 0; }
     .grid-2 { grid-template-columns: 1fr; }
+    .form-body { padding: 1rem; }
 }
 @media (max-width: 380px) {
     .page-subnav a { font-size: 0.7rem; padding: 0.32rem 0.5rem; }

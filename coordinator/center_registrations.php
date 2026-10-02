@@ -4,6 +4,7 @@ require_login('coordinator');
 require_once __DIR__ . '/../pages/center_helpers.php';
 require_once __DIR__ . '/../pages/demographic_helpers.php';
 require_once __DIR__ . '/../pages/family_adjustment.php';
+require_once __DIR__ . '/../pages/registration_member_helpers.php';
 
 $pdo  = db();
 $user = current_user();
@@ -25,13 +26,26 @@ if (!$center) {
 }
 
 // Handle adjustments (legacy form POST — online fallback)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'adjust') {
-    $regId = (int)($_POST['reg_id'] ?? 0);
-    $field = $_POST['field'] ?? '';
-    $delta = (int)($_POST['delta'] ?? 0);
-    apply_family_adjustment($pdo, $centerId, $regId, $field, $delta, null);
-    header('Location: center_registrations.php?id=' . $centerId);
-    exit;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    if ($action === 'adjust') {
+        $regId = (int)($_POST['reg_id'] ?? 0);
+        $field = $_POST['field'] ?? '';
+        $delta = (int)($_POST['delta'] ?? 0);
+        apply_family_adjustment($pdo, $centerId, $regId, $field, $delta, null);
+        header('Location: center_registrations.php?id=' . $centerId);
+        exit;
+    }
+    if ($action === 'add_member') {
+        rm_add_registration_member($pdo, $centerId, (int)($_POST['reg_id'] ?? 0), $_POST);
+        header('Location: center_registrations.php?id=' . $centerId . '&updated=1');
+        exit;
+    }
+    if ($action === 'remove_member') {
+        rm_remove_registration_member($pdo, $centerId, (int)($_POST['reg_id'] ?? 0), (int)($_POST['member_id'] ?? 0));
+        header('Location: center_registrations.php?id=' . $centerId . '&updated=1');
+        exit;
+    }
 }
 
 // Fetch registrations
@@ -43,7 +57,13 @@ $regsStmt = $pdo->prepare("SELECT r.*, b.name AS barangay_name
 $regsStmt->execute([$centerId]);
 $registrations = $regsStmt->fetchAll();
 
-$rosterJson = array_map('registration_to_roster_item', $registrations);
+$useMemberRegs = rm_table_exists($pdo, 'evac_registration_members');
+$registrationMembers = [];
+foreach ($registrations as $r) {
+    $rid = (int)$r['id'];
+    $registrationMembers[$rid] = $useMemberRegs ? rm_list_registration_members($pdo, $rid, true) : [];
+}
+$rosterJson = array_map(fn($row) => rm_registration_to_roster_item($row, $pdo), $registrations);
 
 // Unique barangays present in this list, for the filter dropdown
 $usedBarangays = [];
@@ -67,10 +87,8 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../asset/css/center_registrations.css">
+    <link rel="stylesheet" href="../asset/css/coordinator_components.css">
 </head>
-<style>
-
-</style>
 <body>
 
 <div class="bg-blobs" aria-hidden="true">
@@ -250,24 +268,42 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                     <div class="table-wrap">
                         <table class="table" id="regTable">
                             <thead>
-                                <tr><th>Head</th><th>Contact</th><th>Birthday</th><th>Barangay</th><?php foreach (DEMO_FIELDS as $label): ?><th><?php echo htmlspecialchars($label); ?></th><?php endforeach; ?><th>Total</th></tr>
+                                <tr><th>Head</th><th>Contact</th><th>Birthday</th><th>Barangay</th><?php if ($useMemberRegs): ?><th>Members</th><?php endif; ?><?php foreach (DEMO_FIELDS as $label): ?><th><?php echo htmlspecialchars($label); ?></th><?php endforeach; ?><th>Total</th></tr>
                             </thead>
                             <tbody>
-                            <?php foreach ($registrations as $r): ?>
+                            <?php foreach ($registrations as $r):
+                                $rid = (int)$r['id'];
+                                $members = $registrationMembers[$rid] ?? [];
+                                $isMemberMode = ($r['registration_mode'] ?? 'aggregate') === 'members' || count($members) > 0;
+                                $expectedTotal = isset($r['expected_total_members']) ? (int)$r['expected_total_members'] : null;
+                            ?>
                                 <tr class="reg-row"
-                                    data-reg-id="<?php echo (int)$r['id']; ?>"
+                                    data-reg-id="<?php echo $rid; ?>"
                                     data-name="<?php echo htmlspecialchars(mb_strtolower($r['family_head_name'] . ' ' . ($r['contact_number'] ?? ''))); ?>"
                                     data-barangay="<?php echo htmlspecialchars(mb_strtolower($r['barangay_name'])); ?>">
                                     <td class="cell-head"><?php echo htmlspecialchars($r['family_head_name']); ?></td>
                                     <td><?php echo htmlspecialchars($r['contact_number'] ?? ''); ?></td>
                                     <td><?php echo !empty($r['birthday']) ? date('M d, Y', strtotime($r['birthday'])) : ''; ?></td>
                                     <td><?php echo htmlspecialchars($r['barangay_name']); ?></td>
+                                    <?php if ($useMemberRegs): ?>
+                                    <td class="cell-members">
+                                        <button type="button" class="btn-toggle-members" onclick="toggleMemberPanel(<?php echo $rid; ?>)">
+                                            <?php echo count($members); ?> present
+                                            <?php if ($expectedTotal !== null && $expectedTotal !== (int)$r['total_members']): ?>
+                                            <span class="expected-tag">(exp. <?php echo $expectedTotal; ?>)</span>
+                                            <?php endif; ?>
+                                        </button>
+                                    </td>
+                                    <?php endif; ?>
                                     <?php foreach (demo_field_keys() as $field): ?>
                                     <td>
+                                        <?php if ($isMemberMode && $useMemberRegs): ?>
+                                        <span class="adjust-val"><?php echo (int)$r[$field]; ?></span>
+                                        <?php else: ?>
                                         <div class="adjust-cell">
                                             <form method="post" class="inline-adjust">
                                                 <input type="hidden" name="action"  value="adjust">
-                                                <input type="hidden" name="reg_id"  value="<?php echo (int)$r['id']; ?>">
+                                                <input type="hidden" name="reg_id"  value="<?php echo $rid; ?>">
                                                 <input type="hidden" name="field"   value="<?php echo $field; ?>">
                                                 <input type="hidden" name="delta"   value="-1">
                                                 <button type="submit">−</button>
@@ -275,16 +311,80 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                                             <span class="adjust-val"><?php echo (int)$r[$field]; ?></span>
                                             <form method="post" class="inline-adjust">
                                                 <input type="hidden" name="action"  value="adjust">
-                                                <input type="hidden" name="reg_id"  value="<?php echo (int)$r['id']; ?>">
+                                                <input type="hidden" name="reg_id"  value="<?php echo $rid; ?>">
                                                 <input type="hidden" name="field"   value="<?php echo $field; ?>">
                                                 <input type="hidden" name="delta"   value="1">
                                                 <button type="submit">+</button>
                                             </form>
                                         </div>
+                                        <?php endif; ?>
                                     </td>
                                     <?php endforeach; ?>
                                     <td class="cell-total"><?php echo (int)$r['total_members']; ?></td>
                                 </tr>
+                                <?php if ($useMemberRegs): ?>
+                                <tr class="member-panel-row" id="member-panel-<?php echo $rid; ?>" hidden>
+                                    <td colspan="<?php echo 5 + count(DEMO_FIELDS) + 1; ?>">
+                                        <?php if ($members): ?>
+                                        <div class="member-table-scroll">
+                                        <table class="reg-member-table">
+                                            <thead><tr><th>Name</th><th>Sex</th><th>Birthday</th><th>Category</th><th>PWD</th><th>Pregnant</th><th>Lactating</th><th></th></tr></thead>
+                                            <tbody>
+                                            <?php foreach ($members as $m): ?>
+                                            <tr>
+                                                <td data-label="Name"><?php echo htmlspecialchars($m['full_name']); ?><?php if ($m['is_household_head']): ?> <span class="head-tag">Head</span><?php endif; ?></td>
+                                                <td data-label="Sex"><?php echo htmlspecialchars(ucfirst($m['sex'] ?? '')); ?></td>
+                                                <td data-label="Birthday"><?php echo !empty($m['birthday']) ? htmlspecialchars($m['birthday']) : '—'; ?></td>
+                                                <td data-label="Category"><?php echo htmlspecialchars($m['primary_label']); ?></td>
+                                                <td data-label="PWD"><?php echo $m['is_pwd'] ? 'Yes' : '—'; ?></td>
+                                                <td data-label="Pregnant"><?php echo $m['is_pregnant'] ? 'Yes' : '—'; ?></td>
+                                                <td data-label="Lactating"><?php echo $m['is_lactating'] ? 'Yes' : '—'; ?></td>
+                                                <td data-label="">
+                                                    <form method="post" class="inline-adjust" onsubmit="return confirm('Mark this person as left / not present?');">
+                                                        <input type="hidden" name="action" value="remove_member">
+                                                        <input type="hidden" name="reg_id" value="<?php echo $rid; ?>">
+                                                        <input type="hidden" name="member_id" value="<?php echo (int)$m['id']; ?>">
+                                                        <button type="submit" class="btn-member-out">Remove</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                        </div>
+                                        <?php else: ?>
+                                        <p class="member-panel-empty">No individual member records — aggregate counts only.</p>
+                                        <?php endif; ?>
+                                        <form method="post" class="add-late-member-form">
+                                            <input type="hidden" name="action" value="add_member">
+                                            <input type="hidden" name="reg_id" value="<?php echo $rid; ?>">
+                                            <strong>Add late arrival</strong>
+                                            <div class="add-late-member-grid">
+                                                <input type="text" name="full_name" placeholder="Full name" required>
+                                                <select name="sex"><option value="">Sex</option><option value="male">Male</option><option value="female">Female</option></select>
+                                                <input type="date" name="birthday" placeholder="Birthday">
+                                                <select name="primary_category" required>
+                                                    <option value="adults">Adult</option>
+                                                    <option value="children">Child</option>
+                                                    <option value="seniors">Senior</option>
+                                                    <option value="infants_toddlers">Infant/Toddler</option>
+                                                </select>
+                                            </div>
+                                            <div class="late-arrival-flags">
+                                                <span class="late-arrival-flags-label">Special conditions</span>
+                                                <div class="late-arrival-flags-row">
+                                                    <label class="late-flag-chip"><input type="checkbox" name="is_pwd" value="1"><span>PWD</span></label>
+                                                    <label class="late-flag-chip"><input type="checkbox" name="is_pregnant" value="1"><span>Pregnant</span></label>
+                                                    <label class="late-flag-chip"><input type="checkbox" name="is_lactating" value="1"><span>Lactating</span></label>
+                                                </div>
+                                            </div>
+                                            <div class="add-late-member-actions">
+                                                <button type="submit">Add late arrival</button>
+                                            </div>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <?php endif; ?>
                             <?php endforeach; ?>
                             </tbody>
                         </table>
@@ -293,9 +393,14 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
 
                     <!-- Mobile cards -->
                     <div class="reg-cards" id="regCards">
-                        <?php foreach ($registrations as $r): ?>
+                        <?php foreach ($registrations as $r):
+                            $rid = (int)$r['id'];
+                            $members = $registrationMembers[$rid] ?? [];
+                            $isMemberMode = ($r['registration_mode'] ?? 'aggregate') === 'members' || count($members) > 0;
+                            $expectedTotal = isset($r['expected_total_members']) ? (int)$r['expected_total_members'] : null;
+                        ?>
                         <div class="reg-card reg-row"
-                             data-reg-id="<?php echo (int)$r['id']; ?>"
+                             data-reg-id="<?php echo $rid; ?>"
                              data-name="<?php echo htmlspecialchars(mb_strtolower($r['family_head_name'] . ' ' . ($r['contact_number'] ?? ''))); ?>"
                              data-barangay="<?php echo htmlspecialchars(mb_strtolower($r['barangay_name'])); ?>">
                             <div class="reg-card-head">
@@ -312,12 +417,18 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                             </div>
                             <div class="reg-card-members">
                                 <?php foreach (DEMO_FIELDS as $field => $label): ?>
+                                <?php if ($isMemberMode && $useMemberRegs): ?>
+                                <div class="reg-card-readonly-count">
+                                    <span class="member-row-label"><?php echo $label; ?></span>
+                                    <span class="adjust-val"><?php echo (int)$r[$field]; ?></span>
+                                </div>
+                                <?php else: ?>
                                 <div class="member-row">
                                     <span class="member-row-label"><?php echo $label; ?></span>
                                     <div class="member-row-controls">
                                         <form method="post" class="inline-adjust">
                                             <input type="hidden" name="action" value="adjust">
-                                            <input type="hidden" name="reg_id" value="<?php echo (int)$r['id']; ?>">
+                                            <input type="hidden" name="reg_id" value="<?php echo $rid; ?>">
                                             <input type="hidden" name="field"  value="<?php echo $field; ?>">
                                             <input type="hidden" name="delta"  value="-1">
                                             <button type="submit">−</button>
@@ -325,15 +436,85 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                                         <span class="adjust-val"><?php echo (int)$r[$field]; ?></span>
                                         <form method="post" class="inline-adjust">
                                             <input type="hidden" name="action" value="adjust">
-                                            <input type="hidden" name="reg_id" value="<?php echo (int)$r['id']; ?>">
+                                            <input type="hidden" name="reg_id" value="<?php echo $rid; ?>">
                                             <input type="hidden" name="field"  value="<?php echo $field; ?>">
                                             <input type="hidden" name="delta"  value="1">
                                             <button type="submit">+</button>
                                         </form>
                                     </div>
                                 </div>
+                                <?php endif; ?>
                                 <?php endforeach; ?>
                             </div>
+                            <?php if ($useMemberRegs): ?>
+                            <div class="reg-card-members-toolbar">
+                                <button type="button" class="btn-toggle-members" onclick="toggleMemberPanel(<?php echo $rid; ?>)">
+                                    <?php echo count($members); ?> present
+                                    <?php if ($expectedTotal !== null && $expectedTotal !== (int)$r['total_members']): ?>
+                                    <span class="expected-tag">(exp. <?php echo $expectedTotal; ?>)</span>
+                                    <?php endif; ?>
+                                </button>
+                            </div>
+                            <div class="member-panel-card" id="member-panel-card-<?php echo $rid; ?>">
+                                <?php if ($members): ?>
+                                <div class="member-table-scroll">
+                                <table class="reg-member-table">
+                                    <thead><tr><th>Name</th><th>Sex</th><th>Birthday</th><th>Category</th><th>PWD</th><th>Pregnant</th><th>Lactating</th><th></th></tr></thead>
+                                    <tbody>
+                                    <?php foreach ($members as $m): ?>
+                                    <tr>
+                                        <td data-label="Name"><?php echo htmlspecialchars($m['full_name']); ?><?php if ($m['is_household_head']): ?> <span class="head-tag">Head</span><?php endif; ?></td>
+                                        <td data-label="Sex"><?php echo htmlspecialchars(ucfirst($m['sex'] ?? '')); ?></td>
+                                        <td data-label="Birthday"><?php echo !empty($m['birthday']) ? htmlspecialchars($m['birthday']) : '—'; ?></td>
+                                        <td data-label="Category"><?php echo htmlspecialchars($m['primary_label']); ?></td>
+                                        <td data-label="PWD"><?php echo $m['is_pwd'] ? 'Yes' : '—'; ?></td>
+                                        <td data-label="Pregnant"><?php echo $m['is_pregnant'] ? 'Yes' : '—'; ?></td>
+                                        <td data-label="Lactating"><?php echo $m['is_lactating'] ? 'Yes' : '—'; ?></td>
+                                        <td data-label="">
+                                            <form method="post" class="inline-adjust" onsubmit="return confirm('Mark this person as left / not present?');">
+                                                <input type="hidden" name="action" value="remove_member">
+                                                <input type="hidden" name="reg_id" value="<?php echo $rid; ?>">
+                                                <input type="hidden" name="member_id" value="<?php echo (int)$m['id']; ?>">
+                                                <button type="submit" class="btn-member-out">Remove</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                                </div>
+                                <?php else: ?>
+                                <p class="member-panel-empty">No individual member records — aggregate counts only.</p>
+                                <?php endif; ?>
+                                <form method="post" class="add-late-member-form">
+                                    <input type="hidden" name="action" value="add_member">
+                                    <input type="hidden" name="reg_id" value="<?php echo $rid; ?>">
+                                    <strong>Add late arrival</strong>
+                                    <div class="add-late-member-grid">
+                                        <input type="text" name="full_name" placeholder="Full name" required>
+                                        <select name="sex"><option value="">Sex</option><option value="male">Male</option><option value="female">Female</option></select>
+                                        <input type="date" name="birthday" placeholder="Birthday">
+                                        <select name="primary_category" required>
+                                            <option value="adults">Adult</option>
+                                            <option value="children">Child</option>
+                                            <option value="seniors">Senior</option>
+                                            <option value="infants_toddlers">Infant/Toddler</option>
+                                        </select>
+                                    </div>
+                                    <div class="late-arrival-flags">
+                                        <span class="late-arrival-flags-label">Special conditions</span>
+                                        <div class="late-arrival-flags-row">
+                                            <label class="late-flag-chip"><input type="checkbox" name="is_pwd" value="1"><span>PWD</span></label>
+                                            <label class="late-flag-chip"><input type="checkbox" name="is_pregnant" value="1"><span>Pregnant</span></label>
+                                            <label class="late-flag-chip"><input type="checkbox" name="is_lactating" value="1"><span>Lactating</span></label>
+                                        </div>
+                                    </div>
+                                    <div class="add-late-member-actions">
+                                        <button type="submit">Add late arrival</button>
+                                    </div>
+                                </form>
+                            </div>
+                            <?php endif; ?>
                         </div>
                         <?php endforeach; ?>
                         <div class="reg-no-results" id="regNoResultsCards">No families match your search.</div>
@@ -408,6 +589,13 @@ document.addEventListener('keydown', function(e) {
     searchInput.addEventListener('input', applyFilters);
     barangaySelect.addEventListener('change', applyFilters);
 })();
+
+function toggleMemberPanel(regId) {
+    const panel = document.getElementById('member-panel-' + regId);
+    if (panel) panel.hidden = !panel.hidden;
+    const card = document.getElementById('member-panel-card-' + regId);
+    if (card) card.classList.toggle('open');
+}
 </script>
 </body>
 </html>

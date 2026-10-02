@@ -7,6 +7,10 @@ $user = current_user();
 $pdo  = db();
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/profile_completion_helpers.php';
+
+$profileStatus = pc_get_profile_completion_status($pdo, (int)$user['id']);
+$profileIncompleteBanner = isset($_GET['profile_incomplete']);
 
 $lat = 15.0828;
 $lon = 120.9417;
@@ -333,15 +337,31 @@ $riskLabels = ['low'=>'LOW','medium'=>'MODERATE','high'=>'HIGH','extreme'=>'SEVE
     </div>
   </div>
   <nav class="drawer-nav">
-    <div class="drawer-nav-label">Menu</div>
-    <div class="drawer-profile-row" onclick="openProfileAndCloseSidebar()">
-      <div class="drawer-profile-avatar" id="drawerAvatar">?</div>
-      <div>
-        <div class="drawer-profile-name" id="drawerName">My Profile</div>
-        <div class="drawer-profile-sub">Tap to edit profile & household</div>
+    <div class="drawer-nav-label">Profile &amp; Household</div>
+    <div class="drawer-profile-block">
+      <div class="drawer-profile-row" onclick="openProfileAndCloseSidebar()">
+        <div class="drawer-profile-avatar" id="drawerAvatar">?</div>
+        <div class="drawer-profile-text">
+          <div class="drawer-profile-name" id="drawerName">My Profile</div>
+          <div class="drawer-profile-sub">Tap to edit profile &amp; household</div>
+          <div class="drawer-profile-chips">
+            <span class="status-chip <?php echo $profileStatus['citizen_profile']['complete'] ? 'complete' : 'incomplete'; ?>" id="drawerStatusCitizen">Citizen · <?php echo $profileStatus['citizen_profile']['complete'] ? 'Complete' : 'Incomplete'; ?></span>
+            <span class="status-chip <?php echo $profileStatus['family_profile']['complete'] ? 'complete' : 'incomplete'; ?>" id="drawerStatusFamily">Family · <?php echo $profileStatus['family_profile']['complete'] ? 'Complete' : 'Incomplete'; ?></span>
+          </div>
+        </div>
+        <div class="drawer-profile-edit">Edit ›</div>
       </div>
-      <div class="drawer-profile-edit">Edit ›</div>
+      <p class="drawer-status-hint <?php echo $profileStatus['navigation_allowed'] ? 'ok' : ''; ?>" id="drawerProfileHint">
+        <?php echo $profileStatus['navigation_allowed']
+          ? 'Handa ka nang mag-navigate.'
+          : htmlspecialchars(pc_profile_block_message($pdo, (int)$user['id'])); ?>
+      </p>
+      <button type="button" class="drawer-household-action" onclick="openAddMemberFromDrawer(event)">
+        <span class="drawer-household-action-icon">+</span>
+        <span>Add Family Member</span>
+      </button>
     </div>
+    <div class="drawer-nav-label">Menu</div>
     <a href="citizen_dashboard.php" class="drawer-nav-item active">
       <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Dashboard
     </a>
@@ -378,6 +398,29 @@ $riskLabels = ['low'=>'LOW','medium'=>'MODERATE','high'=>'HIGH','extreme'=>'SEVE
         <div class="profile-head-brgy" id="profileHeadBrgy"></div>
       </div>
     </div>
+    <div class="profile-status-inline" id="profileStatusInline">
+      <div class="profile-status-row">
+        <div class="profile-status-label">Citizen Profile</div>
+        <div class="profile-status-value" id="statusCitizen">
+          <span class="status-badge <?php echo $profileStatus['citizen_profile']['complete'] ? 'complete' : 'incomplete'; ?>">
+            <?php echo $profileStatus['citizen_profile']['complete'] ? 'Complete' : 'Incomplete'; ?>
+          </span>
+        </div>
+      </div>
+      <div class="profile-status-row">
+        <div class="profile-status-label">Family Profile</div>
+        <div class="profile-status-value" id="statusFamily">
+          <span class="status-badge <?php echo $profileStatus['family_profile']['complete'] ? 'complete' : 'incomplete'; ?>">
+            <?php echo $profileStatus['family_profile']['complete'] ? 'Complete' : 'Incomplete'; ?>
+          </span>
+        </div>
+      </div>
+      <p class="profile-status-hint <?php echo $profileStatus['navigation_allowed'] ? 'ok' : ''; ?>" id="profileStatusHint">
+        <?php echo $profileStatus['navigation_allowed']
+          ? 'Handa ka nang mag-navigate para lumikas.'
+          : htmlspecialchars(pc_profile_block_message($pdo, (int)$user['id'])); ?>
+      </p>
+    </div>
     <div class="profile-section">
       <div class="profile-section-label">Personal Information</div>
       <div class="profile-field"><label>First Name</label><input type="text" id="pfFirstName" placeholder="Juan" maxlength="100"></div>
@@ -397,21 +440,57 @@ $riskLabels = ['low'=>'LOW','medium'=>'MODERATE','high'=>'HIGH','extreme'=>'SEVE
       <div class="profile-field"><label>Barangay</label><input type="text" id="pfBarangay" readonly></div>
       <div class="profile-field"><label>House No. / Street</label><input type="text" id="pfHouseNo" readonly></div>
     </div>
-    <div class="profile-section"><div class="profile-section-label">Household Members</div></div>
-    <div class="household-grid">
-      <div class="hh-card"><div class="hh-card-label">Adults (18-59)</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('adults',-1)">−</button><div class="hh-counter-val" id="hhAdults">1</div><button type="button" class="hh-counter-btn" onclick="hhChange('adults',1)">+</button></div></div>
-      <div class="hh-card"><div class="hh-card-label">Children (&lt;18)</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('children',-1)">−</button><div class="hh-counter-val" id="hhChildren">0</div><button type="button" class="hh-counter-btn" onclick="hhChange('children',1)">+</button></div></div>
-      <div class="hh-card"><div class="hh-card-label">Senior Citizens (60+)</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('seniors',-1)">−</button><div class="hh-counter-val" id="hhSeniors">0</div><button type="button" class="hh-counter-btn" onclick="hhChange('seniors',1)">+</button></div></div>
-      <div class="hh-card"><div class="hh-card-label">PWD</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('pwds',-1)">−</button><div class="hh-counter-val" id="hhPwds">0</div><button type="button" class="hh-counter-btn" onclick="hhChange('pwds',1)">+</button></div></div>
-      <div class="hh-card"><div class="hh-card-label">Pregnant Women</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('pregnant_women',-1)">−</button><div class="hh-counter-val" id="hhPregnantWomen">0</div><button type="button" class="hh-counter-btn" onclick="hhChange('pregnant_women',1)">+</button></div></div>
-      <div class="hh-card"><div class="hh-card-label">Lactating / Breastfeeding</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('lactating_mothers',-1)">−</button><div class="hh-counter-val" id="hhLactatingMothers">0</div><button type="button" class="hh-counter-btn" onclick="hhChange('lactating_mothers',1)">+</button></div></div>
-      <div class="hh-card"><div class="hh-card-label">Infants / Toddlers</div><div class="hh-counter"><button type="button" class="hh-counter-btn" onclick="hhChange('infants_toddlers',-1)">−</button><div class="hh-counter-val" id="hhInfantsToddlers">0</div><button type="button" class="hh-counter-btn" onclick="hhChange('infants_toddlers',1)">+</button></div></div>
+    <div class="profile-section">
+      <div class="profile-section-label">Family / Household</div>
+      <div class="fm-head-card" id="fmHeadCard">
+        <div class="fm-head-title">Family Head (You)</div>
+        <div class="fm-head-meta" id="fmHeadMeta">—</div>
+      </div>
+      <div class="fm-member-list" id="fmMemberList"></div>
+      <div class="fm-actions">
+        <button type="button" class="fm-btn fm-btn-add" onclick="openMemberFormForAdd(event)">+ Add Family Member</button>
+        <button type="button" class="fm-btn fm-btn-alone" id="btnLivesAlone" onclick="confirmLivesAlone()">I live alone — solo household</button>
+      </div>
+      <div class="fm-inline-panel" id="fmInlinePanel" hidden>
+        <div class="fm-inline-head">
+          <div class="profile-section-label" id="fmFormTitle" style="margin:0">Add Family Member</div>
+          <button type="button" class="fm-inline-close" onclick="closeMemberForm()" aria-label="Close">×</button>
+        </div>
+        <input type="hidden" id="fmMemberId" value="">
+        <div class="profile-field"><label>Full Name</label><input type="text" id="fmFullName" placeholder="Maria Dela Cruz" maxlength="200"></div>
+        <div style="display:flex;gap:12px">
+          <div class="profile-field" style="flex:1"><label>Sex</label>
+            <select id="fmSex" onchange="fmSexChanged()"><option value="">— Select —</option><option value="male">Male</option><option value="female">Female</option><option value="prefer_not_to_say">Prefer not to say</option></select>
+          </div>
+          <div class="profile-field" style="flex:1"><label>Birthday <span style="font-weight:400;color:#999">(optional)</span></label><input type="date" id="fmBirthday" max="<?php echo date('Y-m-d'); ?>" onchange="fmBirthdayChanged()"></div>
+        </div>
+        <div class="profile-field"><label>Primary Category</label>
+          <select id="fmPrimaryCategory">
+            <option value="adults">Adult (18–59)</option>
+            <option value="children">Child (&lt;18)</option>
+            <option value="seniors">Senior (60+)</option>
+            <option value="infants_toddlers">Infant / Toddler (0–2)</option>
+          </select>
+        </div>
+        <div class="fm-flags">
+          <label class="fm-flag"><input type="checkbox" id="fmPwd"> PWD</label>
+          <label class="fm-flag" id="fmPregnantWrap"><input type="checkbox" id="fmPregnant"> Pregnant</label>
+          <label class="fm-flag" id="fmLactatingWrap"><input type="checkbox" id="fmLactating"> Lactating / Breastfeeding</label>
+        </div>
+        <button type="button" class="profile-save-btn fm-save-member-btn" id="fmSaveMemberBtn" onclick="saveMember()">Save Member</button>
+        <button type="button" class="fm-btn fm-btn-cancel" onclick="closeMemberForm()">Cancel</button>
+      </div>
+      <div class="fm-alone-note" id="fmAloneNote" hidden>Nakumpirma: kayo lang ang nakatira sa inyong tahanan.</div>
     </div>
     <div class="hh-total-banner">
-      <div><div class="hh-total-label">Total Household Members</div><div style="font-size:.60rem;color:var(--muted)">Sent to coordinators when you evacuate</div></div>
+      <div>
+        <div class="hh-total-label">Derived Household Totals</div>
+        <div style="font-size:.60rem;color:var(--muted)">Kalkulado mula sa family head + mga miyembro · ipinapadala sa coordinators</div>
+      </div>
       <div class="hh-total-val" id="hhTotal">1</div>
     </div>
-    <button class="profile-save-btn" id="profileSaveBtn" onclick="saveProfile()">✓ Save Profile</button>
+    <div class="hh-derived-grid" id="hhDerivedGrid"></div>
+    <button class="profile-save-btn" id="profileSaveBtn" onclick="saveProfile()">✓ Save Personal Profile</button>
   </div>
 </div>
 
@@ -810,29 +889,74 @@ function closeAnnModal(e){
 // ── PROFILE ──
 let profileCache=null;
 const HH_FIELDS=['adults','children','seniors','pwds','pregnant_women','lactating_mothers','infants_toddlers'];
-const HH_FIELD_IDS={adults:'hhAdults',children:'hhChildren',seniors:'hhSeniors',pwds:'hhPwds',pregnant_women:'hhPregnantWomen',lactating_mothers:'hhLactatingMothers',infants_toddlers:'hhInfantsToddlers'};
-const hhState={adults:1,children:0,seniors:0,pwds:0,pregnant_women:0,lactating_mothers:0,infants_toddlers:0};
+const HH_LABELS={adults:'Adults',children:'Children',seniors:'Seniors',pwds:'PWD',pregnant_women:'Pregnant',lactating_mothers:'Lactating',infants_toddlers:'Infants/Toddlers'};
+const FM_CATEGORY_FROM_AGE=(age)=>{if(age<=2)return'infants_toddlers';if(age<=17)return'children';if(age>=60)return'seniors';return'adults'};
+
 function showProfileToast(msg,type=''){
   const el=document.getElementById('profileToast'); if(!el) return;
   el.textContent=msg; el.className='profile-toast show '+type;
   setTimeout(()=>el.classList.remove('show'),2500);
 }
-function isProfileComplete(){
-  if(!profileCache) return false;
-  const required = ['first_name','last_name','contact_number','birthday','sex'];
-  return required.every(f => profileCache[f] && String(profileCache[f]).trim() !== '');
+function isCitizenProfileComplete(){
+  if(!profileCache?.profile_status) return false;
+  return !!profileCache.profile_status.citizen_profile?.complete;
 }
-
+function isFamilyProfileComplete(){
+  if(!profileCache?.profile_status) return false;
+  return !!profileCache.profile_status.family_profile?.complete;
+}
+function isNavigationAllowed(){
+  if(!profileCache?.profile_status) return false;
+  return !!profileCache.profile_status.navigation_allowed;
+}
 function requireProfileBeforeRoute(e){
-  if(isProfileComplete()) return true; // ok na, hayaan tumuloy
+  if(isNavigationAllowed()) return true;
   if(e) e.preventDefault();
-  showProfileToast('Kumpletuhin muna ang iyong personal details bago mag-navigate','error');
-  openProfileAndCloseSidebar ? openProfileModal() : null;
+  if(!isCitizenProfileComplete()){
+    showProfileToast('Kumpletuhin muna ang iyong personal details bago mag-navigate','error');
+  }else{
+    showProfileToast('Magrehistro ng mga miyembro ng sambahayan o kumpirmahin na kayo lang ang nakatira','error');
+  }
+  openProfileModal();
   if('vibrate' in navigator) navigator.vibrate([40,30,40]);
   return false;
 }
-function updateHHTotal(){
-  const total=HH_FIELDS.reduce((s,f)=>s+(hhState[f]||0),0);
+function profileStatusMessage(st){
+  if(st.navigation_allowed) return 'Handa ka nang mag-navigate para lumikas.';
+  const parts=[];
+  if(!st.citizen_profile.complete) parts.push('Kumpletuhin ang iyong personal na profile (pangalan, contact, kaarawan, kasarian).');
+  if(st.citizen_profile.complete&&!st.family_profile.complete) parts.push('Magrehistro ng mga miyembro ng sambahayan o kumpirmahin na kayo lang ang nakatira bago lumikas.');
+  return parts.join(' ');
+}
+function renderProfileStatusCard(){
+  const st=profileCache?.profile_status; if(!st) return;
+  const badgeHtml=(complete)=>'<span class="status-badge '+(complete?'complete':'incomplete')+'">'+(complete?'Complete':'Incomplete')+'</span>';
+  const setBadge=(id,complete)=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.innerHTML=badgeHtml(complete);
+  };
+  setBadge('statusCitizen',st.citizen_profile.complete);
+  setBadge('statusFamily',st.family_profile.complete);
+  const drawerCitizen=document.getElementById('drawerStatusCitizen');
+  const drawerFamily=document.getElementById('drawerStatusFamily');
+  if(drawerCitizen){
+    drawerCitizen.className='status-chip '+(st.citizen_profile.complete?'complete':'incomplete');
+    drawerCitizen.textContent='Citizen · '+(st.citizen_profile.complete?'Complete':'Incomplete');
+  }
+  if(drawerFamily){
+    drawerFamily.className='status-chip '+(st.family_profile.complete?'complete':'incomplete');
+    drawerFamily.textContent='Family · '+(st.family_profile.complete?'Complete':'Incomplete');
+  }
+  const msg=profileStatusMessage(st);
+  ['profileStatusHint','drawerProfileHint'].forEach(id=>{
+    const hint=document.getElementById(id); if(!hint) return;
+    hint.className=(id==='profileStatusHint'?'profile-status-hint':'drawer-status-hint')+(st.navigation_allowed?' ok':'');
+    hint.textContent=id==='drawerProfileHint'&&st.navigation_allowed?'Handa ka nang mag-navigate.':msg;
+  });
+}
+function renderDerivedTotals(){
+  const hh=profileCache?.household||{};
+  const total=hh.total_members??0;
   const el=document.getElementById('hhTotal'); if(el) el.textContent=total;
   let badge=document.getElementById('hhSizeBadge');
   if(!badge){
@@ -840,16 +964,52 @@ function updateHHTotal(){
     if(fab){fab.style.position='relative';badge=document.createElement('div');badge.className='hh-size-badge';badge.id='hhSizeBadge';fab.appendChild(badge)}
   }
   if(badge) badge.textContent=total;
+  const grid=document.getElementById('hhDerivedGrid');
+  if(grid){
+    grid.innerHTML=HH_FIELDS.map(f=>'<div class="hh-derived-pill"><span class="hh-derived-key">'+HH_LABELS[f]+'</span><span class="hh-derived-val">'+(hh[f]??0)+'</span></div>').join('');
+  }
 }
-function hhChange(field,delta){
-  hhState[field]=Math.max(field==='adults'?1:0,(hhState[field]||0)+delta);
-  const el=document.getElementById(HH_FIELD_IDS[field]);
-  if(el) el.textContent=hhState[field];
-  updateHHTotal();
+function renderFamilyHead(){
+  const meta=document.getElementById('fmHeadMeta'); if(!meta||!profileCache) return;
+  const parts=[];
+  const name=[profileCache.first_name,profileCache.last_name].filter(Boolean).join(' ');
+  if(name) parts.push(name);
+  if(profileCache.sex) parts.push(profileCache.sex==='male'?'Male':profileCache.sex==='female'?'Female':'');
+  if(profileCache.head_primary_label) parts.push(profileCache.head_primary_label);
+  if(profileCache.age!=null) parts.push(profileCache.age+' yrs');
+  meta.textContent=parts.length?parts.join(' · '):'Kumpletuhin ang personal profile para makita ang kategorya.';
+}
+function memberFlagsHtml(m){
+  const flags=[];
+  if(m.is_pwd) flags.push('PWD');
+  if(m.is_pregnant) flags.push('Pregnant');
+  if(m.is_lactating) flags.push('Lactating');
+  return flags.length?'<div class="fm-member-flags">'+flags.map(f=>'<span class="fm-flag-badge">'+f+'</span>').join('')+'</div>':'';
+}
+function renderMemberList(){
+  const wrap=document.getElementById('fmMemberList'); if(!wrap||!profileCache) return;
+  const members=profileCache.members||[];
+  if(!members.length){
+    wrap.innerHTML='<div class="fm-empty">Wala pang rehistradong miyembro. Idagdag ang bawat miyembro ng inyong sambahayan, o kumpirmahin na kayo lang ang nakatira.</div>';
+    return;
+  }
+  wrap.innerHTML=members.map(m=>{
+    const meta=[m.sex==='male'?'Male':m.sex==='female'?'Female':'',m.primary_label,m.age!=null?m.age+' yrs':''].filter(Boolean).join(' · ');
+    return '<div class="fm-member-card"><div class="fm-member-main"><div class="fm-member-name">'+escHtml(m.full_name)+'</div><div class="fm-member-meta">'+escHtml(meta)+'</div>'+memberFlagsHtml(m)+'</div><div class="fm-member-actions"><button type="button" class="fm-icon-btn" onclick="openMemberForm('+m.id+')">Edit ›</button><button type="button" class="fm-icon-btn danger" onclick="deleteMember('+m.id+')">Remove</button></div></div>';
+  }).join('');
+}
+function renderHouseholdSection(){
+  renderFamilyHead();
+  renderMemberList();
+  renderDerivedTotals();
+  const aloneNote=document.getElementById('fmAloneNote');
+  const btnAlone=document.getElementById('btnLivesAlone');
+  const alone=!!profileCache?.lives_alone_confirmed;
+  if(aloneNote) aloneNote.hidden=!alone;
+  if(btnAlone) btnAlone.disabled=alone;
 }
 function renderProfileFromCache(){
   if(!profileCache) return;
-  ['pfFirstName','pfMiddleName','pfLastName'].forEach(id=>document.getElementById(id).value=profileCache[id.replace('pf','').replace(/([A-Z])/g,'_$1').toLowerCase().slice(1)]||'');
   document.getElementById('pfFirstName').value  = profileCache.first_name   || '';
   document.getElementById('pfMiddleName').value = profileCache.middle_name  || '';
   document.getElementById('pfLastName').value   = profileCache.last_name    || '';
@@ -860,9 +1020,8 @@ function renderProfileFromCache(){
   if(profileCache.birthday) document.getElementById('pfBirthday').value=profileCache.birthday;
   if(profileCache.sex) document.getElementById('pfSex').value=profileCache.sex;
   if(profileCache.age!=null) document.getElementById('ageDisplay').innerText=profileCache.age+' yrs';
-  HH_FIELDS.forEach(f=>{ hhState[f]=profileCache.household?.[f]??(f==='adults'?1:0); });
-  HH_FIELDS.forEach(f=>{ const el=document.getElementById(HH_FIELD_IDS[f]); if(el) el.textContent=hhState[f]; });
-  updateHHTotal();
+  renderHouseholdSection();
+  renderProfileStatusCard();
   const name=[profileCache.first_name,profileCache.last_name].filter(Boolean).join(' ');
   const initial=profileCache.first_name?profileCache.first_name[0].toUpperCase():'?';
   ['profileHeadAvatar','topbarAvatar','drawerAvatar'].forEach(id=>{const el=document.getElementById(id);if(el) el.textContent=initial});
@@ -870,9 +1029,20 @@ function renderProfileFromCache(){
   document.getElementById('drawerName').innerText=profileCache.full_name||'My Profile';
   document.getElementById('profileHeadBrgy').innerText=profileCache.barangay_name?'Brgy. '+profileCache.barangay_name:'';
 }
+function applyProfilePayload(d){
+  if(!d?.ok) return;
+  profileCache=d;
+  renderProfileFromCache();
+}
 function loadProfileData(){
   return fetch('citizen_profile_action.php?action=get&_='+Date.now(),{credentials:'same-origin',cache:'no-store'})
-    .then(r=>r.json()).then(d=>{if(d.ok){profileCache=d;renderProfileFromCache()}}).catch(e=>console.warn(e));
+    .then(r=>r.json())
+    .then(d=>{
+      if(d?.ok) applyProfilePayload(d);
+      else showProfileToast(d?.error||'Could not load profile','error');
+      return d;
+    })
+    .catch(e=>{ console.warn(e); showProfileToast('Could not load profile','error'); return null; });
 }
 function openProfileModal(){
   const b=document.getElementById('profileBackdrop'); if(!b) return;
@@ -881,17 +1051,142 @@ function openProfileModal(){
   if(!profileCache) loadProfileData();
 }
 function closeProfileModal(){
+  closeMemberForm();
   const b=document.getElementById('profileBackdrop'); if(b) b.classList.remove('open');
   document.body.style.overflow='';
 }
 function handleProfileBackdropClick(e){if(e.target.id==='profileBackdrop') closeProfileModal()}
 function openProfileAndCloseSidebar(){closeSidebar();setTimeout(openProfileModal,100)}
+function openAddMemberFromDrawer(e){
+  if(e){ e.preventDefault(); e.stopPropagation(); }
+  closeSidebar();
+  setTimeout(()=>{
+    openProfileModal();
+    loadProfileData().finally(()=>{
+      setTimeout(()=>openMemberForm(),200);
+    });
+  },150);
+}
 function saveProfile(){
   const btn=document.getElementById('profileSaveBtn'); btn.classList.add('saving');
-  const p={first_name:document.getElementById('pfFirstName').value.trim(),middle_name:document.getElementById('pfMiddleName').value.trim(),last_name:document.getElementById('pfLastName').value.trim(),suffix:document.getElementById('pfSuffix').value,contact_number:document.getElementById('pfContact').value.trim(),birthday:document.getElementById('pfBirthday').value,sex:document.getElementById('pfSex').value,...hhState};
+  const p={first_name:document.getElementById('pfFirstName').value.trim(),middle_name:document.getElementById('pfMiddleName').value.trim(),last_name:document.getElementById('pfLastName').value.trim(),suffix:document.getElementById('pfSuffix').value,contact_number:document.getElementById('pfContact').value.trim(),birthday:document.getElementById('pfBirthday').value,sex:document.getElementById('pfSex').value};
   fetch('citizen_profile_action.php?action=save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)})
-    .then(r=>r.json()).then(d=>{btn.classList.remove('saving');if(d.ok){showProfileToast('Saved successfully','success');loadProfileData();setTimeout(closeProfileModal,1000)}else showProfileToast(d.error||'Save failed','error')})
+    .then(r=>r.json()).then(d=>{
+      btn.classList.remove('saving');
+      if(d.ok){
+        showProfileToast('Saved successfully','success');
+        if(profileCache){
+          Object.assign(profileCache,{first_name:p.first_name,middle_name:p.middle_name,last_name:p.last_name,suffix:p.suffix,contact_number:p.contact_number,birthday:p.birthday,sex:p.sex,age:d.age,head_primary_category:d.head_primary_category,head_primary_label:d.head_primary_label,household:d.household,profile_status:d.profile_status});
+        }
+        loadProfileData();
+      }else showProfileToast(d.error||'Save failed','error');
+    })
     .catch(()=>{btn.classList.remove('saving');showProfileToast('Network error','error')});
+}
+function fmSexChanged(){
+  const sex=document.getElementById('fmSex')?.value||'';
+  const female=sex==='female';
+  const pregWrap=document.getElementById('fmPregnantWrap');
+  const lacWrap=document.getElementById('fmLactatingWrap');
+  if(pregWrap) pregWrap.style.display=female?'':'none';
+  if(lacWrap) lacWrap.style.display=female?'':'none';
+  if(!female){
+    const preg=document.getElementById('fmPregnant');
+    const lac=document.getElementById('fmLactating');
+    if(preg) preg.checked=false;
+    if(lac) lac.checked=false;
+  }
+}
+function fmBirthdayChanged(){
+  const b=document.getElementById('fmBirthday')?.value; if(!b) return;
+  const age=Math.floor((Date.now()-new Date(b+'T00:00:00').getTime())/31557600000);
+  const cat=document.getElementById('fmPrimaryCategory');
+  if(cat&&age>=0&&age<=120) cat.value=FM_CATEGORY_FROM_AGE(age);
+}
+function openMemberFormForAdd(e){
+  if(e){ e.preventDefault(); e.stopPropagation(); }
+  openProfileModal();
+  openMemberForm(null);
+}
+function openMemberForm(memberId,e){
+  if(memberId && typeof memberId==='object' && typeof memberId.preventDefault==='function'){
+    e=memberId; memberId=null;
+  }
+  if(e){ e.preventDefault(); e.stopPropagation(); }
+  const panel=document.getElementById('fmInlinePanel');
+  if(!panel){ showProfileToast('Form unavailable','error'); return; }
+  const id=(memberId!=null&&memberId!=='')?Number(memberId):null;
+  if(id!=null&&Number.isNaN(id)) memberId=null;
+  const m=id?((profileCache?.members||[]).find(x=>Number(x.id)===id)):null;
+  const title=document.getElementById('fmFormTitle');
+  if(title) title.textContent=m?'Edit Family Member':'Add Family Member';
+  const setVal=(id,val)=>{ const el=document.getElementById(id); if(el) el.value=val; };
+  const setChk=(id,val)=>{ const el=document.getElementById(id); if(el) el.checked=!!val; };
+  setVal('fmMemberId', m?m.id:'');
+  setVal('fmFullName', m?.full_name||'');
+  setVal('fmSex', m?.sex||'');
+  setVal('fmBirthday', m?.birthday||'');
+  setVal('fmPrimaryCategory', m?.primary_category||'adults');
+  setChk('fmPwd', m?.is_pwd);
+  setChk('fmPregnant', m?.is_pregnant);
+  setChk('fmLactating', m?.is_lactating);
+  fmSexChanged();
+  panel.hidden=false;
+  const sheet=document.getElementById('profileSheet');
+  if(sheet){
+    setTimeout(()=>{
+      panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    },50);
+  }
+}
+function closeMemberForm(){
+  const panel=document.getElementById('fmInlinePanel');
+  if(panel) panel.hidden=true;
+}
+function saveMember(){
+  const btn=document.getElementById('fmSaveMemberBtn'); btn.classList.add('saving');
+  const payload={
+    id:document.getElementById('fmMemberId').value||undefined,
+    full_name:document.getElementById('fmFullName').value.trim(),
+    sex:document.getElementById('fmSex').value,
+    birthday:document.getElementById('fmBirthday').value,
+    primary_category:document.getElementById('fmPrimaryCategory').value,
+    is_pwd:document.getElementById('fmPwd').checked,
+    is_pregnant:document.getElementById('fmPregnant').checked,
+    is_lactating:document.getElementById('fmLactating').checked
+  };
+  fetch('citizen_profile_action.php?action=save_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r=>r.json()).then(d=>{
+      btn.classList.remove('saving');
+      if(d.ok){
+        showProfileToast(d.message||'Saved','success');
+        closeMemberForm();
+        loadProfileData();
+      }else showProfileToast(d.error||'Save failed','error');
+    })
+    .catch(()=>{btn.classList.remove('saving');showProfileToast('Network error','error')});
+}
+function deleteMember(id){
+  if(!confirm('Alisin ang miyembrong ito sa inyong sambahayan?')) return;
+  fetch('citizen_profile_action.php?action=delete_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){showProfileToast(d.message||'Removed','success');loadProfileData();}
+      else showProfileToast(d.error||'Remove failed','error');
+    })
+    .catch(()=>showProfileToast('Network error','error'));
+}
+function confirmLivesAlone(){
+  if(!isCitizenProfileComplete()){
+    showProfileToast('Kumpletuhin muna ang iyong personal na profile','error');
+    return;
+  }
+  if(!confirm('Kumpirmahin na kayo lang ang nakatira sa inyong tahanan? Aalisin ang mga nakarehistrong miyembro kung mayroon.')) return;
+  fetch('citizen_profile_action.php?action=confirm_lives_alone',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){showProfileToast(d.message||'Confirmed','success');loadProfileData();}
+      else showProfileToast(d.error||'Failed','error');
+    })
+    .catch(()=>showProfileToast('Network error','error'));
 }
 
 // ── SIDEBAR ──
@@ -994,8 +1289,12 @@ function closeDisasterModal(e){
   function startHold(e){
     e.preventDefault(); if(isCompleted) return;
 
-    if(!isProfileComplete()){
-      showProfileToast('Kumpletuhin muna ang personal details bago lumikas','error');
+    if(!isNavigationAllowed()){
+      if(!isCitizenProfileComplete()){
+        showProfileToast('Kumpletuhin muna ang personal details bago lumikas','error');
+      }else{
+        showProfileToast('Magrehistro ng sambahayan o kumpirmahin na kayo lang ang nakatira','error');
+      }
       if('vibrate' in navigator) navigator.vibrate([40,30,40]);
       openProfileModal();
       return;
@@ -1056,6 +1355,9 @@ function closeDisasterModal(e){
 // ── INIT ──
 window.addEventListener('DOMContentLoaded',()=>{
   loadProfileData();
+  <?php if ($profileIncompleteBanner): ?>
+  setTimeout(()=>showProfileToast('Kumpletuhin muna ang inyong profile bago mag-navigate','error'),400);
+  <?php endif; ?>
 
   // Swipe-down to close all bottom sheets
   [['profileSheet',()=>closeProfileModal()],['annModalSheet',()=>closeAnnModal()],

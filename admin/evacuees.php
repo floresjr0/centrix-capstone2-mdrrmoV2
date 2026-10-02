@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../pages/session.php';
 require_once __DIR__ . '/../pages/demographic_helpers.php';
+require_once __DIR__ . '/../pages/admin_report_helpers.php';
 require_login('admin');
 
 $user = current_user();
@@ -70,24 +71,47 @@ $barangaySummary = $pdo->query("
     ORDER BY total_evacuees DESC
 ")->fetchAll();
 
-$recentRegs = $pdo->query("
+$hasSourceUser = ar_column_exists($pdo, 'evac_registrations', 'source_user_id');
+$headSexSql = $hasSourceUser ? 'head_u.sex AS head_sex' : 'NULL AS head_sex';
+$sourceUserSql = $hasSourceUser ? 'er.source_user_id' : 'NULL AS source_user_id';
+$regSourceSql = ar_sql_registration_source($pdo, 'er');
+$headJoinSql = $hasSourceUser ? 'LEFT JOIN users head_u ON head_u.id = er.source_user_id' : '';
+$familyRegs = $pdo->query("
     SELECT
         er.id,
         er.family_head_name,
+        er.contact_number,
+        er.birthday,
         er.adults, er.children, er.seniors, er.pwds,
         er.pregnant_women, er.lactating_mothers, er.infants_toddlers,
         er.total_members,
         er.created_at,
         ec.name   AS center_name,
         b.name    AS barangay_name,
-        u.full_name AS registered_by
+        u.full_name AS registered_by,
+        {$headSexSql},
+        {$sourceUserSql},
+        {$regSourceSql}
     FROM evac_registrations er
     JOIN evacuation_centers ec ON ec.id = er.center_id
     JOIN barangays b           ON b.id  = er.barangay_id
-    JOIN users u               ON u.id  = er.created_by
-    ORDER BY er.created_at DESC
-    LIMIT 20
+    LEFT JOIN users u          ON u.id  = er.created_by
+    {$headJoinSql}
+    ORDER BY ec.name ASC, er.family_head_name ASC
 ")->fetchAll();
+
+$membersByRegId = ar_bulk_live_members($pdo, array_column($familyRegs, 'id'));
+$profileByRegId = ar_bulk_profile_members($pdo, $familyRegs, fn($r) => (int)$r['id']);
+
+$walkinFamilies = 0;
+$appFamilies = 0;
+foreach ($familyRegs as $fr) {
+    if (($fr['registration_source'] ?? 'walkin') === 'app') {
+        $appFamilies++;
+    } else {
+        $walkinFamilies++;
+    }
+}
 
 $archiveBatches = $pdo->query("
     SELECT
@@ -503,23 +527,34 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
             </div>
             <?php endif; ?>
 
-            <!-- Recent Registrations -->
+            <!-- Registered Families (App + Walk-in) -->
             <div class="card">
                 <div class="card-header">
-                    <h3>Recent Registrations</h3>
-                    <span class="badge"><?php echo count($recentRegs); ?> Records</span>
+                    <h3>Registered Families</h3>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                        <span class="badge"><?php echo count($familyRegs); ?> Total</span>
+                        <span class="badge" style="background:#FFF3E0;color:#E65100"><?php echo $walkinFamilies; ?> Walk-in</span>
+                        <span class="badge blue"><?php echo $appFamilies; ?> App</span>
+                    </div>
                 </div>
-                <?php if (empty($recentRegs)): ?>
+                <?php if (empty($familyRegs)): ?>
                     <div class="empty-state"><i class="fas fa-inbox"></i><p>No registrations yet.</p></div>
                 <?php else: ?>
                 <div class="filter-bar" style="margin-bottom:0;padding-bottom:16px;border-bottom:1px solid #F0F0F0">
-                    <input type="text" id="recentSearch" placeholder="Search by name, center or barangay…" style="min-width:280px">
+                    <input type="text" id="recentSearch" placeholder="Search by head name, member, center or barangay…" style="min-width:240px">
+                    <select id="sourceFilter" class="filter-select">
+                        <option value="">All sources</option>
+                        <option value="walkin">Walk-in families</option>
+                        <option value="app">App / citizen families</option>
+                    </select>
                 </div>
                 <div class="table-wrap" style="margin-top:16px">
                     <table class="data-table" id="recentTable">
                         <thead>
                             <tr>
+                                <th>Source</th>
                                 <th>Family Head</th>
+                                <th>Household Members</th>
                                 <th>Evacuation Center</th>
                                 <th>Barangay</th>
                                 <th>A</th><th>C</th><th>S</th><th>P</th><th>PW</th><th>LM</th><th>IT</th>
@@ -529,17 +564,39 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($recentRegs as $reg): ?>
-                        <tr>
+                        <?php foreach ($familyRegs as $reg):
+                            $rid = (int)$reg['id'];
+                            $evacuees = ar_collect_centre_evacuees(
+                                [$reg],
+                                $membersByRegId,
+                                fn($r) => (int)$r['id'],
+                                $profileByRegId
+                            );
+                            $memberSearch = implode(' ', array_column(
+                                array_filter($evacuees, fn($p) => empty($p['_is_note'])),
+                                'full_name'
+                            ));
+                        ?>
+                        <tr data-search="<?php echo htmlspecialchars(mb_strtolower(
+                            $reg['family_head_name'] . ' ' . $memberSearch . ' ' . $reg['center_name'] . ' ' . $reg['barangay_name']
+                        )); ?>"
+                            data-source="<?php echo htmlspecialchars($reg['registration_source'] ?? 'walkin'); ?>">
+                            <td><?php echo ar_registration_source_badge($reg['registration_source'] ?? 'walkin'); ?></td>
                             <td>
                                 <div class="family-cell">
                                     <div class="family-avatar"><?php echo strtoupper(substr($reg['family_head_name'],0,1)); ?></div>
                                     <div>
                                         <div class="family-name"><?php echo htmlspecialchars($reg['family_head_name']); ?></div>
-                                        <div class="family-sub">ID #<?php echo $reg['id']; ?></div>
+                                        <div class="family-sub">
+                                            ID #<?php echo $rid; ?>
+                                            <?php if (!empty($reg['contact_number'])): ?>
+                                            · <?php echo htmlspecialchars($reg['contact_number']); ?>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
+                            <td class="members-cell"><?php echo ar_render_evacuee_list_html($evacuees, true); ?></td>
                             <td style="font-size:12.5px"><?php echo htmlspecialchars($reg['center_name']); ?></td>
                             <td style="font-size:12.5px"><?php echo htmlspecialchars($reg['barangay_name']); ?></td>
                             <td><span class="chip chip-adult"><?php echo $reg['adults']; ?></span></td>
@@ -745,16 +802,22 @@ function filterTable() {
 searchInput.addEventListener('input', filterTable);
 statusFilter.addEventListener('change', filterTable);
 
-// ── Recent registrations search ───────────────────────────────────
+// ── Registered families search + source filter ────────────────────
 const recentSearch = document.getElementById('recentSearch');
+const sourceFilter = document.getElementById('sourceFilter');
 if (recentSearch) {
     const recentBody = document.querySelector('#recentTable tbody');
-    recentSearch.addEventListener('input', () => {
+    function filterFamilyRows() {
         const q = recentSearch.value.toLowerCase();
+        const src = sourceFilter ? sourceFilter.value : '';
         recentBody.querySelectorAll('tr').forEach(row => {
-            row.style.display = !q || row.textContent.toLowerCase().includes(q) ? '' : 'none';
+            const matchQ = !q || (row.dataset.search || '').includes(q) || row.textContent.toLowerCase().includes(q);
+            const matchSrc = !src || row.dataset.source === src;
+            row.style.display = (matchQ && matchSrc) ? '' : 'none';
         });
-    });
+    }
+    recentSearch.addEventListener('input', filterFamilyRows);
+    if (sourceFilter) sourceFilter.addEventListener('change', filterFamilyRows);
 }
 </script>
 </body>

@@ -1,7 +1,11 @@
 <?php
 require_once __DIR__ . '/session.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/profile_completion_helpers.php';
 require_login();
 $user = current_user();
+$pdo  = db();
+pc_require_complete_profile_for_navigation($pdo, (int)$user['id'], 'redirect');
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/../pages/session.php';
 require_once __DIR__ . '/../pages/demographic_helpers.php';
+require_once __DIR__ . '/../pages/admin_report_helpers.php';
 require_login('admin');
 
 $pdo = db();
@@ -53,10 +54,18 @@ $batches->execute($params);
 $batches = $batches->fetchAll();
 
 $batchDetails = [];
+$hasArchiveSourceUser = ar_column_exists($pdo, 'evac_registrations_archive', 'source_user_id');
+$archiveSourceSql = $hasArchiveSourceUser
+    ? "CASE WHEN era.source_user_id IS NOT NULL THEN 'app' ELSE 'walkin' END AS registration_source"
+    : "'walkin' AS registration_source";
+$archiveSourceUserSql = $hasArchiveSourceUser ? 'era.source_user_id' : 'NULL AS source_user_id';
+$archiveHeadSexSql = $hasArchiveSourceUser ? 'head_u.sex AS head_sex' : 'NULL AS head_sex';
+$archiveHeadJoinSql = $hasArchiveSourceUser ? 'LEFT JOIN users head_u ON head_u.id = era.source_user_id' : '';
 
 foreach ($batches as $batch) {
     $sql = "
         SELECT
+            era.id AS archive_registration_id,
             era.original_id,
             era.family_head_name,
             era.contact_number,
@@ -70,6 +79,9 @@ foreach ($batches as $batch) {
             era.infants_toddlers,
             era.total_members,
             era.created_at,
+            {$archiveSourceSql},
+            {$archiveSourceUserSql},
+            {$archiveHeadSexSql},
             ec.name        AS center_name,
             ec.address     AS center_address,
             b.name         AS barangay_name,
@@ -79,12 +91,21 @@ foreach ($batches as $batch) {
         LEFT JOIN evacuation_centers ec ON ec.id  = era.center_id
         LEFT JOIN barangays b           ON b.id   = era.barangay_id
         LEFT JOIN users u               ON u.id   = era.created_by
+        {$archiveHeadJoinSql}
         WHERE era.archive_label = ?
         ORDER BY ec.name ASC, era.family_head_name ASC
     ";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$batch['archive_label']]);
     $records = $stmt->fetchAll();
+
+    $archiveRegIds = array_column($records, 'archive_registration_id');
+    $membersByArchiveId = ar_bulk_archive_members($pdo, $batch['archive_label'], $archiveRegIds);
+    $profileByArchiveId = ar_bulk_profile_members(
+        $pdo,
+        $records,
+        fn($rec) => (int)($rec['archive_registration_id'] ?? 0)
+    );
 
     $byCentre = [];
     foreach ($records as $rec) {
@@ -113,23 +134,17 @@ foreach ($batches as $batch) {
     $brgyStmt->execute([$batch['archive_label']]);
 
     $batchDetails[$batch['archive_label']] = [
-        'records'   => $records,
-        'byCentre'  => $byCentre,
-        'byBarangay'=> $brgyStmt->fetchAll(),
+        'records'            => $records,
+        'byCentre'           => $byCentre,
+        'byBarangay'         => $brgyStmt->fetchAll(),
+        'membersByArchiveId' => $membersByArchiveId,
+        'profileByArchiveId' => $profileByArchiveId,
     ];
 }
 
 $printedAt = date('F j, Y \a\t g:i A');
 $reportTitle = $filterLabel ? 'Archive Report: ' . $filterLabel : 'Full Archive History Report';
 
-// Helper to calculate age from birthday
-function calculateAge($birthday) {
-    if (empty($birthday)) return '–';
-    $birthDate = new DateTime($birthday);
-    $today = new DateTime();
-    $diff = $birthDate->diff($today);
-    return $diff->y;
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -208,6 +223,12 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
 .centre-heading small { font-weight: 400; color: var(--gray); font-size: 10.5px; margin-left: 8px; }
 .report-footer { margin-top: 28px; padding-top: 12px; border-top: 1.5px solid var(--border); display: flex; justify-content: space-between; align-items: flex-end; font-size: 10.5px; color: var(--muted); }
 .sig-line { border-top: 1px solid var(--text); width: 180px; margin-top: 28px; padding-top: 4px; font-size: 10.5px; text-align: center; color: var(--text); }
+.member-count-pill { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 99px; background: #EBF5FB; color: var(--blue); font-size: 10px; font-weight: 600; }
+.individual-roster-section { margin-top: 22px; }
+.individual-roster-table th { background: #154360; }
+.evacuee-note-row td { background: #FFFBEB !important; color: #92400E; font-style: italic; }
+.member-agg-tag { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 99px; background: #FEF9E7; color: #B7950B; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.roster-empty { color: var(--muted); font-size: 11px; padding: 12px 0; }
 </style>
 </head>
 <body>
@@ -228,8 +249,10 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
     $label   = $batch['archive_label'];
     $detail  = $batchDetails[$label];
     $records = $detail['records'];
-    $byCentre= $detail['byCentre'];
-    $byBrgy  = $detail['byBarangay'];
+    $byCentre           = $detail['byCentre'];
+    $byBrgy             = $detail['byBarangay'];
+    $membersByArchiveId = $detail['membersByArchiveId'] ?? [];
+    $profileByArchiveId = $detail['profileByArchiveId'] ?? [];
 
     $grandAdults    = (int)$batch['total_adults'];
     $grandChildren  = (int)$batch['total_children'];
@@ -373,7 +396,7 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
             <p><?php echo htmlspecialchars($label); ?></p>
         </div>
         <div class="header-right">
-            <div class="report-title" style="font-size:12px">Family Roster</div>
+            <div class="report-title" style="font-size:12px">Family Summary &amp; Evacuee Roster</div>
             <div class="report-meta">Printed: <?php echo $printedAt; ?></div>
         </div>
     </div>
@@ -405,6 +428,7 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
         <span style="background:#FFF3E0;color:#EF6C00;padding:4px 11px;border-radius:20px;font-size:11px"><?php echo number_format($cInf); ?> infants</span>
     </div>
 
+    <div class="section-title">Family Summary (counts per household)</div>
     <div class="matrix-wrap">
         <table>
             <thead>
@@ -425,15 +449,22 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
             </thead>
             <tbody>
             <?php foreach ($centreRecs as $ri => $rec):
-                $age = calculateAge($rec['birthday']);
+                $age = ar_calculate_age($rec['birthday'] ?? null);
+                $ageDisplay = $age !== null ? $age : '–';
                 $bdayFormatted = $rec['birthday'] ? date('M d, Y', strtotime($rec['birthday'])) : '–';
+                $archiveRegId = (int)($rec['archive_registration_id'] ?? 0);
+                $members = ar_members_for_registration($rec, $membersByArchiveId, $archiveRegId, $profileByArchiveId);
+                $memberCount = count($members);
             ?>
-            <tr>
+            <tr class="family-row">
                 <td style="color:var(--muted);font-size:10px"><?php echo $ri+1; ?></td>
-                <td style="font-weight:600"><?php echo htmlspecialchars($rec['family_head_name']); ?></td>
+                <td style="font-weight:600">
+                    <?php echo htmlspecialchars($rec['family_head_name']); ?>
+                    <span class="member-count-pill"><?php echo $memberCount; ?> name<?php echo $memberCount === 1 ? '' : 's'; ?></span>
+                </td>
                 <td style="font-size:11px"><?php echo htmlspecialchars($rec['contact_number'] ?? '—'); ?></td>
                 <td style="font-size:11px"><?php echo $bdayFormatted; ?></td>
-                <td style="font-size:11px"><?php echo $age; ?></td>
+                <td style="font-size:11px"><?php echo $ageDisplay; ?></td>
                 <td><?php echo htmlspecialchars($rec['barangay_name']); ?></td>
                 <?php foreach (demo_field_keys() as $dk): ?>
                 <td class="num"><span class="chip chip-<?php echo $dk === 'children' ? 'c' : ($dk === 'adults' ? 'a' : ($dk === 'seniors' ? 's' : 'p')); ?>"><?php echo (int)$rec[$dk]; ?></span></td>
@@ -459,6 +490,19 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
                 </tr>
             </tfoot>
         </table>
+    </div>
+
+    <?php
+    $centreEvacuees = ar_collect_centre_evacuees(
+        $centreRecs,
+        $membersByArchiveId,
+        fn($rec) => (int)($rec['archive_registration_id'] ?? 0),
+        $profileByArchiveId
+    );
+    ?>
+    <div class="individual-roster-section no-break">
+        <div class="section-title">Individual Evacuee Roster — <?php echo count($centreEvacuees); ?> record(s)</div>
+        <?php echo ar_render_individual_roster_table($centreEvacuees); ?>
     </div>
 
     <div class="report-footer">

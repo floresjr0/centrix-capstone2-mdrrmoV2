@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/center_helpers.php';
 require_once __DIR__ . '/demographic_helpers.php';
+require_once __DIR__ . '/family_member_helpers.php';
+require_once __DIR__ . '/registration_member_helpers.php';
 
 /**
  * Register a walk-in family at an evacuation center.
@@ -15,6 +17,14 @@ function register_walkin_family(PDO $pdo, int $centerId, int $createdBy, array $
     $birthday      = (string)($input['birthday'] ?? '');
     $barangayId    = (int)($input['barangay_id'] ?? 0);
     $localUuid     = trim((string)($input['local_uuid'] ?? ''));
+    $membersRaw    = $input['members'] ?? ($input['members_json'] ?? null);
+    if (is_string($membersRaw)) {
+        $decoded = json_decode($membersRaw, true);
+        $membersRaw = is_array($decoded) ? $decoded : [];
+    }
+    $memberInputs  = is_array($membersRaw) ? $membersRaw : [];
+    $hasMemberTable = rm_table_exists($pdo, 'evac_registration_members');
+
     $demo          = demo_from_request($input);
     $total         = demo_sum_row($demo);
     $errors        = [];
@@ -37,15 +47,70 @@ function register_walkin_family(PDO $pdo, int $centerId, int $createdBy, array $
     if (!$barangayId) {
         $errors[] = 'Barangay is required.';
     }
-    if ($total <= 0) {
-        $errors[] = 'Please specify at least one member.';
+    $memberRows = [];
+    $useMembers = false;
+    $hasMembersPayload = is_array($input['members'] ?? null) && count($input['members']) > 0;
+    $legacyAggregate = !$hasMembersPayload
+        && empty($memberInputs)
+        && demo_sum_row($demo) > 0;
+
+    if ($hasMemberTable && !$legacyAggregate) {
+        $headCategory = trim((string)($input['head_primary_category'] ?? ''));
+        if ($headCategory === '' || !in_array($headCategory, FM_PRIMARY_CATEGORIES, true)) {
+            $headCategory = fm_primary_category_from_birthday($birthday) ?? 'adults';
+        }
+        $headInput = [
+            'full_name'         => $headName,
+            'sex'               => $input['head_sex'] ?? '',
+            'birthday'          => $birthday,
+            'primary_category'  => $headCategory,
+            'is_household_head' => 1,
+            'is_pwd'            => !empty($input['head_is_pwd']) ? 1 : 0,
+            'is_pregnant'       => !empty($input['head_is_pregnant']) ? 1 : 0,
+            'is_lactating'      => !empty($input['head_is_lactating']) ? 1 : 0,
+        ];
+        $headRow = rm_member_input_to_row($headInput);
+        if (!$headRow) {
+            $errors[] = 'Could not register family head — check birthday and category.';
+        } else {
+            $memberRows[] = $headRow;
+        }
+
+        foreach ($memberInputs as $memberInput) {
+            if (!is_array($memberInput)) {
+                continue;
+            }
+            if (!empty($memberInput['is_household_head'])) {
+                continue;
+            }
+            $row = rm_member_input_to_row($memberInput);
+            if ($row) {
+                $memberRows[] = $row;
+            }
+        }
+
+        if ($memberRows) {
+            $useMembers = true;
+            $derived = rm_derive_totals_from_member_rows($memberRows);
+            $demo    = demo_from_request($derived);
+            $total   = $derived['total_members'];
+        }
+    } elseif ($legacyAggregate) {
+        $total = demo_sum_row($demo);
+        $useMembers = false;
+    } elseif ($total <= 0) {
+        $cat = fm_primary_category_from_birthday($birthday) ?? 'adults';
+        $demo = demo_defaults(0);
+        $demo[$cat] = 1;
+        $total = 1;
     }
 
     if ($errors) {
         return ['success' => false, 'errors' => $errors];
     }
 
-    if ($localUuid !== '') {
+    $hasLocalUuidCol = rm_column_exists($pdo, 'evac_registrations', 'client_local_uuid');
+    if ($localUuid !== '' && $hasLocalUuidCol) {
         $existing = $pdo->prepare('SELECT id FROM evac_registrations WHERE client_local_uuid = ? LIMIT 1');
         $existing->execute([$localUuid]);
         $row = $existing->fetch(PDO::FETCH_ASSOC);
@@ -76,20 +141,49 @@ function register_walkin_family(PDO $pdo, int $centerId, int $createdBy, array $
         [$total, $createdBy]
     );
 
-    if ($localUuid !== '') {
+    if ($useMembers && rm_column_exists($pdo, 'evac_registrations', 'registration_mode')) {
+        $columns .= ', registration_mode';
+        $values  .= ", 'members'";
+    } elseif (rm_column_exists($pdo, 'evac_registrations', 'registration_mode')) {
+        $columns .= ', registration_mode';
+        $values  .= ", 'aggregate'";
+    }
+
+    if ($localUuid !== '' && $hasLocalUuidCol) {
         $columns .= ', client_local_uuid';
         $values  .= ', ?';
         $params[] = $localUuid;
     }
 
-    $ins = $pdo->prepare("INSERT INTO evac_registrations ($columns) VALUES ($values)");
-    $ins->execute($params);
+    try {
+        $pdo->beginTransaction();
 
-    refresh_center_status($centerId);
+        $ins = $pdo->prepare("INSERT INTO evac_registrations ($columns) VALUES ($values)");
+        $ins->execute($params);
+        $regId = (int)$pdo->lastInsertId();
+
+        if ($useMembers && $memberRows) {
+            rm_insert_member_rows($pdo, $regId, $centerId, $memberRows);
+            rm_sync_registration_aggregates($pdo, $regId);
+        }
+
+        refresh_center_status($centerId);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('register_walkin_family: ' . $e->getMessage());
+        return [
+            'success' => false,
+            'errors'  => ['Could not save registration. Please verify the form and try again.'],
+        ];
+    }
 
     return [
         'success' => true,
-        'id' => (int)$pdo->lastInsertId(),
+        'id' => $regId,
         'already_synced' => false,
+        'registration_mode' => $useMembers ? 'members' : 'aggregate',
     ];
 }

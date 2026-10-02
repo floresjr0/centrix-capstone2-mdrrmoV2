@@ -9,6 +9,7 @@
 ob_start();
 
 require_once __DIR__ . '/../pages/session.php';
+require_once __DIR__ . '/../pages/admin_report_helpers.php';
 require_login('admin');
 
 $pdo  = db();
@@ -44,18 +45,32 @@ if ($count === 0) {
 try {
     $pdo->beginTransaction();
 
-    // --- Copy all fields, including contact_number and birthday ---
-    $stmt = $pdo->prepare("
-        INSERT INTO evac_registrations_archive
-            (original_id, center_id, family_head_name, contact_number, birthday, barangay_id,
+    $archiveCols = 'original_id, center_id, family_head_name, contact_number, birthday, barangay_id,
              adults, children, seniors, pwds, pregnant_women, lactating_mothers, infants_toddlers, total_members,
              created_by, created_at,
-             archive_label, disaster_id, archived_by, archived_at)
-        SELECT
-            id, center_id, family_head_name, contact_number, birthday, barangay_id,
+             archive_label, disaster_id, archived_by, archived_at';
+    $archiveSelect = 'id, center_id, family_head_name, contact_number, birthday, barangay_id,
             adults, children, seniors, pwds, pregnant_women, lactating_mothers, infants_toddlers, total_members,
             created_by, created_at,
-            :label, :disaster_id, :archived_by, NOW()
+            :label, :disaster_id, :archived_by, NOW()';
+
+    if (ar_column_exists($pdo, 'evac_registrations', 'source_user_id')
+        && ar_column_exists($pdo, 'evac_registrations_archive', 'source_user_id')) {
+        $archiveCols = 'original_id, center_id, source_user_id, family_head_name, contact_number, birthday, barangay_id,
+             adults, children, seniors, pwds, pregnant_women, lactating_mothers, infants_toddlers, total_members,
+             created_by, created_at,
+             archive_label, disaster_id, archived_by, archived_at';
+        $archiveSelect = 'id, center_id, source_user_id, family_head_name, contact_number, birthday, barangay_id,
+            adults, children, seniors, pwds, pregnant_women, lactating_mothers, infants_toddlers, total_members,
+            created_by, created_at,
+            :label, :disaster_id, :archived_by, NOW()';
+    }
+
+    $stmt = $pdo->prepare("
+        INSERT INTO evac_registrations_archive
+            ({$archiveCols})
+        SELECT
+            {$archiveSelect}
         FROM evac_registrations
     ");
     $stmt->execute([
@@ -65,6 +80,23 @@ try {
     ]);
 
     $archivedCount = $stmt->rowCount();
+
+    if (ar_table_exists($pdo, 'evac_registration_members')
+        && ar_table_exists($pdo, 'evac_registration_members_archive')) {
+        $memberArchive = $pdo->prepare("
+            INSERT INTO evac_registration_members_archive
+                (archive_registration_id, original_member_id, is_household_head, full_name, sex, birthday,
+                 primary_category, is_pwd, is_pregnant, is_lactating, arrived_at)
+            SELECT
+                era.id, erm.id, erm.is_household_head, erm.full_name, erm.sex, erm.birthday,
+                erm.primary_category, erm.is_pwd, erm.is_pregnant, erm.is_lactating, erm.arrived_at
+            FROM evac_registration_members erm
+            INNER JOIN evac_registrations_archive era
+                ON era.original_id = erm.registration_id AND era.archive_label = :label
+            WHERE erm.is_present = 1
+        ");
+        $memberArchive->execute([':label' => $label]);
+    }
 
     $pdo->exec("DELETE FROM evac_registrations");
     $pdo->exec("UPDATE evacuation_centers SET status = 'available'");

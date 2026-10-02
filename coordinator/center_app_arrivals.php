@@ -3,6 +3,8 @@ require_once __DIR__ . '/../pages/session.php';
 require_login('coordinator');
 require_once __DIR__ . '/../pages/center_helpers.php';
 require_once __DIR__ . '/../pages/demographic_helpers.php';
+require_once __DIR__ . '/../pages/family_member_helpers.php';
+require_once __DIR__ . '/../pages/registration_member_helpers.php';
 
 $pdo  = db();
 $user = current_user();
@@ -27,58 +29,27 @@ $errors = [];
 
 // ── Record arrival ──────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'record_app_arrival') {
-    $trackingId = (int)($_POST['tracking_id'] ?? 0);
-    $navUserId  = (int)($_POST['nav_user_id']  ?? 0);
-    $demo  = demo_from_request($_POST);
-    $total = demo_sum_row($demo);
+    $useMembers = rm_table_exists($pdo, 'evac_registration_members')
+        && !empty($_POST['arrived_keys'])
+        && is_array($_POST['arrived_keys']);
 
-    $chk = $pdo->prepare("SELECT nt.id, u.full_name, u.barangay_id,
-                                  u.contact_number, u.birthday, u.sex
-                           FROM evac_navigation_tracking nt
-                           JOIN users u ON u.id = nt.user_id
-                           WHERE nt.id = ? AND nt.center_id = ? AND nt.status = 'navigating'");
-    $chk->execute([$trackingId, $centerId]);
-    $trackRow = $chk->fetch();
-
-    if ($trackRow && $total > 0) {
-        $headName      = $trackRow['full_name'];
-        $contactNumber = $trackRow['contact_number'] ?? null;
-        $birthday      = $trackRow['birthday'] ?? null;
-
-        if (family_head_already_registered($pdo, $centerId, $headName, $contactNumber, $birthday)) {
-            $upd = $pdo->prepare("UPDATE evac_navigation_tracking
-                                  SET status = 'arrived', updated_at = NOW()
-                                  WHERE id = ?");
-            $upd->execute([$trackingId]);
-            header('Location: center_app_arrivals.php?id=' . $centerId . '&duplicate=1');
-            exit;
-        }
-
-        $demoCols = implode(', ', demo_field_keys());
-        $demoPh   = implode(', ', array_fill(0, count(demo_field_keys()), '?'));
-        $ins = $pdo->prepare("INSERT INTO evac_registrations
-            (center_id, family_head_name, contact_number, birthday, barangay_id,
-             $demoCols, total_members, created_by)
-            VALUES (?, ?, ?, ?, ?, $demoPh, ?, ?)");
-        $ins->execute(array_merge([
-            $centerId,
-            $trackRow['full_name'],
-            $trackRow['contact_number'] ?? null,
-            $trackRow['birthday']       ?? null,
-            $trackRow['barangay_id'],
-        ], array_values($demo), [$total, $user['id']]));
-
-        $upd = $pdo->prepare("UPDATE evac_navigation_tracking
-                              SET status = 'arrived', updated_at = NOW()
-                              WHERE id = ?");
-        $upd->execute([$trackingId]);
-
-        refresh_center_status($centerId);
-        header('Location: center_app_arrivals.php?id=' . $centerId . '&checkin=1');
-        exit;
+    if ($useMembers) {
+        $result = rm_record_app_arrival($pdo, $centerId, (int)$user['id'], $_POST);
     } else {
-        $errors[] = 'Could not record arrival — record may no longer be active.';
+        $result = rm_record_app_arrival_aggregate($pdo, $centerId, (int)$user['id'], $_POST);
     }
+
+    if (!empty($result['success'])) {
+        if (!empty($result['duplicate'])) {
+            header('Location: center_app_arrivals.php?id=' . $centerId . '&duplicate=1');
+        } elseif (!empty($result['partial'])) {
+            header('Location: center_app_arrivals.php?id=' . $centerId . '&partial=1');
+        } else {
+            header('Location: center_app_arrivals.php?id=' . $centerId . '&checkin=1');
+        }
+        exit;
+    }
+    $errors = array_merge($errors, $result['errors'] ?? ['Could not record arrival.']);
 }
 
 // ── Decline arrival ─────────────────────────────────────────────────────────
@@ -86,12 +57,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'decli
     $trackingId = (int)($_POST['tracking_id'] ?? 0);
 
     $chk = $pdo->prepare("SELECT id FROM evac_navigation_tracking
-                           WHERE id = ? AND center_id = ? AND status = 'navigating'");
+                           WHERE id = ? AND center_id = ? AND status IN ('navigating','partial_arrival')");
     $chk->execute([$trackingId, $centerId]);
 
     if ($chk->fetch()) {
         $upd = $pdo->prepare("DELETE FROM evac_navigation_tracking
-                              WHERE id = ? AND center_id = ? AND status = 'navigating'");
+                              WHERE id = ? AND center_id = ? AND status IN ('navigating','partial_arrival')");
         $upd->execute([$trackingId, $centerId]);
     }
 
@@ -100,6 +71,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'decli
 }
 
 // ── Fetch en-route citizens ─────────────────────────────────────────────────
+$navStatuses = rm_tracking_supports_partial($pdo)
+    ? "('navigating', 'partial_arrival')"
+    : "('navigating')";
 $appArrivalsStmt = $pdo->prepare("
     SELECT
         nt.id          AS tracking_id,
@@ -124,12 +98,17 @@ $appArrivalsStmt = $pdo->prepare("
     JOIN barangays b    ON b.id  = u.barangay_id
     LEFT JOIN family_profiles ch ON ch.user_id = nt.user_id
     WHERE nt.center_id = ?
-      AND nt.status    = 'navigating'
+      AND nt.status IN {$navStatuses}
     ORDER BY nt.updated_at ASC
 ");
 $appArrivalsStmt->execute([$centerId]);
 $appArrivals = $appArrivalsStmt->fetchAll();
 foreach ($appArrivals as $i => $a) {
+    $uid = (int)$a['user_id'];
+    $appArrivals[$i]['household_roster'] = fm_build_household_roster($pdo, $uid);
+    $appArrivals[$i]['expected_totals']  = fm_derive_household_totals($pdo, $uid);
+    $existingReg = rm_find_registration_by_source_user($pdo, $centerId, $uid);
+    $appArrivals[$i]['existing_registration_id'] = $existingReg ? (int)$existingReg['id'] : null;
     $appArrivals[$i]['already_registered'] = family_head_already_registered(
         $pdo,
         $centerId,
@@ -137,6 +116,11 @@ foreach ($appArrivals as $i => $a) {
         $a['contact_number'] ?? null,
         $a['birthday'] ?? null
     );
+    if ($existingReg) {
+        $appArrivals[$i]['arrived_members'] = rm_list_registration_members($pdo, (int)$existingReg['id'], true);
+    } else {
+        $appArrivals[$i]['arrived_members'] = [];
+    }
 }
 
 $occ      = get_center_occupancy($centerId);
@@ -144,6 +128,8 @@ $pct      = round($occ['percent']);
 $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
 $justCheckedIn = isset($_GET['checkin']) && $_GET['checkin'] == '1';
 $justDuplicate = isset($_GET['duplicate']) && $_GET['duplicate'] == '1';
+$justPartial   = isset($_GET['partial']) && $_GET['partial'] == '1';
+$useMemberArrivals = rm_table_exists($pdo, 'evac_registration_members');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -155,9 +141,8 @@ $justDuplicate = isset($_GET['duplicate']) && $_GET['duplicate'] == '1';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../asset/css/center_app_arrivals.css">
+    <link rel="stylesheet" href="../asset/css/coordinator_components.css">
 </head>
-<style>
-</style>
 <body>
 
 <div class="bg-blobs" aria-hidden="true">
@@ -371,6 +356,13 @@ $justDuplicate = isset($_GET['duplicate']) && $_GET['duplicate'] == '1';
                     </div>
                     <?php endif; ?>
 
+                    <?php if ($justPartial): ?>
+                    <div class="checkin-toast partial-toast">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Partial arrival recorded. Remaining household members can be checked in when they arrive.
+                    </div>
+                    <?php endif; ?>
+
                     <?php if (!$appArrivals): ?>
                     <div class="arrival-queue-empty">
                         <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
@@ -379,9 +371,21 @@ $justDuplicate = isset($_GET['duplicate']) && $_GET['duplicate'] == '1';
                     <?php else: ?>
                     <div class="app-arrivals-grid">
                         <?php foreach ($appArrivals as $a):
-                            $initial      = mb_strtoupper(mb_substr($a['full_name'], 0, 1));
-                            $profileTotal = (int)$a['total_members'];
-                            $isRegistered = !empty($a['already_registered']);
+                            $initial       = mb_strtoupper(mb_substr($a['full_name'], 0, 1));
+                            $expected      = $a['expected_totals'] ?? demo_defaults(0);
+                            $profileTotal  = (int)($expected['total_members'] ?? $a['total_members']);
+                            $roster        = $a['household_roster'] ?? [];
+                            $arrivedKeys   = [];
+                            foreach ($a['arrived_members'] ?? [] as $am) {
+                                if (!empty($am['is_household_head'])) {
+                                    $arrivedKeys['head'] = true;
+                                } elseif (!empty($am['source_family_member_id'])) {
+                                    $arrivedKeys['member:' . $am['source_family_member_id']] = true;
+                                }
+                            }
+                            $hasPartialReg = !empty($a['existing_registration_id']);
+                            $isRegistered  = !empty($a['already_registered']) && !$hasPartialReg;
+                            $useRosterUi   = $useMemberArrivals && count($roster) > 0;
                         ?>
                         <div class="app-arrival-card<?php echo $isRegistered ? ' is-registered' : ''; ?>" id="arrival-card-<?php echo (int)$a['tracking_id']; ?>">
 
@@ -412,18 +416,90 @@ $justDuplicate = isset($_GET['duplicate']) && $_GET['duplicate'] == '1';
                             <div class="already-registered-note">
                                 This family head is already registered at this center. Use Decline to clear navigation tracking.
                             </div>
+                            <?php elseif ($hasPartialReg): ?>
+                            <div class="already-registered-note partial-note">
+                                Partial arrival on file — check additional members below when they arrive.
+                            </div>
+                            <?php endif; ?>
+
+                            <?php if ($useRosterUi): ?>
+                            <div class="household-expected-summary">
+                                <strong>Registered household (expected):</strong>
+                                <?php echo (int)$expected['total_members']; ?> total
+                                · Adults <?php echo (int)$expected['adults']; ?>
+                                · Children <?php echo (int)$expected['children']; ?>
+                                · Seniors <?php echo (int)$expected['seniors']; ?>
+                                · PWD <?php echo (int)$expected['pwds']; ?>
+                            </div>
                             <?php endif; ?>
 
                             <form method="post"
                                   id="form-arrival-<?php echo (int)$a['tracking_id']; ?>"
+                                  class="arrival-form"
+                                  data-tracking-id="<?php echo (int)$a['tracking_id']; ?>"
+                                  data-expected-total="<?php echo $profileTotal; ?>"
+                                  data-use-roster="<?php echo $useRosterUi ? '1' : '0'; ?>"
                                   onsubmit="return <?php echo $isRegistered ? 'false' : 'confirmArrival(this)'; ?>">
                                 <input type="hidden" name="action"      value="record_app_arrival">
                                 <input type="hidden" name="tracking_id" value="<?php echo (int)$a['tracking_id']; ?>">
                                 <input type="hidden" name="nav_user_id" value="<?php echo (int)$a['user_id']; ?>">
 
+                                <?php if ($useRosterUi): ?>
+                                <div class="roster-table-wrap">
+                                    <table class="roster-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Arrived</th>
+                                                <th>Name</th>
+                                                <th>Sex</th>
+                                                <th>Birthday</th>
+                                                <th>Category</th>
+                                                <th>PWD</th>
+                                                <th>Pregnant</th>
+                                                <th>Lactating</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        <?php foreach ($roster as $person):
+                                            $key = $person['roster_key'];
+                                            $already = !empty($arrivedKeys[$key]);
+                                            $checked = $already || (!$hasPartialReg && !$isRegistered);
+                                            ?>
+                                            <tr class="<?php echo $already ? 'already-arrived' : ''; ?>">
+                                                <td data-label="Arrived">
+                                                    <?php if ($already): ?>
+                                                    <span class="arrived-tag">Arrived</span>
+                                                    <?php else: ?>
+                                                    <input type="checkbox"
+                                                           name="arrived_keys[]"
+                                                           value="<?php echo htmlspecialchars($key); ?>"
+                                                           class="roster-check"
+                                                           <?php echo $checked ? 'checked' : ''; ?>
+                                                           <?php echo $isRegistered ? 'disabled' : ''; ?>
+                                                           onchange="updateRosterTotals(<?php echo (int)$a['tracking_id']; ?>)">
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td data-label="Name">
+                                                    <?php echo htmlspecialchars($person['full_name']); ?>
+                                                    <?php if (!empty($person['is_head'])): ?>
+                                                    <span class="head-tag">Head</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td data-label="Sex"><?php echo htmlspecialchars(ucfirst($person['sex'] ?? '')); ?></td>
+                                                <td data-label="Birthday"><?php echo !empty($person['birthday']) ? htmlspecialchars($person['birthday']) : '—'; ?></td>
+                                                <td data-label="Category"><?php echo htmlspecialchars($person['primary_label'] ?? ''); ?></td>
+                                                <td data-label="PWD"><?php echo !empty($person['is_pwd']) ? 'Yes' : '—'; ?></td>
+                                                <td data-label="Pregnant"><?php echo !empty($person['is_pregnant']) ? 'Yes' : '—'; ?></td>
+                                                <td data-label="Lactating"><?php echo !empty($person['is_lactating']) ? 'Yes' : '—'; ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <?php else: ?>
                                 <div class="app-arrival-members">
                                     <?php foreach (DEMO_FIELDS as $field => $label):
-                                        $val = (int)$a[$field]; ?>
+                                        $val = (int)($expected[$field] ?? $a[$field]); ?>
                                     <div class="app-member-row">
                                         <span class="app-member-label"><?php echo $label; ?></span>
                                         <div class="app-member-controls">
@@ -438,23 +514,21 @@ $justDuplicate = isset($_GET['duplicate']) && $_GET['duplicate'] == '1';
                                     </div>
                                     <?php endforeach; ?>
                                 </div>
+                                <?php endif; ?>
 
-                                <!-- Footer: two-row layout -->
                                 <div class="app-arrival-footer">
-                                    <!-- Row 1: total + match badge -->
                                     <div class="app-footer-top">
                                         <div class="app-total-wrap">
-                                            <div class="app-total-num" id="total-<?php echo (int)$a['tracking_id']; ?>"><?php echo $profileTotal; ?></div>
-                                            <div class="app-total-label">&nbsp;total present</div>
+                                            <div class="app-total-num" id="total-<?php echo (int)$a['tracking_id']; ?>">
+                                                <?php echo $hasPartialReg ? count($a['arrived_members']) : ($useRosterUi ? count($roster) : $profileTotal); ?>
+                                            </div>
+                                            <div class="app-total-label">&nbsp;<?php echo $useRosterUi ? 'selected to record' : 'total present'; ?></div>
                                         </div>
-                                        <span class="profile-match match-ok"
-                                              id="match-<?php echo (int)$a['tracking_id']; ?>">
+                                        <span class="profile-match match-ok" id="match-<?php echo (int)$a['tracking_id']; ?>">
                                             <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                                            Matches profile
+                                            <span class="match-text">Matches profile</span>
                                         </span>
                                     </div>
-
-                                    <!-- Row 2: two equal buttons -->
                                     <div class="app-footer-actions">
                                         <button type="button"
                                                 class="btn-decline"
@@ -464,18 +538,19 @@ $justDuplicate = isset($_GET['duplicate']) && $_GET['duplicate'] == '1';
                                         </button>
                                         <button type="submit" class="btn-record-arrival" <?php echo $isRegistered ? 'disabled' : ''; ?>>
                                             <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
-                                            Record Arrived
+                                            <?php echo $hasPartialReg ? 'Record Additional' : 'Record Arrived'; ?>
                                         </button>
                                     </div>
                                 </div>
 
-                                <!-- Hidden profile data for match check -->
+                                <?php if (!$useRosterUi): ?>
                                 <input type="hidden"
                                        id="profile-total-<?php echo (int)$a['tracking_id']; ?>"
                                        value="<?php echo $profileTotal; ?>"
                                        <?php foreach (demo_field_keys() as $dk): ?>
-                                       data-<?php echo str_replace('_', '-', $dk); ?>="<?php echo (int)$a[$dk]; ?>"
+                                       data-<?php echo str_replace('_', '-', $dk); ?>="<?php echo (int)($expected[$dk] ?? $a[$dk]); ?>"
                                        <?php endforeach; ?>>
+                                <?php endif; ?>
                             </form>
                         </div>
                         <?php endforeach; ?>
@@ -535,6 +610,33 @@ function adjustVal(trackingId, field, delta) {
     }
 }
 
+function updateRosterTotals(trackingId) {
+    const form = document.getElementById('form-arrival-' + trackingId);
+    if (!form) return;
+    const checks = form.querySelectorAll('.roster-check:checked');
+    const totalEl = document.getElementById('total-' + trackingId);
+    const matchEl = document.getElementById('match-' + trackingId);
+    const expected = parseInt(form.dataset.expectedTotal, 10) || 0;
+    const count = checks.length;
+    if (totalEl) totalEl.textContent = count;
+    if (!matchEl) return;
+    const matchText = matchEl.querySelector('.match-text');
+    if (count === expected && expected > 0) {
+        matchEl.className = 'profile-match match-ok';
+        if (matchText) matchText.textContent = 'Matches profile';
+    } else if (count < expected) {
+        matchEl.className = 'profile-match match-diff';
+        if (matchText) matchText.textContent = 'Partial arrival (' + count + ' of ' + expected + ')';
+    } else {
+        matchEl.className = 'profile-match match-diff';
+        if (matchText) matchText.textContent = 'Count adjusted';
+    }
+}
+
+document.querySelectorAll('.arrival-form[data-use-roster="1"]').forEach(form => {
+    updateRosterTotals(parseInt(form.dataset.trackingId, 10));
+});
+
 /* ── Confirm arrival ── */
 function confirmArrival(form) {
     const card    = form.closest('.app-arrival-card');
@@ -542,6 +644,13 @@ function confirmArrival(form) {
     const totalEl = card.querySelector('[id^="total-"]');
     const name    = nameEl  ? nameEl.textContent.trim()  : 'this evacuee';
     const total   = totalEl ? totalEl.textContent.trim() : '?';
+    if (form.dataset.useRoster === '1') {
+        const checked = form.querySelectorAll('.roster-check:checked').length;
+        if (checked < 1) {
+            alert('Select at least one household member who arrived.');
+            return false;
+        }
+    }
     return confirm('Record arrival for ' + name + ' — ' + total + ' person(s)?\n\nThis will mark them as arrived and add them to the occupancy count.');
 }
 

@@ -51,63 +51,7 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../asset/css/center_walkin.css">
-    <style>
-    /* ── Logout modal (inline guarantee) ── */
-    .logout-modal-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(20,14,8,0.5);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-        padding: 1.5rem;
-    }
-    .logout-modal-overlay.open { display: flex; }
-    .logout-modal-box {
-        background: #fff;
-        border-radius: 18px;
-        max-width: 380px;
-        width: 100%;
-        padding: 1.75rem;
-        box-shadow: 0 24px 60px rgba(28,23,18,0.22);
-        animation: logoutModalIn .25s cubic-bezier(0.22,1,0.36,1);
-    }
-    @keyframes logoutModalIn {
-        from { opacity: 0; transform: scale(0.94) translateY(8px); }
-        to   { opacity: 1; transform: scale(1) translateY(0); }
-    }
-    .logout-modal-icon {
-        width: 48px; height: 48px; border-radius: 50%;
-        background: #fef3c7; border: 1.5px solid #fcd34d;
-        display: flex; align-items: center; justify-content: center;
-        margin-bottom: 1rem;
-    }
-    .logout-modal-icon svg { width: 22px; height: 22px; stroke: #b45309; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .logout-modal-title { font-size: 1rem; font-weight: 800; color: #1c1712; margin-bottom: 0.35rem; font-family: 'Geist', sans-serif; }
-    .logout-modal-desc  { font-size: 0.83rem; color: #5c564a; line-height: 1.55; margin-bottom: 1.25rem; font-family: 'Geist', sans-serif; }
-    .logout-modal-btns  { display: flex; gap: 8px; }
-    .logout-modal-btn-cancel {
-        flex: 1; padding: 0.65rem;
-        border: 1.5px solid #d9d3c5; border-radius: 10px;
-        background: transparent; font-size: 0.85rem; font-weight: 600;
-        color: #5c564a; cursor: pointer; transition: background .15s;
-        font-family: 'Geist', sans-serif;
-    }
-    .logout-modal-btn-cancel:hover { background: #f6f5f1; }
-    .logout-modal-btn-confirm {
-        flex: 1.2; padding: 0.65rem; border: none; border-radius: 10px;
-        background: #b45309; color: #fff; font-size: 0.85rem; font-weight: 700;
-        cursor: pointer; text-decoration: none;
-        display: flex; align-items: center; justify-content: center;
-        transition: filter .15s, transform .1s;
-        font-family: 'Geist', sans-serif;
-    }
-    .logout-modal-btn-confirm:hover  { filter: brightness(1.08); }
-    .logout-modal-btn-confirm:active { transform: scale(.97); }
-    </style>
+    <link rel="stylesheet" href="../asset/css/coordinator_components.css">
 </head>
 <body>
 
@@ -293,9 +237,33 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                                    value="<?php echo htmlspecialchars($_POST['contact_number'] ?? ''); ?>">
                         </label>
                         <label class="form-label">Birthday (Head)
-                            <input type="date" name="birthday" required
+                            <input type="date" name="birthday" id="walkinHeadBirthday" required
                                    value="<?php echo htmlspecialchars($_POST['birthday'] ?? ''); ?>">
                         </label>
+                    </div>
+
+                    <div class="grid-2 walkin-head-flags">
+                        <label class="form-label">Sex (Head)
+                            <select name="head_sex">
+                                <option value="">— Select —</option>
+                                <option value="male" <?php echo (($_POST['head_sex'] ?? '') === 'male') ? 'selected' : ''; ?>>Male</option>
+                                <option value="female" <?php echo (($_POST['head_sex'] ?? '') === 'female') ? 'selected' : ''; ?>>Female</option>
+                            </select>
+                        </label>
+                        <label class="form-label">Category (Head)
+                            <select name="head_primary_category" id="walkinHeadCategory">
+                                <option value="">Auto from birthday</option>
+                                <option value="adults">Adult</option>
+                                <option value="children">Child</option>
+                                <option value="seniors">Senior</option>
+                                <option value="infants_toddlers">Infant / Toddler</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="walkin-head-tags">
+                        <label class="wm-flag"><input type="checkbox" name="head_is_pwd" value="1"> Head is PWD</label>
+                        <label class="wm-flag"><input type="checkbox" name="head_is_pregnant" value="1"> Head is pregnant</label>
+                        <label class="wm-flag"><input type="checkbox" name="head_is_lactating" value="1"> Head is lactating</label>
                     </div>
 
                     <label class="form-label">Barangay
@@ -310,12 +278,17 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                         </select>
                     </label>
 
-                    <div class="grid-2">
-                        <?php foreach (DEMO_FIELDS as $field => $label): ?>
-                        <label class="form-label"><?php echo htmlspecialchars($label); ?>
-                            <input type="number" name="<?php echo $field; ?>" min="0" value="<?php echo (int)($_POST[$field] ?? 0); ?>">
-                        </label>
-                        <?php endforeach; ?>
+                    <div class="walkin-members-section" id="walkinMembersSection">
+                        <div class="walkin-members-head">
+                            <strong>Other household members</strong>
+                            <span class="walkin-members-hint">Family head is registered above. Add spouse, children, seniors, etc. if they arrived with the head.</span>
+                        </div>
+                        <div class="walkin-member-row walkin-member-row-headings" aria-hidden="true">
+                            <span>Name</span><span>Sex</span><span>Birthday</span><span>Category</span><span>Flags</span><span></span>
+                        </div>
+                        <div id="walkinMemberRows"></div>
+                        <button type="button" class="btn-add-walkin-member" id="btnAddWalkinMember">+ Add household member</button>
+                        <input type="hidden" name="members_json" id="walkinMembersJson" value="">
                     </div>
 
                     <button type="submit" class="btn-submit">Record Arrival</button>
@@ -351,6 +324,69 @@ document.addEventListener('keydown', function(e) {
 /* ── Success toast auto-hide ── */
 const toast = document.querySelector('.success-toast');
 if (toast) setTimeout(() => { toast.style.display = 'none'; }, 4200);
+
+/* ── Household member rows (additional members only — head is above) ── */
+(function () {
+    const container = document.getElementById('walkinMemberRows');
+    const btnAdd = document.getElementById('btnAddWalkinMember');
+    if (!container || !btnAdd) return;
+
+    const categories = [
+        { v: 'adults', l: 'Adult' },
+        { v: 'children', l: 'Child' },
+        { v: 'seniors', l: 'Senior' },
+        { v: 'infants_toddlers', l: 'Infant/Toddler' }
+    ];
+
+    function memberRowHtml(idx) {
+        const catOpts = categories.map(c => '<option value="' + c.v + '">' + c.l + '</option>').join('');
+        return '<div class="walkin-member-row" data-idx="' + idx + '">' +
+            '<input type="text" placeholder="Full name" class="wm-name">' +
+            '<select class="wm-sex"><option value="">Sex</option><option value="male">Male</option><option value="female">Female</option></select>' +
+            '<input type="date" class="wm-bday">' +
+            '<select class="wm-cat">' + catOpts + '</select>' +
+            '<div class="wm-flags-inline">' +
+            '<label class="wm-flag"><input type="checkbox" class="wm-pwd"> PWD</label>' +
+            '<label class="wm-flag"><input type="checkbox" class="wm-preg"> Pregnant</label>' +
+            '<label class="wm-flag"><input type="checkbox" class="wm-lac"> Lactating</label>' +
+            '</div>' +
+            '<button type="button" class="wm-remove">Remove</button>' +
+            '</div>';
+    }
+
+    let rowCount = 0;
+    window.WalkinMemberUI = {
+        addRow: function () {
+            container.insertAdjacentHTML('beforeend', memberRowHtml(rowCount++));
+            const row = container.lastElementChild;
+            row.querySelector('.wm-remove').addEventListener('click', () => row.remove());
+        },
+        collectAdditionalMembers: function () {
+            const members = [];
+            container.querySelectorAll('.walkin-member-row').forEach(row => {
+                const name = (row.querySelector('.wm-name') || {}).value.trim();
+                if (!name) return;
+                members.push({
+                    full_name: name,
+                    sex: (row.querySelector('.wm-sex') || {}).value || '',
+                    birthday: (row.querySelector('.wm-bday') || {}).value || '',
+                    primary_category: (row.querySelector('.wm-cat') || {}).value || 'adults',
+                    is_pwd: (row.querySelector('.wm-pwd') || {}).checked ? 1 : 0,
+                    is_pregnant: (row.querySelector('.wm-preg') || {}).checked ? 1 : 0,
+                    is_lactating: (row.querySelector('.wm-lac') || {}).checked ? 1 : 0,
+                    is_household_head: 0
+                });
+            });
+            return members;
+        },
+        resetRows: function () {
+            container.innerHTML = '';
+            rowCount = 0;
+        }
+    };
+
+    btnAdd.addEventListener('click', () => window.WalkinMemberUI.addRow());
+})();
 </script>
 </body>
 </html>

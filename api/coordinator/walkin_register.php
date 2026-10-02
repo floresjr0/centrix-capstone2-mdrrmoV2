@@ -2,10 +2,20 @@
 require_once __DIR__ . '/../../pages/session.php';
 require_once __DIR__ . '/../../pages/walkin_registration.php';
 
-require_login('coordinator');
-
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
+
+$user = current_user();
+if (!$user) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'errors' => ['Session expired. Please log in again as coordinator.']]);
+    exit;
+}
+if ($user['role'] !== 'coordinator') {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'errors' => ['Coordinator access required.']]);
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -13,8 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$pdo  = db();
-$user = current_user();
+$pdo = db();
 
 $raw  = file_get_contents('php://input');
 $data = json_decode($raw ?: '', true);
@@ -35,17 +44,27 @@ $stmt = $pdo->prepare(
 $stmt->execute([$centerId, $user['id']]);
 if (!$stmt->fetch()) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'error' => 'forbidden', 'message' => 'Center not assigned to you.']);
+    echo json_encode(['success' => false, 'errors' => ['This evacuation center is not assigned to your account.']]);
     exit;
 }
 
-$result = register_walkin_family($pdo, $centerId, (int)$user['id'], $data);
+try {
+    $result = register_walkin_family($pdo, $centerId, (int)$user['id'], $data);
+} catch (Throwable $e) {
+    error_log('walkin_register: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'errors' => ['Database error while saving registration. Please try again or contact support.'],
+    ]);
+    exit;
+}
 
 if (!$result['success']) {
     http_response_code(422);
     echo json_encode([
         'success' => false,
-        'errors' => $result['errors'] ?? ['Registration failed.'],
+        'errors' => $result['errors'] ?? ['Registration could not be completed.'],
     ]);
     exit;
 }

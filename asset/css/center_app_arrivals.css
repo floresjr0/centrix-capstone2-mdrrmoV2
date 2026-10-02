@@ -208,6 +208,10 @@ body {
 .app-member-controls button:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-record-arrival:disabled { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.2); }
 
+/* ── Household roster (shared styles in coordinator_components.css) ── */
+.partial-note { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+.checkin-toast.partial-toast { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+
 /* ── Member counter rows ── */
 .app-arrival-members { padding: 0 16px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .app-member-row { display: flex; align-items: center; justify-content: space-between; background: var(--glass-strong); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid var(--glass-border-2); border-radius: 10px; padding: 8px 12px; gap: 8px; }
@@ -327,6 +331,11 @@ body {
     .page-subnav { gap: 0.4rem; }
     .page-subnav a { font-size: 0.76rem; padding: 0.35rem 0.6rem; }
 }
+@media (max-width: 640px) {
+    .app-footer-actions { grid-template-columns: 1fr; }
+    .app-footer-top { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+}
+
 @media (max-width: 480px) {
     .app-arrival-members { grid-template-columns: 1fr; }
     .page-subnav a { font-size: 0.7rem; padding: 0.32rem 0.5rem; }

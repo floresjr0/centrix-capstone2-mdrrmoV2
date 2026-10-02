@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../pages/session.php';
 require_once __DIR__ . '/../../pages/family_adjustment.php';
+require_once __DIR__ . '/../../pages/registration_member_helpers.php';
 
 require_login('coordinator');
 
@@ -43,7 +44,7 @@ $regsStmt = $pdo->prepare(
 $regsStmt->execute([$centerId]);
 $rows = $regsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-$roster = array_map('registration_to_roster_item', $rows);
+$roster = array_map(fn($row) => rm_registration_to_roster_item($row, $pdo), $rows);
 
 echo json_encode([
     'success' => true,

@@ -351,6 +351,30 @@
             .family-name  { font-weight: 600; font-size: 13px; color: #2C3E50; }
             .family-sub   { font-size: 11px; color: #95A5A6; }
 
+            .members-cell { min-width: 180px; max-width: 280px; }
+            .member-name-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+            .member-name-list-compact { gap: 3px; }
+            .member-name-list li { font-size: 12px; line-height: 1.35; color: #34495E; }
+            .member-name-list .member-name { font-weight: 600; color: #2C3E50; }
+            .member-name-list .member-meta { font-size: 10.5px; color: #95A5A6; font-weight: 500; }
+            .member-name-list .member-agg-note { font-size: 10px; color: #B7950B; font-style: italic; }
+            .member-empty { color: #95A5A6; font-size: 12px; }
+            .member-name-list .member-note { font-size: 11px; color: #B7950B; font-style: italic; list-style: none; padding-left: 0; }
+            .member-profile-note { font-size: 10px; color: #2E7D32; font-weight: 600; }
+
+            .reg-source-badge {
+                display: inline-block;
+                padding: 3px 8px;
+                border-radius: 99px;
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                white-space: nowrap;
+            }
+            .reg-source-walkin { background: #FFF3E0; color: #E65100; border: 1px solid #FFCC80; }
+            .reg-source-app { background: #E3F2FD; color: #1565C0; border: 1px solid #90CAF9; }
+
             .empty-state { text-align: center; padding: 48px 20px; color: #95A5A6; }
             .empty-state i { font-size: 40px; margin-bottom: 12px; display: block; opacity: .4; }
 
