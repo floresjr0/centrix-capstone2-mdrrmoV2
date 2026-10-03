@@ -13,7 +13,7 @@ if (current_user()) {
 $errors = [];
 
 // Load active barangays (San Ildefonso only, enforced at DB level)
-$barangays = $pdo->query("SELECT id, name FROM barangays WHERE is_active = 1 ORDER BY name")->fetchAll();
+$barangays = $pdo->query("SELECT id, name FROM barangays WHERE is_active = 1 ORDER BY (name = 'Other'), name")->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $firstName  = trim($_POST['first_name']  ?? '');

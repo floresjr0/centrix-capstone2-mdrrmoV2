@@ -32,10 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$errors) {
 
-        $stmt = $pdo->prepare("SELECT u.*, b.municipality, b.province
-                               FROM users u
-                               JOIN barangays b ON b.id = u.barangay_id
-                               WHERE u.email = ?");
+        $stmt = $pdo->prepare("SELECT u.*, b.name AS barangay_name, b.municipality, b.province
+                       FROM users u
+                       JOIN barangays b ON b.id = u.barangay_id
+                       WHERE u.email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
@@ -51,7 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $errors[] = 'Please verify your email before logging in.';
 
-        } elseif ($user['municipality'] !== 'San Ildefonso' || $user['province'] !== 'Bulacan') {
+        } elseif ($user['barangay_name'] !== 'Other'
+          && ($user['municipality'] !== 'San Ildefonso' || $user['province'] !== 'Bulacan')) {
 
             $errors[] = 'This access is only for residents of San Ildefonso, Bulacan.';
 

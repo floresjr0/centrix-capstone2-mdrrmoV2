@@ -23,7 +23,7 @@ if (!$center) {
     exit;
 }
 
-$barangays = $pdo->query("SELECT id, name FROM barangays WHERE is_active = 1 ORDER BY name")->fetchAll();
+$barangays = $pdo->query("SELECT id, name FROM barangays WHERE is_active = 1 ORDER BY (name = 'Other'), name")->fetchAll();
 $errors = [];
 $successAdded = false;
 
