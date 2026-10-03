@@ -446,7 +446,7 @@ function rm_record_app_arrival_aggregate(PDO $pdo, int $centerId, int $createdBy
     }
 
     $chk = $pdo->prepare("
-        SELECT nt.id, u.full_name, u.barangay_id, u.contact_number, u.birthday
+        SELECT nt.id, nt.user_id, u.full_name, u.barangay_id, u.contact_number, u.birthday
           FROM evac_navigation_tracking nt
           JOIN users u ON u.id = nt.user_id
          WHERE nt.id = ? AND nt.center_id = ? AND nt.status IN ('navigating','partial_arrival')
@@ -457,6 +457,8 @@ function rm_record_app_arrival_aggregate(PDO $pdo, int $centerId, int $createdBy
         return ['success' => false, 'errors' => ['Could not record arrival.']];
     }
 
+    $citizenUserId = (int)($trackRow['user_id'] ?? 0);
+
     if (family_head_already_registered($pdo, $centerId, $trackRow['full_name'], $trackRow['contact_number'], $trackRow['birthday'])) {
         $pdo->prepare("UPDATE evac_navigation_tracking SET status = 'arrived', updated_at = NOW() WHERE id = ?")
             ->execute([$trackingId]);
@@ -466,6 +468,7 @@ function rm_record_app_arrival_aggregate(PDO $pdo, int $centerId, int $createdBy
     $demoCols = implode(', ', demo_field_keys());
     $demoPh   = implode(', ', array_fill(0, count(demo_field_keys()), '?'));
     $modeCol  = rm_column_exists($pdo, 'evac_registrations', 'registration_mode');
+    $sourceCol = rm_column_exists($pdo, 'evac_registrations', 'source_user_id');
     $columns  = "center_id, family_head_name, contact_number, birthday, barangay_id, $demoCols, total_members, created_by";
     $values   = "?, ?, ?, ?, ?, $demoPh, ?, ?";
     $bind     = array_merge(
@@ -473,6 +476,11 @@ function rm_record_app_arrival_aggregate(PDO $pdo, int $centerId, int $createdBy
         array_values($demo),
         [$total, $createdBy]
     );
+    if ($sourceCol && $citizenUserId > 0) {
+        $columns .= ', source_user_id';
+        $values  .= ', ?';
+        $bind[] = $citizenUserId;
+    }
     if ($modeCol) {
         $columns .= ', registration_mode';
         $values  .= ", 'aggregate'";

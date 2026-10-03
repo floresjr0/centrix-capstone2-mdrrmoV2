@@ -49,10 +49,10 @@ function register_walkin_family(PDO $pdo, int $centerId, int $createdBy, array $
     }
     $memberRows = [];
     $useMembers = false;
-    $hasMembersPayload = is_array($input['members'] ?? null) && count($input['members']) > 0;
-    $legacyAggregate = !$hasMembersPayload
-        && empty($memberInputs)
-        && demo_sum_row($demo) > 0;
+
+    // Count-only legacy path: explicit demographic totals with no named members payload.
+    $hasNamedMembersPayload = !empty($memberInputs);
+    $legacyAggregate = !$hasNamedMembersPayload && demo_sum_row($demo) > 0;
 
     if ($hasMemberTable && !$legacyAggregate) {
         $headCategory = trim((string)($input['head_primary_category'] ?? ''));
@@ -103,6 +103,25 @@ function register_walkin_family(PDO $pdo, int $centerId, int $createdBy, array $
         $demo = demo_defaults(0);
         $demo[$cat] = 1;
         $total = 1;
+
+        // Head-only walk-in: still persist the family head as an individual member row.
+        if ($hasMemberTable) {
+            $headInput = [
+                'full_name'         => $headName,
+                'sex'               => $input['head_sex'] ?? '',
+                'birthday'          => $birthday,
+                'primary_category'  => $cat,
+                'is_household_head' => 1,
+                'is_pwd'            => !empty($input['head_is_pwd']) ? 1 : 0,
+                'is_pregnant'       => !empty($input['head_is_pregnant']) ? 1 : 0,
+                'is_lactating'      => !empty($input['head_is_lactating']) ? 1 : 0,
+            ];
+            $headRow = rm_member_input_to_row($headInput);
+            if ($headRow) {
+                $memberRows = [$headRow];
+                $useMembers = true;
+            }
+        }
     }
 
     if ($errors) {

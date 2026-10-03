@@ -99,14 +99,16 @@ function fm_format_member(array $row): array
 
 function fm_head_as_person(array $user): ?array
 {
-    $category = fm_primary_category_from_birthday($user['birthday'] ?? null);
-    if (!$category) {
+    $name = trim((string)($user['full_name'] ?? ''));
+    if ($name === '') {
         return null;
     }
 
+    $category = fm_primary_category_from_birthday($user['birthday'] ?? null) ?? 'adults';
+
     return [
         'is_head'          => true,
-        'full_name'        => $user['full_name'] ?? '',
+        'full_name'        => $name,
         'sex'              => $user['sex'] ?? '',
         'birthday'         => $user['birthday'] ?? '',
         'primary_category' => $category,

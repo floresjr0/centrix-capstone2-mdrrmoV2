@@ -29,7 +29,18 @@ $errors = [];
 
 // ── Record arrival ──────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'record_app_arrival') {
-    $useMembers = rm_table_exists($pdo, 'evac_registration_members')
+    $hasMemberTable = rm_table_exists($pdo, 'evac_registration_members');
+    $navUserId      = (int)($_POST['nav_user_id'] ?? 0);
+    $arrivedKeys    = $_POST['arrived_keys'] ?? null;
+
+    if ($hasMemberTable && $navUserId > 0 && (!is_array($arrivedKeys) || !$arrivedKeys)) {
+        $roster = fm_build_household_roster($pdo, $navUserId);
+        if ($roster) {
+            $_POST['arrived_keys'] = array_map(static fn(array $person): string => (string)$person['roster_key'], $roster);
+        }
+    }
+
+    $useMembers = $hasMemberTable
         && !empty($_POST['arrived_keys'])
         && is_array($_POST['arrived_keys']);
 

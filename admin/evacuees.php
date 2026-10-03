@@ -570,7 +570,8 @@ $_badgeEvacuees      = (int)$pdo->query("SELECT COALESCE(SUM(total_members),0) F
                                 [$reg],
                                 $membersByRegId,
                                 fn($r) => (int)$r['id'],
-                                $profileByRegId
+                                $profileByRegId,
+                                $pdo
                             );
                             $memberSearch = implode(' ', array_column(
                                 array_filter($evacuees, fn($p) => empty($p['_is_note'])),

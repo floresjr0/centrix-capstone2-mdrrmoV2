@@ -212,7 +212,7 @@ function ar_fallback_head_member(string $headName, ?string $birthday = null, ?st
 
 function ar_profile_member_from_roster_person(array $person): array
 {
-    return ar_format_member_row([
+    $row = ar_format_member_row([
         'full_name'         => $person['full_name'] ?? '',
         'is_household_head' => !empty($person['is_head']),
         'sex'               => $person['sex'] ?? '',
@@ -222,6 +222,37 @@ function ar_profile_member_from_roster_person(array $person): array
         'is_pregnant'       => !empty($person['is_pregnant']),
         'is_lactating'      => !empty($person['is_lactating']),
     ]);
+    $row['_from_profile'] = true;
+    return $row;
+}
+
+/**
+ * Load household profile (users head + family_members) for one registration.
+ *
+ * @return list<array<string,mixed>>
+ */
+function ar_profile_members_for_registration(PDO $pdo, array $reg): array
+{
+    if (!ar_table_exists($pdo, 'family_members')) {
+        return [];
+    }
+
+    $userId = ar_resolve_user_id_for_registration($pdo, $reg);
+    if (!$userId) {
+        return [];
+    }
+
+    $roster = fm_build_household_roster($pdo, $userId);
+    if (!$roster) {
+        return [];
+    }
+
+    $rows = [];
+    foreach ($roster as $person) {
+        $rows[] = ar_profile_member_from_roster_person($person);
+    }
+
+    return ar_dedupe_member_rows($rows);
 }
 
 /**
@@ -239,23 +270,96 @@ function ar_resolve_user_id_for_registration(PDO $pdo, array $reg): ?int
     }
 
     $contact = trim((string)($reg['contact_number'] ?? ''));
-    $sql = "SELECT id FROM users WHERE role = 'citizen' AND full_name = ?";
-    $params = [$name];
+    $birthday = !empty($reg['birthday']) ? (string)$reg['birthday'] : null;
+
+    $attempts = [];
+    if ($contact !== '' && $birthday) {
+        $attempts[] = ['sql' => 'role = \'citizen\' AND TRIM(full_name) = ? AND contact_number = ? AND birthday = ?', 'params' => [$name, $contact, $birthday]];
+        $attempts[] = ['sql' => 'role = \'citizen\' AND LOWER(TRIM(full_name)) = LOWER(?) AND contact_number = ? AND birthday = ?', 'params' => [$name, $contact, $birthday]];
+    }
     if ($contact !== '') {
-        $sql .= ' AND contact_number = ?';
-        $params[] = $contact;
+        $attempts[] = ['sql' => 'role = \'citizen\' AND TRIM(full_name) = ? AND contact_number = ?', 'params' => [$name, $contact]];
+        $attempts[] = ['sql' => 'role = \'citizen\' AND LOWER(TRIM(full_name)) = LOWER(?) AND contact_number = ?', 'params' => [$name, $contact]];
     }
-    if (!empty($reg['birthday'])) {
-        $sql .= ' AND birthday = ?';
-        $params[] = $reg['birthday'];
+    if ($birthday) {
+        $attempts[] = ['sql' => 'role = \'citizen\' AND TRIM(full_name) = ? AND birthday = ?', 'params' => [$name, $birthday]];
     }
-    $sql .= ' ORDER BY id ASC LIMIT 1';
+    $attempts[] = ['sql' => 'role = \'citizen\' AND TRIM(full_name) = ?', 'params' => [$name]];
+    $attempts[] = ['sql' => 'role = \'citizen\' AND LOWER(TRIM(full_name)) = LOWER(?)', 'params' => [$name]];
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    $id = $stmt->fetchColumn();
+    foreach ($attempts as $attempt) {
+        $stmt = $pdo->prepare('SELECT id FROM users WHERE ' . $attempt['sql'] . ' ORDER BY id ASC LIMIT 2');
+        $stmt->execute($attempt['params']);
+        $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        if (count($ids) === 1) {
+            return (int)$ids[0];
+        }
+    }
 
-    return $id ? (int)$id : null;
+    return null;
+}
+
+/**
+ * Load present arrival member rows directly for a live registration.
+ *
+ * @return list<array<string,mixed>>
+ */
+function ar_fetch_live_arrival_members(PDO $pdo, int $registrationId): array
+{
+    if ($registrationId <= 0 || !ar_table_exists($pdo, 'evac_registration_members')) {
+        return [];
+    }
+
+    $stmt = $pdo->prepare(
+        'SELECT * FROM evac_registration_members
+          WHERE registration_id = ? AND is_present = 1
+          ORDER BY is_household_head DESC, full_name ASC'
+    );
+    $stmt->execute([$registrationId]);
+
+    $rows = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $rows[] = ar_format_member_row($row);
+    }
+    return $rows;
+}
+
+/**
+ * Load archived individual member rows for one archive registration.
+ *
+ * @return list<array<string,mixed>>
+ */
+function ar_fetch_archive_arrival_members(PDO $pdo, int $archiveRegistrationId): array
+{
+    if ($archiveRegistrationId <= 0 || !ar_table_exists($pdo, 'evac_registration_members_archive')) {
+        return [];
+    }
+
+    $stmt = $pdo->prepare(
+        'SELECT * FROM evac_registration_members_archive
+          WHERE archive_registration_id = ?
+          ORDER BY is_household_head DESC, full_name ASC'
+    );
+    $stmt->execute([$archiveRegistrationId]);
+
+    $rows = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $rows[] = ar_format_member_row($row);
+    }
+    return $rows;
+}
+
+/**
+ * Resolve registration id fields from a report row.
+ *
+ * @return array{live:int,archive:int}
+ */
+function ar_registration_lookup_ids(array $reg): array
+{
+    return [
+        'live'    => (int)($reg['registration_id'] ?? $reg['id'] ?? 0),
+        'archive' => (int)($reg['archive_registration_id'] ?? 0),
+    ];
 }
 
 /**
@@ -265,7 +369,7 @@ function ar_resolve_user_id_for_registration(PDO $pdo, array $reg): ?int
  */
 function ar_bulk_profile_members(PDO $pdo, array $registrations, callable $keyFn): array
 {
-    if (!$registrations || !ar_table_exists($pdo, 'family_members')) {
+    if (!$registrations) {
         return [];
     }
 
@@ -276,22 +380,7 @@ function ar_bulk_profile_members(PDO $pdo, array $registrations, callable $keyFn
             continue;
         }
 
-        $userId = ar_resolve_user_id_for_registration($pdo, $reg);
-        if (!$userId) {
-            continue;
-        }
-
-        $roster = fm_build_household_roster($pdo, $userId);
-        if (!$roster) {
-            continue;
-        }
-
-        $rows = [];
-        foreach ($roster as $person) {
-            $row = ar_profile_member_from_roster_person($person);
-            $row['_from_profile'] = true;
-            $rows[] = $row;
-        }
+        $rows = ar_profile_members_for_registration($pdo, $reg);
         if ($rows) {
             $grouped[$key] = $rows;
         }
@@ -300,29 +389,145 @@ function ar_bulk_profile_members(PDO $pdo, array $registrations, callable $keyFn
     return $grouped;
 }
 
-function ar_members_for_registration(
+/**
+ * Remove duplicate rows (same person listed twice by name + head flag).
+ *
+ * @param list<array<string,mixed>> $rows
+ * @return list<array<string,mixed>>
+ */
+function ar_dedupe_member_rows(array $rows): array
+{
+    $seen = [];
+    $deduped = [];
+
+    foreach ($rows as $row) {
+        $nameKey = mb_strtolower(trim((string)($row['full_name'] ?? '')));
+        if ($nameKey === '') {
+            continue;
+        }
+        $dedupeKey = $nameKey . '|' . (!empty($row['is_household_head']) ? '1' : '0');
+        if (isset($seen[$dedupeKey])) {
+            continue;
+        }
+        $seen[$dedupeKey] = true;
+        $deduped[] = $row;
+    }
+
+    return $deduped;
+}
+
+/**
+ * Resolve individual evacuee rows for one registration.
+ *
+ * Priority:
+ * 1. evac_registration_members (is_present = 1) — actual arrivals only
+ * 2. citizen household profile (users + family_members)
+ * 3. legacy aggregate fallback (head only + optional note)
+ *
+ * @return list<array<string,mixed>>
+ */
+function ar_resolve_registration_members(
+    PDO $pdo,
     array $reg,
-    array $membersByKey,
-    int $lookupKey,
-    array $profileByKey = []
+    array $arrivalMembers,
+    array $profileMembers = []
 ): array {
-    if (!empty($membersByKey[$lookupKey])) {
-        return $membersByKey[$lookupKey];
+    $ids = ar_registration_lookup_ids($reg);
+
+    if (!$arrivalMembers && $ids['live'] > 0) {
+        $arrivalMembers = ar_fetch_live_arrival_members($pdo, $ids['live']);
     }
-    if (!empty($profileByKey[$lookupKey])) {
-        return $profileByKey[$lookupKey];
+    if (!$arrivalMembers && $ids['archive'] > 0) {
+        $arrivalMembers = ar_fetch_archive_arrival_members($pdo, $ids['archive']);
     }
-    return ar_fallback_head_member(
+
+    $arrivalMembers = ar_dedupe_member_rows($arrivalMembers);
+    if ($arrivalMembers) {
+        return $arrivalMembers;
+    }
+
+    // Profile fallback only for app/citizen registrations without stored arrival rows.
+    if (ar_registration_source($reg) === 'app' || ar_resolve_user_id_for_registration($pdo, $reg)) {
+        if (!$profileMembers) {
+            $profileMembers = ar_profile_members_for_registration($pdo, $reg);
+        } else {
+            $profileMembers = ar_dedupe_member_rows($profileMembers);
+        }
+
+        if ($profileMembers) {
+            return $profileMembers;
+        }
+    }
+
+    return ar_legacy_aggregate_members($reg);
+}
+
+/**
+ * Legacy aggregate-only registrations with no individual member records.
+ *
+ * @return list<array<string,mixed>>
+ */
+function ar_legacy_aggregate_members(array $reg): array
+{
+    $rows = ar_fallback_head_member(
         $reg['family_head_name'] ?? '',
         $reg['birthday'] ?? null,
         $reg['head_sex'] ?? null
     );
+
+    $extra = max(0, (int)($reg['total_members'] ?? 1) - 1);
+    if ($extra > 0) {
+        $rows[] = [
+            'full_name'         => 'Additional household member(s)',
+            'is_household_head' => false,
+            'sex'               => '',
+            'sex_label'         => '—',
+            'birthday'          => '',
+            'age'               => null,
+            'primary_category'  => '',
+            'primary_label'     => 'See family counts',
+            'is_pwd'            => false,
+            'is_pregnant'       => false,
+            'is_lactating'      => false,
+            '_is_note'          => true,
+            '_note_text'        => $extra . ' additional person(s) recorded by count only — no individual names on file',
+        ];
+    }
+
+    return $rows;
+}
+
+function ar_members_for_registration(
+    array $reg,
+    array $membersByKey,
+    int $lookupKey,
+    array $profileByKey = [],
+    ?PDO $pdo = null
+): array {
+    $arrivalMembers = $membersByKey[$lookupKey] ?? [];
+    $profileMembers = $profileByKey[$lookupKey] ?? [];
+
+    if ($pdo) {
+        return ar_resolve_registration_members($pdo, $reg, $arrivalMembers, $profileMembers);
+    }
+
+    $arrivalMembers = ar_dedupe_member_rows($arrivalMembers);
+    if ($arrivalMembers) {
+        return $arrivalMembers;
+    }
+
+    $profileMembers = ar_dedupe_member_rows($profileMembers);
+    if ($profileMembers && (ar_registration_source($reg) === 'app' || !empty($reg['source_user_id']))) {
+        return $profileMembers;
+    }
+
+    return ar_legacy_aggregate_members($reg);
 }
 
 /**
  * Expand registrations into one row per evacuee (with family context).
  *
- * Priority: evac_registration_members (actual arrivals) → household profile → head + note.
+ * Priority: actual arrivals → household profile → legacy aggregate note.
  *
  * @param callable(array): int $keyFn
  */
@@ -330,52 +535,24 @@ function ar_collect_centre_evacuees(
     array $centreRecs,
     array $membersByKey,
     callable $keyFn,
-    array $profileByKey = []
+    array $profileByKey = [],
+    ?PDO $pdo = null
 ): array {
     $evacuees = [];
 
     foreach ($centreRecs as $reg) {
         $key = (int)$keyFn($reg);
         $ctx = ar_registration_context($reg);
+        $members = ar_members_for_registration(
+            $reg,
+            $membersByKey,
+            $key,
+            $profileByKey,
+            $pdo
+        );
 
-        if (!empty($membersByKey[$key])) {
-            foreach ($membersByKey[$key] as $member) {
-                $evacuees[] = array_merge($member, $ctx);
-            }
-            continue;
-        }
-
-        if (!empty($profileByKey[$key])) {
-            foreach ($profileByKey[$key] as $member) {
-                $evacuees[] = array_merge($member, $ctx);
-            }
-            continue;
-        }
-
-        $headSex = $reg['head_sex'] ?? null;
-        $head = ar_fallback_head_member(
-            $reg['family_head_name'] ?? '',
-            $reg['birthday'] ?? null,
-            $headSex
-        )[0];
-        $evacuees[] = array_merge($head, $ctx);
-
-        $extra = max(0, (int)($reg['total_members'] ?? 1) - 1);
-        if ($extra > 0) {
-            $evacuees[] = array_merge([
-                'full_name'         => 'Additional household member(s)',
-                'is_household_head' => false,
-                'sex'               => '',
-                'sex_label'         => '—',
-                'birthday'          => '',
-                'age'               => null,
-                'primary_label'     => 'See family counts',
-                'is_pwd'            => false,
-                'is_pregnant'       => false,
-                'is_lactating'      => false,
-                '_is_note'          => true,
-                '_note_text'        => $extra . ' person(s) in family total — link to citizen account or re-register with member names',
-            ], $ctx);
+        foreach ($members as $member) {
+            $evacuees[] = array_merge($member, $ctx);
         }
     }
 
@@ -510,7 +687,7 @@ function ar_render_individual_roster_table(array $evacuees): string
                     <?php
                     $notes = array_filter($evacuees, fn($p) => !empty($p['_is_note']));
                     if ($notes) {
-                        echo ' · ' . count($notes) . ' aggregate note(s)';
+                        echo ' · ' . count($notes) . ' count-only note(s)';
                     }
                     ?>
                 </td>

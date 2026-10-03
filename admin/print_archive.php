@@ -453,8 +453,8 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
                 $ageDisplay = $age !== null ? $age : '–';
                 $bdayFormatted = $rec['birthday'] ? date('M d, Y', strtotime($rec['birthday'])) : '–';
                 $archiveRegId = (int)($rec['archive_registration_id'] ?? 0);
-                $members = ar_members_for_registration($rec, $membersByArchiveId, $archiveRegId, $profileByArchiveId);
-                $memberCount = count($members);
+                $members = ar_members_for_registration($rec, $membersByArchiveId, $archiveRegId, $profileByArchiveId, $pdo);
+                $memberCount = count(array_filter($members, fn($m) => empty($m['_is_note'])));
             ?>
             <tr class="family-row">
                 <td style="color:var(--muted);font-size:10px"><?php echo $ri+1; ?></td>
@@ -497,11 +497,12 @@ td.center-col small { display: block; font-weight: 400; color: var(--muted); fon
         $centreRecs,
         $membersByArchiveId,
         fn($rec) => (int)($rec['archive_registration_id'] ?? 0),
-        $profileByArchiveId
+        $profileByArchiveId,
+        $pdo
     );
     ?>
     <div class="individual-roster-section no-break">
-        <div class="section-title">Individual Evacuee Roster — <?php echo count($centreEvacuees); ?> record(s)</div>
+        <div class="section-title">Individual Evacuee Roster — <?php echo count(array_filter($centreEvacuees, fn($p) => empty($p['_is_note']))); ?> evacuee(s)</div>
         <?php echo ar_render_individual_roster_table($centreEvacuees); ?>
     </div>
 

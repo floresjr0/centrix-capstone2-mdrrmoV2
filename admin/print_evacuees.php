@@ -251,7 +251,8 @@ td.num { text-align: right; }
         <tbody>
         <?php foreach ($centreRecs as $ri => $rec):
             $regId = (int)$rec['registration_id'];
-            $members = ar_members_for_registration($rec, $membersByRegId, $regId);
+            $members = ar_members_for_registration($rec, $membersByRegId, $regId, $profileByRegId, $pdo);
+            $namedCount = count(array_filter($members, fn($m) => empty($m['_is_note'])));
             $age = ar_calculate_age($rec['birthday'] ?? null);
         ?>
         <tr class="family-row">
@@ -259,7 +260,7 @@ td.num { text-align: right; }
             <td style="font-size:10.5px"><?php echo ar_registration_source_label($rec['registration_source'] ?? 'walkin'); ?></td>
             <td style="font-weight:600">
                 <?php echo htmlspecialchars($rec['family_head_name']); ?>
-                <span class="member-count-pill"><?php echo count($members); ?> name<?php echo count($members) === 1 ? '' : 's'; ?></span>
+                <span class="member-count-pill"><?php echo $namedCount; ?> name<?php echo $namedCount === 1 ? '' : 's'; ?></span>
             </td>
             <td><?php echo htmlspecialchars($rec['contact_number'] ?? '—'); ?></td>
             <td><?php echo $rec['birthday'] ? date('M d, Y', strtotime($rec['birthday'])) : '–'; ?></td>
@@ -281,11 +282,12 @@ td.num { text-align: right; }
         $centreRecs,
         $membersByRegId,
         fn($rec) => (int)($rec['registration_id'] ?? 0),
-        $profileByRegId
+        $profileByRegId,
+        $pdo
     );
     ?>
     <div class="individual-roster-section no-break">
-        <div class="section-title">Individual Evacuee Roster — <?php echo count($centreEvacuees); ?> record(s)</div>
+        <div class="section-title">Individual Evacuee Roster — <?php echo count(array_filter($centreEvacuees, fn($p) => empty($p['_is_note']))); ?> evacuee(s)</div>
         <?php echo ar_render_individual_roster_table($centreEvacuees); ?>
     </div>
 
