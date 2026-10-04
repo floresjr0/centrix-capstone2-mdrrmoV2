@@ -403,16 +403,69 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .topbar-avatar{width:37px;height:37px;background:linear-gradient(145deg,var(--red-dark),var(--red) 45%,var(--orange));border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:white;cursor:pointer;box-shadow:0 3px 10px rgba(192,57,30,.26);transition:transform .16s ease}
 .topbar-avatar:active{transform:scale(.90)}
 .hh-size-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:white;border-radius:20px;width:19px;height:19px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(192,57,30,.26)}
+
+/* ── DRAWER PROFILE CARD ──
+   FIX: the "Citizen · Complete / Family · Incomplete" chips are now a direct
+   child of .drawer-profile-row (not inside .drawer-profile-text), so they
+   start at the avatar's left edge on their own full-width line. */
 .drawer-profile-block{margin-bottom:.55rem}
-.drawer-profile-row{display:flex;align-items:flex-start;gap:12px;background:var(--surface-0);padding:12px 14px;border-radius:18px;box-shadow:var(--shadow-sm);transition:background .14s,border-color .14s;cursor:pointer;border:1px solid rgba(224,112,32,.10)}
+
+.drawer-profile-row{
+  display:flex;
+  flex-wrap:wrap;                 /* lets the chips drop to their own line */
+  align-items:flex-start;
+  gap:12px;
+  background:var(--surface-0);
+  padding:12px 14px;
+  border-radius:18px;
+  box-shadow:var(--shadow-sm);
+  transition:background .14s,border-color .14s;
+  cursor:pointer;
+  border:1px solid rgba(224,112,32,.10);
+}
 .drawer-profile-row:hover{background:#FFF8F2;border-color:rgba(224,112,32,.24)}
-.drawer-profile-avatar{width:48px;height:48px;background:linear-gradient(145deg,var(--red-dark),var(--red) 45%,var(--orange));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.28rem;font-weight:700;color:white;box-shadow:0 4px 12px rgba(192,57,30,.24);flex-shrink:0}
+
+.drawer-profile-avatar{
+  width:48px;height:48px;
+  background:linear-gradient(145deg,var(--red-dark),var(--red) 45%,var(--orange));
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.28rem;font-weight:700;color:white;
+  box-shadow:0 4px 12px rgba(192,57,30,.24);
+  flex-shrink:0;
+}
+
 .drawer-profile-text{flex:1;min-width:0}
 .drawer-profile-name{font-size:.88rem;font-weight:700;color:#1E293B;line-height:1.3}
 .drawer-profile-sub{font-size:.64rem;font-weight:500;color:var(--muted);margin-top:2px}
-.drawer-profile-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.drawer-profile-edit{margin-left:auto;align-self:center;background:rgba(224,112,32,.09);padding:5px 12px;border-radius:40px;font-size:.68rem;font-weight:700;color:var(--orange);transition:background .14s,color .14s;white-space:nowrap;flex-shrink:0}
+
+/* Chips: own full-width line, starting at the avatar's left edge */
+.drawer-profile-chips{
+  flex:0 0 100%;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:2px;
+}
+.drawer-profile-chips .status-chip{
+  font-size:.60rem;               /* adjust chip size here */
+  padding:4px 10px;
+}
+
+.drawer-profile-edit{
+  margin-left:auto;
+  align-self:center;
+  background:rgba(224,112,32,.09);
+  padding:5px 12px;
+  border-radius:40px;
+  font-size:.68rem;font-weight:700;
+  color:var(--orange);
+  transition:background .14s,color .14s;
+  white-space:nowrap;
+  flex-shrink:0;
+}
 .drawer-profile-row:hover .drawer-profile-edit{background:var(--orange);color:white}
+
 .drawer-status-hint{font-size:.64rem;color:var(--muted);line-height:1.45;margin:.55rem .15rem .45rem;padding:0 .2rem}
 .drawer-status-hint.ok{color:#15803D}
 .drawer-household-action{display:flex;align-items:center;justify-content:center;gap:.55rem;width:100%;padding:.72rem .88rem;border-radius:14px;border:1px solid rgba(224,112,32,.18);background:linear-gradient(140deg,#FEF9F5,#FFF0E6);color:var(--orange);font-size:.76rem;font-weight:700;font-family:var(--font);cursor:pointer;transition:background .14s,border-color .14s,transform .14s;box-shadow:var(--shadow-xs)}
@@ -517,3 +570,11 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 
 /* Respect reduced motion */
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.drawer-biometric-settings { padding: 0 1rem 0.75rem; }
+.drawer-biometric-copy { font-size: 0.78rem; color: #6b6560; line-height: 1.45; margin-bottom: 0.65rem; }
+.drawer-biometric-btn {
+  width: 100%; border: none; border-radius: 10px; padding: 0.65rem 0.85rem;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer; margin-bottom: 0.45rem;
+  background: #c0391e; color: #fff;
+}
+.drawer-biometric-btn-muted { background: #f3f1ed; color: #5c564a; border: 1px solid #ddd7cf; }

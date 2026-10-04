@@ -311,14 +311,7 @@ $riskLabels = ['low'=>'LOW','medium'=>'MODERATE','high'=>'HIGH','extreme'=>'SEVE
   sessionStorage.setItem('centrix_last_login_email', <?php echo json_encode($user['email'] ?? ''); ?>);
 </script>
 <style>
-.drawer-biometric-settings { padding: 0 1rem 0.75rem; }
-.drawer-biometric-copy { font-size: 0.78rem; color: #6b6560; line-height: 1.45; margin-bottom: 0.65rem; }
-.drawer-biometric-btn {
-  width: 100%; border: none; border-radius: 10px; padding: 0.65rem 0.85rem;
-  font-size: 0.82rem; font-weight: 600; cursor: pointer; margin-bottom: 0.45rem;
-  background: #c0391e; color: #fff;
-}
-.drawer-biometric-btn-muted { background: #f3f1ed; color: #5c564a; border: 1px solid #ddd7cf; }
+
 </style>
 </head>
 <body>
@@ -344,12 +337,14 @@ $riskLabels = ['low'=>'LOW','medium'=>'MODERATE','high'=>'HIGH','extreme'=>'SEVE
         <div class="drawer-profile-text">
           <div class="drawer-profile-name" id="drawerName">My Profile</div>
           <div class="drawer-profile-sub">Tap to edit profile &amp; household</div>
-          <div class="drawer-profile-chips">
-            <span class="status-chip <?php echo $profileStatus['citizen_profile']['complete'] ? 'complete' : 'incomplete'; ?>" id="drawerStatusCitizen">Citizen · <?php echo $profileStatus['citizen_profile']['complete'] ? 'Complete' : 'Incomplete'; ?></span>
-            <span class="status-chip <?php echo $profileStatus['family_profile']['complete'] ? 'complete' : 'incomplete'; ?>" id="drawerStatusFamily">Family · <?php echo $profileStatus['family_profile']['complete'] ? 'Complete' : 'Incomplete'; ?></span>
-          </div>
         </div>
         <div class="drawer-profile-edit">Edit ›</div>
+
+        <!-- Chips: direct child of the row, so they align with the avatar's left edge -->
+        <div class="drawer-profile-chips">
+          <span class="status-chip <?php echo $profileStatus['citizen_profile']['complete'] ? 'complete' : 'incomplete'; ?>" id="drawerStatusCitizen">Citizen · <?php echo $profileStatus['citizen_profile']['complete'] ? 'Complete' : 'Incomplete'; ?></span>
+          <span class="status-chip <?php echo $profileStatus['family_profile']['complete'] ? 'complete' : 'incomplete'; ?>" id="drawerStatusFamily">Family · <?php echo $profileStatus['family_profile']['complete'] ? 'Complete' : 'Incomplete'; ?></span>
+        </div>
       </div>
       <p class="drawer-status-hint <?php echo $profileStatus['navigation_allowed'] ? 'ok' : ''; ?>" id="drawerProfileHint">
         <?php echo $profileStatus['navigation_allowed']
