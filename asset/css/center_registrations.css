@@ -1,3 +1,4 @@
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -259,6 +260,93 @@ body {
 .reg-card-readonly-count .member-row-label { font-size: 0.65rem; }
 .reg-card-readonly-count .adjust-val { font-size: 0.9rem; font-weight: 700; color: var(--orange-dark); }
 
+/* ═══════════════════════════════════════════════════════════
+   MEMBERS TOGGLE BUTTON ("N present") — orange, clearly tappable
+   Shows: people icon · "N present" · [✎ Edit ⌄]
+   When open: the action reads "Close" and the chevron flips.
+   Declared as button.btn-toggle-members so it overrides the
+   base style from coordinator_components.css.
+   ═══════════════════════════════════════════════════════════ */
+button.btn-toggle-members {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.4rem 0.4rem 0.8rem;
+    background: linear-gradient(135deg, var(--orange-light) 0%, var(--orange) 100%);
+    color: #fff;
+    border: 1px solid var(--orange-dark);
+    border-radius: 50px;
+    font-family: var(--font);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    box-shadow: 0 3px 10px var(--orange-glow), 0 1px 0 rgba(255,255,255,0.25) inset;
+    transition: transform 0.12s var(--ease), box-shadow 0.15s, filter 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+}
+button.btn-toggle-members:hover  { filter: brightness(1.06); box-shadow: 0 5px 14px var(--orange-glow); }
+button.btn-toggle-members:active { transform: scale(0.96); }
+button.btn-toggle-members .bt-icon { width: 15px; height: 15px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+button.btn-toggle-members .bt-label { display: inline-flex; align-items: center; gap: 0.3rem; }
+button.btn-toggle-members .expected-tag { font-size: 0.68rem; font-weight: 500; color: rgba(255,255,255,0.85); }
+
+/* Action pill (right side of the button) */
+button.btn-toggle-members .bt-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding: 0.3rem 0.55rem 0.3rem 0.5rem;
+    background: rgba(255,255,255,0.22);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 50px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+button.btn-toggle-members .bt-action svg { width: 12px; height: 12px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+button.btn-toggle-members .bt-chevron { transition: transform 0.25s var(--ease); }
+button.btn-toggle-members .bt-when-open { display: none; }
+button.btn-toggle-members[aria-expanded="true"] .bt-when-open   { display: inline; }
+button.btn-toggle-members[aria-expanded="true"] .bt-when-closed { display: none; }
+button.btn-toggle-members[aria-expanded="true"] .bt-chevron     { transform: rotate(180deg); }
+button.btn-toggle-members[aria-expanded="true"] {
+    background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   REMOVE BUTTON — fix
+   Problem: the generic ".inline-adjust button" rule (24px round
+   +/- style) was also hitting the Remove button, putting a circle
+   behind the text. These rules override it with a proper pill.
+   ═══════════════════════════════════════════════════════════ */
+.inline-adjust button.btn-member-out {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    padding: 0.4rem 0.8rem;
+    border-radius: 50px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    background: var(--red-bg);
+    color: var(--red);
+    border: 1px solid var(--red-border);
+    font-family: var(--font);
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    transform: none;
+}
+.inline-adjust button.btn-member-out svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.inline-adjust button.btn-member-out:hover  { background: var(--red); border-color: var(--red); color: #fff; transform: none; }
+.inline-adjust button.btn-member-out:active { transform: scale(0.96); }
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
     .hamburger-btn { display: none; }
@@ -273,6 +361,10 @@ body {
     .page-subnav { gap: 0.4rem; }
     .page-subnav a { font-size: 0.76rem; padding: 0.35rem 0.6rem; }
     .reg-toolbar { padding: 0.85rem 1rem; }
+
+    /* Mobile: Remove spans the full width of the member card, easy to tap */
+    .member-panel-card .inline-adjust { display: flex; width: 100%; }
+    .member-panel-card .inline-adjust button.btn-member-out { width: 100%; padding: 0.6rem 0.8rem; font-size: 0.78rem; }
 }
 @media (max-width: 480px) {
     .reg-card-members { grid-template-columns: 1fr; }

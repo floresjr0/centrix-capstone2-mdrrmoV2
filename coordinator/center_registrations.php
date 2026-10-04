@@ -89,6 +89,7 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
     <link rel="stylesheet" href="../asset/css/center_registrations.css">
     <link rel="stylesheet" href="../asset/css/coordinator_components.css">
 </head>
+
 <body>
 
 <div class="bg-blobs" aria-hidden="true">
@@ -287,11 +288,19 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                                     <td><?php echo htmlspecialchars($r['barangay_name']); ?></td>
                                     <?php if ($useMemberRegs): ?>
                                     <td class="cell-members">
-                                        <button type="button" class="btn-toggle-members" onclick="toggleMemberPanel(<?php echo $rid; ?>)">
-                                            <?php echo count($members); ?> present
-                                            <?php if ($expectedTotal !== null && $expectedTotal !== (int)$r['total_members']): ?>
-                                            <span class="expected-tag">(exp. <?php echo $expectedTotal; ?>)</span>
-                                            <?php endif; ?>
+                                        <button type="button" class="btn-toggle-members" data-toggle-reg="<?php echo $rid; ?>" aria-expanded="false" aria-controls="member-panel-<?php echo $rid; ?>" title="View, edit or add members" onclick="toggleMemberPanel(<?php echo $rid; ?>)">
+                                            <svg class="bt-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                                            <span class="bt-label">
+                                                <?php echo count($members); ?> present
+                                                <?php if ($expectedTotal !== null && $expectedTotal !== (int)$r['total_members']): ?>
+                                                <span class="expected-tag">(exp. <?php echo $expectedTotal; ?>)</span>
+                                                <?php endif; ?>
+                                            </span>
+                                            <span class="bt-action">
+                                                <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                                                <span class="bt-when-closed">Edit</span><span class="bt-when-open">Close</span>
+                                                <svg class="bt-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                                            </span>
                                         </button>
                                     </td>
                                     <?php endif; ?>
@@ -344,7 +353,7 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                                                         <input type="hidden" name="action" value="remove_member">
                                                         <input type="hidden" name="reg_id" value="<?php echo $rid; ?>">
                                                         <input type="hidden" name="member_id" value="<?php echo (int)$m['id']; ?>">
-                                                        <button type="submit" class="btn-member-out">Remove</button>
+                                                        <button type="submit" class="btn-member-out"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>Remove</button>
                                                     </form>
                                                 </td>
                                             </tr>
@@ -448,11 +457,19 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                             </div>
                             <?php if ($useMemberRegs): ?>
                             <div class="reg-card-members-toolbar">
-                                <button type="button" class="btn-toggle-members" onclick="toggleMemberPanel(<?php echo $rid; ?>)">
-                                    <?php echo count($members); ?> present
-                                    <?php if ($expectedTotal !== null && $expectedTotal !== (int)$r['total_members']): ?>
-                                    <span class="expected-tag">(exp. <?php echo $expectedTotal; ?>)</span>
-                                    <?php endif; ?>
+                                <button type="button" class="btn-toggle-members" data-toggle-reg="<?php echo $rid; ?>" aria-expanded="false" aria-controls="member-panel-card-<?php echo $rid; ?>" title="View, edit or add members" onclick="toggleMemberPanel(<?php echo $rid; ?>)">
+                                    <svg class="bt-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                                    <span class="bt-label">
+                                        <?php echo count($members); ?> present
+                                        <?php if ($expectedTotal !== null && $expectedTotal !== (int)$r['total_members']): ?>
+                                        <span class="expected-tag">(exp. <?php echo $expectedTotal; ?>)</span>
+                                        <?php endif; ?>
+                                    </span>
+                                    <span class="bt-action">
+                                        <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                                        <span class="bt-when-closed">Edit</span><span class="bt-when-open">Close</span>
+                                        <svg class="bt-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                                    </span>
                                 </button>
                             </div>
                             <div class="member-panel-card" id="member-panel-card-<?php echo $rid; ?>">
@@ -475,7 +492,7 @@ $barColor = $pct >= 100 ? '#dc2626' : ($pct >= 75 ? '#d97706' : '#16a34a');
                                                 <input type="hidden" name="action" value="remove_member">
                                                 <input type="hidden" name="reg_id" value="<?php echo $rid; ?>">
                                                 <input type="hidden" name="member_id" value="<?php echo (int)$m['id']; ?>">
-                                                <button type="submit" class="btn-member-out">Remove</button>
+                                                <button type="submit" class="btn-member-out"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>Remove</button>
                                             </form>
                                         </td>
                                     </tr>
@@ -595,6 +612,12 @@ function toggleMemberPanel(regId) {
     if (panel) panel.hidden = !panel.hidden;
     const card = document.getElementById('member-panel-card-' + regId);
     if (card) card.classList.toggle('open');
+
+    /* Keep the orange toggle button(s) in sync: "Edit ⌄" when closed, "Close ⌃" when open */
+    const isOpen = (panel && !panel.hidden) || (card && card.classList.contains('open'));
+    document.querySelectorAll('[data-toggle-reg="' + regId + '"]').forEach(function (btn) {
+        btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
 }
 </script>
 </body>
